@@ -1,0 +1,18 @@
+{
+	"tasks": {
+		"dev": "deno run -A scripts/dev.js"
+	},
+	"fmt": {
+		"files": {
+			"include": [
+				"src/",
+				"scripts/"
+			]
+		},
+		"options": {
+			"indentWidth": 4,
+			"useTabs": true,
+			"lineWidth": 120
+		}
+	}
+}
