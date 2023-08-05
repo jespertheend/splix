@@ -2,6 +2,7 @@
 	"tasks": {
 		"dev": "deno run -A scripts/dev.js"
 	},
+	"importMap": "importmap.json",
 	"fmt": {
 		"files": {
 			"include": [

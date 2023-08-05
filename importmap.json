@@ -1,0 +1,6 @@
+{
+	"imports": {
+		"renda": "https://deno.land/x/renda@v0.1.0/src/mod.js",
+		"chdir-anywhere": "https://deno.land/x/chdir_anywhere@v0.0.3/mod.js"
+	}
+}
