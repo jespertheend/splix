@@ -1,4 +1,5 @@
 import { WebSocketConnection } from "./WebSocketConnection.js";
+import { getMainInstance } from "./mainInstance.js";
 import { WebSocketHoster } from "./util/WebSocketHoster.js";
 
 export class WebSocketManager {
@@ -9,9 +10,9 @@ export class WebSocketManager {
 
 	constructor() {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
-			const connection = new WebSocketConnection(socket, ip);
+			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
 			this.#activeConnections.add(connection);
-			socket.addEventListener("message", async message => {
+			socket.addEventListener("message", async (message) => {
 				try {
 					if (message.data instanceof ArrayBuffer) {
 						await connection.onMessage(message.data);
@@ -25,11 +26,21 @@ export class WebSocketManager {
 			socket.addEventListener("close", () => {
 				connection.onClose();
 				this.#activeConnections.delete(connection);
-			})
-		})
+			});
+		});
 	}
 
 	init() {
 		this.#hoster.startServer(8080);
+	}
+
+	/**
+	 * @param {number} now
+	 * @param {number} dt
+	 */
+	loop(now, dt) {
+		for (const connection of this.#activeConnections) {
+			connection.loop(now, dt);
+		}
 	}
 }
