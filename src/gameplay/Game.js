@@ -1,7 +1,9 @@
 /** @typedef {"default" | "teams"} GameModes */
 
+import { Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
+import { WebSocketConnection } from "../WebSocketConnection.js";
 
 export class Game {
 	#arena;
@@ -54,10 +56,14 @@ export class Game {
 	/** @type {Map<number, Player>} */
 	#players = new Map();
 
-	createPlayer() {
+	/**
+	 * @param {WebSocketConnection} connection
+	 */
+	createPlayer(connection) {
 		const id = this.#getNewPlayerId();
-		const player = new Player(id, this);
+		const player = new Player(id, this, connection);
 		this.#players.set(id, player);
+		this.#broadcastPosition(player);
 		return player;
 	}
 
@@ -94,5 +100,45 @@ export class Game {
 
 		const colorId = tilePlayer.skinIdForPlayer(player) + 2;
 		return colorId;
+	}
+
+	/**
+	 * Yields a list of players whose viewport contain (part of) the provided rect.
+	 * @param {import("./Arena.js").Rect} rect
+	 */
+	*getOverlappingViewportPlayersForRect(rect) {
+		for (const player of this.#players.values()) {
+			const viewport = player.getUpdatesViewport();
+			if (
+				rect.max.x < viewport.min.x || viewport.max.x < rect.min.x || rect.max.y < viewport.min.y ||
+				viewport.max.y < rect.min.y
+			) {
+				continue;
+			}
+
+			yield player;
+		}
+	}
+
+	/**
+	 * @param {Vec2} pos
+	 */
+	*getOverlappingViewportPlayersForPos(pos) {
+		yield* this.getOverlappingViewportPlayersForRect({
+			min: pos.clone(),
+			max: pos.clone(),
+		});
+	}
+
+	/**
+	 * Sends the position of a player to all nearby players.
+	 * @param {import("./Player.js").Player} player
+	 */
+	#broadcastPosition(player) {
+		// TODO: Cache the list of nearby players
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.snappedPos)) {
+			const playerId = player == nearbyPlayer ? 0 : player.id;
+			nearbyPlayer.connection.sendPlayerState(player.snappedPos.x, player.snappedPos.y, playerId, "up", null);
+		}
 	}
 }
