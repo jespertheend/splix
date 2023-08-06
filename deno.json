@@ -1,6 +1,6 @@
 {
 	"tasks": {
-		"dev": "deno run -A scripts/dev.js"
+		"dev": "deno run -A --inspect scripts/dev.js"
 	},
 	"importMap": "importmap.json",
 	"fmt": {

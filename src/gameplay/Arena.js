@@ -1,9 +1,7 @@
 /**
  * @typedef Rect
- * @property {number} x
- * @property {number} y
- * @property {number} w
- * @property {number} h
+ * @property {import("renda").Vec2} min
+ * @property {import("renda").Vec2} max
  */
 
 export class Arena {
@@ -49,14 +47,10 @@ export class Arena {
 	 * @param {Rect} rect
 	 */
 	clampRect(rect) {
-		const removeW = Math.min(0, rect.x);
-		const removeH = Math.min(0, rect.y);
-		rect.x = Math.max(0, rect.x);
-		rect.y = Math.max(0, rect.y);
-		rect.w = Math.max(0, rect.w);
-		rect.h = Math.max(0, rect.h);
-		rect.w = Math.min(this.#width - rect.x, rect.w + removeW);
-		rect.h = Math.min(this.#height - rect.y, rect.h + removeH);
+		rect.min.x = Math.max(rect.min.x, 0);
+		rect.min.y = Math.max(rect.min.y, 0);
+		rect.max.x = Math.min(rect.max.x, this.#width);
+		rect.max.y = Math.min(rect.max.y, this.#height);
 	}
 
 	/**

@@ -1,17 +1,27 @@
-import { SKINS_COUNT } from "../config.js";
+import { WebSocketConnection } from "../WebSocketConnection.js";
+import { SKINS_COUNT, UPDATES_VIEWPORT_RECT_SIZE } from "../config.js";
+import { Vec2 } from "renda";
 
 export class Player {
 	#id;
 	#game;
+	#connection;
 	#skinId = 2;
+
+	/**
+	 * The position of the player which is rounded to the closest tile it is on.
+	 */
+	snappedPos = new Vec2(20, 20);
 
 	/**
 	 * @param {number} id
 	 * @param {import("./Game.js").Game} game
+	 * @param {WebSocketConnection} connection
 	 */
-	constructor(id, game) {
+	constructor(id, game, connection) {
 		this.#id = id;
 		this.#game = game;
+		this.#connection = connection;
 	}
 
 	get id() {
@@ -22,8 +32,23 @@ export class Player {
 		return this.#game;
 	}
 
+	get connection() {
+		return this.#connection;
+	}
+
 	get skinId() {
 		return this.#skinId;
+	}
+
+	/**
+	 * Returns a rect defining the area for which events should be sent to this player.
+	 * @returns {import("./Arena.js").Rect}
+	 */
+	getUpdatesViewport() {
+		return {
+			min: this.snappedPos.clone().addScalar(-UPDATES_VIEWPORT_RECT_SIZE),
+			max: this.snappedPos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
+		};
 	}
 
 	/**
