@@ -131,7 +131,7 @@ export class WebSocketConnection {
 	 * @param {import("./gameplay/Arena.js").Rect} rect
 	 */
 	#sendChunk(rect) {
-		this.#player.game.arena.clampRect(rect);
+		rect = this.#player.game.arena.clampRect(rect);
 		const width = rect.max.x - rect.min.x;
 		const height = rect.max.y - rect.min.y;
 		if (width <= 0 || height <= 0) return;
@@ -155,7 +155,9 @@ export class WebSocketConnection {
 
 		for (let x = 0; x < width; x++) {
 			for (let y = 0; y < height; y++) {
-				const blockType = this.#player.game.getTileTypeForMessage(this.#player, rect.min.x + x, rect.min.y + y);
+				const pos = rect.min.clone();
+				pos.add(x, y);
+				const blockType = this.#player.game.getTileTypeForMessage(this.#player, pos);
 				view.setUint8(cursor, blockType);
 				cursor++;
 			}
