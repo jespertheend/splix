@@ -22,6 +22,7 @@ export class Player {
 		this.#id = id;
 		this.#game = game;
 		this.#connection = connection;
+		game.arena.fillPlayerSpawn(this.snappedPos, id);
 	}
 
 	get id() {

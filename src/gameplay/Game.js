@@ -81,11 +81,10 @@ export class Game {
 	 * the same color as the tiles owned by the player itself.
 	 *
 	 * @param {import("./Player.js").Player} player The player that the message will be sent to.
-	 * @param {number} x X coordinate of the tile
-	 * @param {number} y Y coordinate of the tile
+	 * @param {Vec2} pos
 	 */
-	getTileTypeForMessage(player, x, y) {
-		const tileValue = this.arena.getTileValue(x, y);
+	getTileTypeForMessage(player, pos) {
+		const tileValue = this.arena.getTileValue(pos);
 		if (tileValue == -1) {
 			return 0; // edge of the world
 		}

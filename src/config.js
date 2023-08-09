@@ -9,3 +9,8 @@ export const SKINS_COUNT = 13;
  * Defines a rectangle around the players position for which events will be sent to the player.
  */
 export const UPDATES_VIEWPORT_RECT_SIZE = 30;
+
+/**
+ * How many tiles around the player should be filled when the player joins a game.
+ */
+export const PLAYER_SPAWN_RADIUS = 2;
