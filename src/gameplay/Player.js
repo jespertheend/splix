@@ -1,5 +1,5 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
-import { SKINS_COUNT, UPDATES_VIEWPORT_RECT_SIZE } from "../config.js";
+import { PLAYER_TRAVEL_SPEED, SKINS_COUNT, UPDATES_VIEWPORT_RECT_SIZE } from "../config.js";
 import { Vec2 } from "renda";
 
 /**
@@ -18,10 +18,27 @@ export class Player {
 	#connection;
 	#skinId = 2;
 
+	#currentTileType = 0;
+
 	/**
-	 * The position of the player which is rounded to the closest tile it is on.
+	 * The current position of the player, rounded to the coordinate of the current tile.
 	 */
-	snappedPos = new Vec2(20, 20);
+	#currentPosition = new Vec2(20, 20);
+
+	/**
+	 * Returns the current position of the player, rounded to the coordinate of the current tile.
+	 */
+	getPosition() {
+		return this.#currentPosition.clone();
+	}
+
+	/**
+	 * Indicates how many tiles the player has moved on the client side.
+	 * Any value below 1 means the player is still on its current tile.
+	 * Any value above 1 means the player has travelled that many tiles, each of which should
+	 * be checked for updates to their trail etc.
+	 */
+	#nextTileProgress = 0;
 
 	/** @type {Direction} */
 	#currentDirection = "up";
@@ -29,6 +46,9 @@ export class Player {
 	get currentDirection() {
 		return this.#currentDirection;
 	}
+
+	/** @type {Vec2[]} */
+	#trailVertices = [];
 
 	/**
 	 * @typedef MovementQueueItem
@@ -49,7 +69,7 @@ export class Player {
 		this.#id = id;
 		this.#game = game;
 		this.#connection = connection;
-		game.arena.fillPlayerSpawn(this.snappedPos, id);
+		game.arena.fillPlayerSpawn(this.#currentPosition, id);
 	}
 
 	get id() {
@@ -74,8 +94,8 @@ export class Player {
 	 */
 	getUpdatesViewport() {
 		return {
-			min: this.snappedPos.clone().addScalar(-UPDATES_VIEWPORT_RECT_SIZE),
-			max: this.snappedPos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
+			min: this.#currentPosition.clone().addScalar(-UPDATES_VIEWPORT_RECT_SIZE),
+			max: this.#currentPosition.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
 		};
 	}
 
@@ -107,7 +127,10 @@ export class Player {
 			}
 
 			this.#movementQueue.shift();
-			this.snappedPos.set(firstItem.desiredPosition);
+			this.#currentPosition.set(firstItem.desiredPosition);
+			if (this.#trailVertices.length > 0) {
+				this.#trailVertices.push(firstItem.desiredPosition.clone());
+			}
 			this.#currentDirection = firstItem.direction;
 			this.game.broadcastPlayerState(this);
 		}
@@ -140,10 +163,10 @@ export class Player {
 
 		// Finally we'll make sure the desiredPosition is aligned with the current direction of movement
 		if (this.#currentDirection == "left" || this.#currentDirection == "right") {
-			if (desiredPosition.y != this.snappedPos.y) return false;
+			if (desiredPosition.y != this.#currentPosition.y) return false;
 		}
 		if (this.#currentDirection == "up" || this.#currentDirection == "down") {
-			if (desiredPosition.x != this.snappedPos.x) return false;
+			if (desiredPosition.x != this.#currentPosition.x) return false;
 		}
 
 		return true;
@@ -166,6 +189,59 @@ export class Player {
 				fakeSkinId++; //make the value range from 0 to (SKINS_COUNT - 1) but exclude otherPlayer.skinId
 			}
 			return fakeSkinId;
+		}
+	}
+
+	*getTrailVertices() {
+		for (const vertex of this.#trailVertices) {
+			yield vertex.clone();
+		}
+	}
+
+	/**
+	 * @param {number} now
+	 * @param {number} dt
+	 */
+	loop(now, dt) {
+		if (this.currentDirection != "paused") {
+			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
+			while (this.#nextTileProgress > 1) {
+				this.#nextTileProgress -= 1;
+				if (this.currentDirection == "left") {
+					this.#currentPosition.x -= 1;
+				} else if (this.currentDirection == "right") {
+					this.#currentPosition.x += 1;
+				} else if (this.currentDirection == "up") {
+					this.#currentPosition.y -= 1;
+				} else if (this.currentDirection == "down") {
+					this.#currentPosition.y += 1;
+				}
+				this.updateCurrentTile();
+			}
+		}
+	}
+
+	/**
+	 * Checks if the type of the tile the player is currently on has changed.
+	 * This can happen either because the player moved to a new coordinate,
+	 * or because the current tile type got changed to that of another player.
+	 */
+	updateCurrentTile() {
+		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
+		if (this.#currentTileType != tileValue) {
+			// When the player moves out of their captured area, we will start a new trail.
+			if (tileValue != this.#id && this.#trailVertices.length == 0) {
+				this.#trailVertices.push(this.#currentPosition.clone());
+				this.game.broadcastPlayerTrail(this);
+			}
+
+			// When the player comes back into their captured area. We remove the trail again.
+			if (tileValue == this.#id && this.#trailVertices.length > 0) {
+				this.#trailVertices = [];
+				this.game.broadcastPlayerTrail(this);
+			}
+
+			this.#currentTileType = tileValue;
 		}
 	}
 }

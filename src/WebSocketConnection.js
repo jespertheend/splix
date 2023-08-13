@@ -40,7 +40,10 @@ export class WebSocketConnection {
 			 */
 			PLAYER_POS: 2,
 			FILL_AREA: 3,
-			SET_TRAIL: 4,
+			/**
+			 * Updates the trail of a specific player.
+			 */
+			SET_PLAYER_TRAIL: 4,
 			PLAYER_DIE: 5,
 			CHUNK_OF_BLOCKS: 6,
 			REMOVE_PLAYER: 7,
@@ -52,6 +55,10 @@ export class WebSocketConnection {
 			YOU_DED: 13,
 			MINIMAP: 14,
 			PLAYER_SKIN: 15,
+			/**
+			 * Notifies the client that whatever trail it is currently creating for a player,
+			 * should be ended at a specific position.
+			 */
 			EMPTY_TRAIL_WITH_LAST_POS: 16,
 			/**
 			 * Lets the client know that all required data has been sent to start the game.
@@ -82,6 +89,9 @@ export class WebSocketConnection {
 			REQUEST_CLOSE: 5,
 			HONK: 6,
 			PING: 7,
+			/**
+			 * The client wants to know about the state of the trail as it currently exists according to the server.
+			 */
 			REQUEST_MY_TRAIL: 8,
 			MY_TEAM_URL: 9,
 			SET_TEAM_USERNAME: 10,
@@ -136,22 +146,25 @@ export class WebSocketConnection {
 				return;
 			}
 			this.#player.clientPosUpdateRequested(direction, new Vec2(x, y));
+		} else if (messageType == WebSocketConnection.ReceiveAction.REQUEST_MY_TRAIL) {
+			const message = WebSocketConnection.createTrailMessage(0, Array.from(this.#player.getTrailVertices()));
+			this.send(message);
 		}
 	}
 
 	/**
 	 * @param {ArrayBufferLike | Blob | ArrayBufferView} data
 	 */
-	#send(data) {
+	send(data) {
 		this.#socket.send(data);
 	}
 
 	#sendReady() {
-		this.#send(new Uint8Array([WebSocketConnection.SendAction.READY]));
+		this.send(new Uint8Array([WebSocketConnection.SendAction.READY]));
 	}
 
 	#sendPong() {
-		this.#send(new Uint8Array([WebSocketConnection.SendAction.PONG]));
+		this.send(new Uint8Array([WebSocketConnection.SendAction.PONG]));
 	}
 
 	/**
@@ -191,7 +204,7 @@ export class WebSocketConnection {
 			}
 		}
 
-		this.#send(buffer);
+		this.send(buffer);
 	}
 
 	/**
@@ -201,11 +214,9 @@ export class WebSocketConnection {
 	 * @param {number} y
 	 * @param {number} playerId
 	 * @param {import("./gameplay/Player.js").Direction} dir
-	 * @param {ChangeTrailBehaviour} trailChange
 	 */
-	sendPlayerState(x, y, playerId, dir, trailChange) {
-		const bufferLength = trailChange ? 9 : 8;
-		const buffer = new ArrayBuffer(bufferLength);
+	sendPlayerState(x, y, playerId, dir) {
+		const buffer = new ArrayBuffer(9);
 		const view = new DataView(buffer);
 		let cursor = 0;
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_POS);
@@ -230,15 +241,35 @@ export class WebSocketConnection {
 		}
 		view.setUint8(cursor, dirNumber);
 		cursor++;
-		if (trailChange) {
-			if (trailChange == "add-segment") {
-				view.setUint8(cursor, 1);
-			} else {
-				view.setUint8(cursor, 0);
-			}
-			cursor++;
+
+		// This is legacy behaviour. The client already seems to ignore this flag when the player doesn't
+		// currently have a trail. So we'll just always set this flag.
+		view.setUint8(cursor, 1);
+		cursor++;
+
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {Vec2[]} vertices
+	 */
+	static createTrailMessage(playerId, vertices) {
+		const bufferLength = 3 + vertices.length * 4;
+		const buffer = new ArrayBuffer(bufferLength);
+		const view = new DataView(buffer);
+		let cursor = 0;
+		view.setUint8(cursor, WebSocketConnection.SendAction.SET_PLAYER_TRAIL);
+		cursor++;
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+		for (const vertex of vertices) {
+			view.setUint16(cursor, vertex.x, false);
+			cursor += 2;
+			view.setUint16(cursor, vertex.y, false);
+			cursor += 2;
 		}
-		this.#send(buffer);
+		return buffer;
 	}
 
 	/**

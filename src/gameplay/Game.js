@@ -31,6 +31,9 @@ export class Game {
 	 * @param {number} dt
 	 */
 	loop(now, dt) {
+		for (const player of this.#players.values()) {
+			player.loop(now, dt);
+		}
 	}
 
 	#lastPlayerId = 1;
@@ -135,15 +138,35 @@ export class Game {
 	 */
 	broadcastPlayerState(player) {
 		// TODO: Cache the list of nearby players
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.snappedPos)) {
+		const position = player.getPosition();
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
 			const playerId = player == nearbyPlayer ? 0 : player.id;
 			nearbyPlayer.connection.sendPlayerState(
-				player.snappedPos.x,
-				player.snappedPos.y,
+				position.x,
+				position.y,
 				playerId,
 				player.currentDirection,
-				null,
 			);
+		}
+	}
+
+	/**
+	 * Sends the current trail of a player to all nearby players.
+	 * @param {import("./Player.js").Player} player
+	 */
+	broadcastPlayerTrail(player) {
+		const message = WebSocketConnection.createTrailMessage(player.id, Array.from(player.getTrailVertices()));
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+			if (nearbyPlayer == player) {
+				// The client that owns the player should receive 0 as player id
+				const samePlayerMessage = WebSocketConnection.createTrailMessage(
+					0,
+					Array.from(player.getTrailVertices()),
+				);
+				nearbyPlayer.connection.send(samePlayerMessage);
+			} else {
+				nearbyPlayer.connection.send(message);
+			}
 		}
 	}
 }
