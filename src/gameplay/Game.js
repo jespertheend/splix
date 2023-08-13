@@ -63,7 +63,7 @@ export class Game {
 		const id = this.#getNewPlayerId();
 		const player = new Player(id, this, connection);
 		this.#players.set(id, player);
-		this.#broadcastPosition(player);
+		this.broadcastPlayerState(player);
 		return player;
 	}
 
@@ -130,14 +130,20 @@ export class Game {
 	}
 
 	/**
-	 * Sends the position of a player to all nearby players.
+	 * Sends the position and direction of a player to all nearby players.
 	 * @param {import("./Player.js").Player} player
 	 */
-	#broadcastPosition(player) {
+	broadcastPlayerState(player) {
 		// TODO: Cache the list of nearby players
 		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.snappedPos)) {
 			const playerId = player == nearbyPlayer ? 0 : player.id;
-			nearbyPlayer.connection.sendPlayerState(player.snappedPos.x, player.snappedPos.y, playerId, "up", null);
+			nearbyPlayer.connection.sendPlayerState(
+				player.snappedPos.x,
+				player.snappedPos.y,
+				playerId,
+				player.currentDirection,
+				null,
+			);
 		}
 	}
 }
