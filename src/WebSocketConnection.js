@@ -1,21 +1,21 @@
 import { Vec2 } from "renda";
 
 /**
- * When sent inside messages, these translate to an integer:
- * - right - 0
- * - down - 1
- * - left - 2
- * - up - 3
- * @typedef {"right" | "down" | "left" | "up"} Direction
- */
-
-/**
  * - `"add-segment"` - adds a new polygon to the current trail.
  * - `"reset"` - clear the current trail
  * - `null` leave the trail unchanged
  * @typedef {"add-segment" | "reset" | null} ChangeTrailBehaviour
  */
 
+/**
+ * Handles the messaging between server and client.
+ * Received messages are converted to a format that is easier to work with.
+ * For instance, ArrayBuffers with coordinates are converted to Vec2 and then
+ * passed on to a class such as its `#player` or `#game`.
+ *
+ * Similarly, this contains a few `send` methods which converts stuff like Vec2
+ * back into ArrayBuffers before sending the data.
+ */
 export class WebSocketConnection {
 	#socket;
 	#game;
@@ -69,7 +69,10 @@ export class WebSocketConnection {
 
 	static get ReceiveAction() {
 		return {
-			UPDATE_DIR: 1,
+			/**
+			 * The client changed their position and direction.
+			 */
+			UPDATE_MY_POS: 1,
 			SET_USERNAME: 2,
 			SKIN: 3,
 			/**
@@ -108,6 +111,31 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
 			this.#lastPingTime = performance.now();
 			this.#sendPong();
+		} else if (messageType == WebSocketConnection.ReceiveAction.UPDATE_MY_POS) {
+			if (view.byteLength < 6) return;
+			let cursor = 1;
+			const newDir = view.getInt8(cursor);
+			cursor++;
+			const x = view.getUint16(cursor, false);
+			cursor += 2;
+			const y = view.getUint16(cursor, false);
+			cursor += 2;
+			/** @type {import("./gameplay/Player.js").Direction} */
+			let direction;
+			if (newDir == 0) {
+				direction = "right";
+			} else if (newDir == 1) {
+				direction = "down";
+			} else if (newDir == 2) {
+				direction = "left";
+			} else if (newDir == 3) {
+				direction = "up";
+			} else if (newDir == 4) {
+				direction = "paused";
+			} else {
+				return;
+			}
+			this.#player.clientPosUpdateRequested(direction, new Vec2(x, y));
 		}
 	}
 
@@ -172,7 +200,7 @@ export class WebSocketConnection {
 	 * @param {number} x
 	 * @param {number} y
 	 * @param {number} playerId
-	 * @param {Direction} dir
+	 * @param {import("./gameplay/Player.js").Direction} dir
 	 * @param {ChangeTrailBehaviour} trailChange
 	 */
 	sendPlayerState(x, y, playerId, dir, trailChange) {
@@ -197,6 +225,8 @@ export class WebSocketConnection {
 			dirNumber = 2;
 		} else if (dir == "up") {
 			dirNumber = 3;
+		} else if (dir == "paused") {
+			dirNumber = 4;
 		}
 		view.setUint8(cursor, dirNumber);
 		cursor++;

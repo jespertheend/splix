@@ -57,10 +57,10 @@ export class Arena {
 					const rect = {
 						min: new Vec2(area.minX, area.minY),
 						max: new Vec2(area.maxX, area.maxY),
-					}
-					fillRect(this.#tiles, this.#width, this.#height, rect, area.playerId)
+					};
+					fillRect(this.#tiles, this.#width, this.#height, rect, area.playerId);
 				}
-			}
+			},
 		});
 		this.#messenger.send.init(width, height);
 	}
