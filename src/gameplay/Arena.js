@@ -8,18 +8,20 @@ import { clampRect, createArenaTiles, fillRect } from "./arenaWorker/util.js";
  */
 
 /**
- * @typedef FilledAreaData
+ * @typedef FilledAreaMessageData
  * @property {number} minX
  * @property {number} minY
  * @property {number} maxX
  * @property {number} maxY
- * @property {number} playerId
+ * @property {number} tileValue
  */
 
 /**
  * @typedef WorkerArenaHandlers
- * @property {(areas: FilledAreaData[]) => void} notifyAreasFilled
+ * @property {(areas: FilledAreaMessageData[]) => void} notifyAreasFilled
  */
+
+/** @typedef {(rect: Rect, tileValue: number) => void} OnRectFilledCallback */
 
 export class Arena {
 	/**
@@ -34,7 +36,7 @@ export class Arena {
 	#height;
 
 	#worker;
-	/** @type {TypedMessenger<import("./arenaWorker/mod.js").ArenaWorkerHandlers, WorkerArenaHandlers>} */
+	/** @type {TypedMessenger<WorkerArenaHandlers, import("./arenaWorker/mod.js").ArenaWorkerHandlers>} */
 	#messenger;
 
 	/**
@@ -54,15 +56,30 @@ export class Arena {
 		this.#messenger.initialize(this.#worker, {
 			notifyAreasFilled: (areas) => {
 				for (const area of areas) {
+					/** @type {Rect} */
 					const rect = {
 						min: new Vec2(area.minX, area.minY),
 						max: new Vec2(area.maxX, area.maxY),
 					};
-					fillRect(this.#tiles, this.#width, this.#height, rect, area.playerId);
+					fillRect(this.#tiles, this.#width, this.#height, rect, area.tileValue);
+					this.#onRectFilledCbs.forEach((cb) => {
+						cb(rect, area.tileValue);
+					});
 				}
 			},
 		});
 		this.#messenger.send.init(width, height);
+	}
+
+	/** @type {Set<OnRectFilledCallback>} */
+	#onRectFilledCbs = new Set();
+
+	/**
+	 * Registers a callback that is fired whenever a rectangle of the arena is filled with a new tile type.
+	 * @param {OnRectFilledCallback} cb
+	 */
+	onRectFilled(cb) {
+		this.#onRectFilledCbs.add(cb);
 	}
 
 	/**
@@ -87,10 +104,20 @@ export class Arena {
 	}
 
 	/**
+	 * Fills the spawn area tiles around a player.
 	 * @param {Vec2} pos
 	 * @param {number} playerId
 	 */
 	fillPlayerSpawn(pos, playerId) {
 		this.#messenger.send.fillPlayerSpawn(pos.x, pos.y, playerId);
+	}
+
+	/**
+	 * Fills the tiles that are covered with a player trail.
+	 * @param {Vec2[]} vertices
+	 * @param {number} playerId
+	 */
+	fillPlayerTrail(vertices, playerId) {
+		this.#messenger.send.fillPlayerTrail(vertices.map((v) => v.toArray()), playerId);
 	}
 }
