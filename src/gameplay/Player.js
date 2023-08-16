@@ -235,8 +235,11 @@ export class Player {
 				this.game.broadcastPlayerTrail(this);
 			}
 
-			// When the player comes back into their captured area. We remove the trail again.
+			// When the player comes back into their captured area, we add a final vertex to the trail,
+			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.#trailVertices.length > 0) {
+				this.#trailVertices.push(this.#currentPosition.clone());
+				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.#trailVertices = [];
 				this.game.broadcastPlayerTrail(this);
 			}

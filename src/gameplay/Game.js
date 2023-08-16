@@ -24,6 +24,12 @@ export class Game {
 		gameMode = "default",
 	} = {}) {
 		this.#arena = new Arena(arenaWidth, arenaHeight);
+		this.#arena.onRectFilled((rect, tileValue) => {
+			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
+				const tileType = this.getTileTypeForMessage(player, tileValue);
+				player.connection.sendFillRect(rect, tileType, 1);
+			}
+		});
 	}
 
 	/**
@@ -84,10 +90,9 @@ export class Game {
 	 * the same color as the tiles owned by the player itself.
 	 *
 	 * @param {import("./Player.js").Player} player The player that the message will be sent to.
-	 * @param {Vec2} pos
+	 * @param {number} tileValue
 	 */
-	getTileTypeForMessage(player, pos) {
-		const tileValue = this.arena.getTileValue(pos);
+	getTileTypeForMessage(player, tileValue) {
 		if (tileValue == -1) {
 			return 0; // edge of the world
 		}

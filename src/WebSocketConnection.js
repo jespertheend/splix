@@ -39,7 +39,10 @@ export class WebSocketConnection {
 			 * Updates player state such as position, direction, and trail.
 			 */
 			PLAYER_POS: 2,
-			FILL_AREA: 3,
+			/**
+			 * Informs the client to replace all tiles in a rectangle with a specified color.
+			 */
+			FILL_RECT: 3,
 			/**
 			 * Updates the trail of a specific player.
 			 */
@@ -198,8 +201,9 @@ export class WebSocketConnection {
 			for (let y = 0; y < height; y++) {
 				const pos = rect.min.clone();
 				pos.add(x, y);
-				const blockType = this.#player.game.getTileTypeForMessage(this.#player, pos);
-				view.setUint8(cursor, blockType);
+				const tileValue = this.#player.game.arena.getTileValue(pos);
+				const tileType = this.#player.game.getTileTypeForMessage(this.#player, tileValue);
+				view.setUint8(cursor, tileType);
 				cursor++;
 			}
 		}
@@ -245,6 +249,42 @@ export class WebSocketConnection {
 		// This is legacy behaviour. The client already seems to ignore this flag when the player doesn't
 		// currently have a trail. So we'll just always set this flag.
 		view.setUint8(cursor, 1);
+		cursor++;
+
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {import("./gameplay/Arena.js").Rect} rect
+	 * @param {number} tileType
+	 * @param {number} patternId
+	 */
+	sendFillRect(rect, tileType, patternId) {
+		const buffer = new ArrayBuffer(11);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.FILL_RECT);
+		cursor++;
+
+		view.setUint16(cursor, rect.min.x, false);
+		cursor += 2;
+
+		view.setUint16(cursor, rect.min.y, false);
+		cursor += 2;
+
+		const width = rect.max.x - rect.min.x;
+		view.setUint16(cursor, width, false);
+		cursor += 2;
+
+		const height = rect.max.y - rect.min.y;
+		view.setUint16(cursor, height, false);
+		cursor += 2;
+
+		view.setUint8(cursor, tileType);
+		cursor++;
+
+		view.setUint8(cursor, patternId);
 		cursor++;
 
 		this.send(buffer);

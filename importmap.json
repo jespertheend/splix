@@ -1,6 +1,6 @@
 {
 	"imports": {
-		"renda": "https://raw.githubusercontent.com/rendajs/Renda/c5fdd016b20f8fdcab4c30728672f26f1e8a4884/mod.js",
+		"renda": "https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/mod.js",
 		"chdir-anywhere": "https://deno.land/x/chdir_anywhere@v0.0.3/mod.js"
 	}
 }
