@@ -1,6 +1,6 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
 import { setCwd } from "chdir-anywhere";
-import { init } from "../src/mainInstance.js";
+import { init } from "../gameServer/src/mainInstance.js";
 setCwd();
 
 Deno.chdir("..");
@@ -8,7 +8,7 @@ Deno.chdir("..");
 generateTypes({
 	include: [
 		"scripts/",
-		"src/",
+		"gameServer/",
 	],
 	importMap: "importmap.json",
 	excludeUrls: [
