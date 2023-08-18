@@ -28,9 +28,9 @@ export function createArenaTiles(width, height) {
 
 /**
  * Returns a new rect representing the smallest area of the two rects.
- * @param {import("../Arena.js").Rect} rect1
- * @param {import("../Arena.js").Rect} rect2
- * @returns {import("../Arena.js").Rect}
+ * @param {Rect} rect1
+ * @param {Rect} rect2
+ * @returns {Rect}
  */
 export function clampRect(rect1, rect2) {
 	const minX = Math.max(rect1.min.x, rect2.min.x);
@@ -47,7 +47,7 @@ export function clampRect(rect1, rect2) {
  * @param {number[][]} tiles
  * @param {number} tilesWidth The width of the `tiles` parameter.
  * @param {number} tilesHeight The height of the `tiles` parameter.
- * @param {import("../Arena.js").Rect} rect
+ * @param {Rect} rect
  * @param {number} value The value to fill the tiles with.
  */
 export function fillRect(tiles, tilesWidth, tilesHeight, rect, value) {
@@ -61,4 +61,42 @@ export function fillRect(tiles, tilesWidth, tilesHeight, rect, value) {
 			tiles[x][y] = value;
 		}
 	}
+}
+
+/**
+ * @typedef Rect
+ * @property {import("renda").Vec2} min
+ * @property {import("renda").Vec2} max
+ */
+
+/**
+ * @typedef SerializedRect
+ * @property {number} minX
+ * @property {number} minY
+ * @property {number} maxX
+ * @property {number} maxY
+ */
+
+/**
+ * @param {Rect} rect
+ * @returns {SerializedRect}
+ */
+export function serializeRect(rect) {
+	return {
+		minX: rect.min.x,
+		minY: rect.min.y,
+		maxX: rect.max.x,
+		maxY: rect.max.y,
+	};
+}
+
+/**
+ * @param {SerializedRect} rect
+ * @returns {Rect}
+ */
+export function deserializeRect(rect) {
+	return {
+		min: new Vec2(rect.minX, rect.minY),
+		max: new Vec2(rect.maxX, rect.maxY),
+	};
 }

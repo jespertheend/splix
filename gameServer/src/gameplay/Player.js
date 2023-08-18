@@ -90,7 +90,7 @@ export class Player {
 
 	/**
 	 * Returns a rect defining the area for which events should be sent to this player.
-	 * @returns {import("./Arena.js").Rect}
+	 * @returns {import("./util.js").Rect}
 	 */
 	getUpdatesViewport() {
 		return {
@@ -240,11 +240,18 @@ export class Player {
 			if (tileValue == this.#id && this.#trailVertices.length > 0) {
 				this.#trailVertices.push(this.#currentPosition.clone());
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
+				this.game.arena.updateCapturedArea(this.id, []);
 				this.#trailVertices = [];
 				this.game.broadcastPlayerTrail(this);
 			}
 
 			this.#currentTileType = tileValue;
 		}
+	}
+
+	/**
+	 * @param {Vec2} pos
+	 */
+	#expandCapturedAreaBounds(pos) {
 	}
 }

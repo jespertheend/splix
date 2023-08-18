@@ -1,18 +1,9 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { clampRect, createArenaTiles, fillRect } from "./arenaWorker/util.js";
-
-/**
- * @typedef Rect
- * @property {import("renda").Vec2} min
- * @property {import("renda").Vec2} max
- */
+import { clampRect, createArenaTiles, deserializeRect, fillRect } from "./util.js";
 
 /**
  * @typedef FilledAreaMessageData
- * @property {number} minX
- * @property {number} minY
- * @property {number} maxX
- * @property {number} maxY
+ * @property {import("./util.js").SerializedRect} rect
  * @property {number} tileValue
  */
 
@@ -21,7 +12,7 @@ import { clampRect, createArenaTiles, fillRect } from "./arenaWorker/util.js";
  * @property {(areas: FilledAreaMessageData[]) => void} notifyAreasFilled
  */
 
-/** @typedef {(rect: Rect, tileValue: number) => void} OnRectFilledCallback */
+/** @typedef {(rect: import("./util.js").Rect, tileValue: number) => void} OnRectFilledCallback */
 
 export class Arena {
 	/**
@@ -56,11 +47,7 @@ export class Arena {
 		this.#messenger.initialize(this.#worker, {
 			notifyAreasFilled: (areas) => {
 				for (const area of areas) {
-					/** @type {Rect} */
-					const rect = {
-						min: new Vec2(area.minX, area.minY),
-						max: new Vec2(area.maxX, area.maxY),
-					};
+					const rect = deserializeRect(area.rect);
 					fillRect(this.#tiles, this.#width, this.#height, rect, area.tileValue);
 					this.#onRectFilledCbs.forEach((cb) => {
 						cb(rect, area.tileValue);
@@ -84,7 +71,7 @@ export class Arena {
 
 	/**
 	 * Modifies a the provided rect to make sure exists within the area of the arena.
-	 * @param {Rect} rect
+	 * @param {import("./util.js").Rect} rect
 	 */
 	clampRect(rect) {
 		return clampRect(rect, {
@@ -108,8 +95,9 @@ export class Arena {
 	 * @param {Vec2} pos
 	 * @param {number} playerId
 	 */
-	fillPlayerSpawn(pos, playerId) {
-		this.#messenger.send.fillPlayerSpawn(pos.x, pos.y, playerId);
+	async fillPlayerSpawn(pos, playerId) {
+		const newBoundsRect = await this.#messenger.send.fillPlayerSpawn(pos.x, pos.y, playerId);
+		return deserializeRect(newBoundsRect);
 	}
 
 	/**
@@ -119,5 +107,14 @@ export class Arena {
 	 */
 	fillPlayerTrail(vertices, playerId) {
 		this.#messenger.send.fillPlayerTrail(vertices.map((v) => v.toArray()), playerId);
+	}
+
+	/**
+	 * Finds unfilled areas of the player and fills them.
+	 * @param {number} playerId
+	 * @param {Vec2[]} otherPlayerLocations
+	 */
+	updateCapturedArea(playerId, otherPlayerLocations) {
+		this.#messenger.send.updateCapturedArea(playerId, otherPlayerLocations.map((v) => v.toArray()));
 	}
 }

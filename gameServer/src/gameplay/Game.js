@@ -111,7 +111,7 @@ export class Game {
 
 	/**
 	 * Yields a list of players whose viewport contain (part of) the provided rect.
-	 * @param {import("./Arena.js").Rect} rect
+	 * @param {import("./util.js").Rect} rect
 	 */
 	*getOverlappingViewportPlayersForRect(rect) {
 		for (const player of this.#players.values()) {
