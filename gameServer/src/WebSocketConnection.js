@@ -172,7 +172,7 @@ export class WebSocketConnection {
 
 	/**
 	 * Sends a chunk of tiles from an arena.
-	 * @param {import("./gameplay/Arena.js").Rect} rect
+	 * @param {import("./gameplay/util.js").Rect} rect
 	 */
 	#sendChunk(rect) {
 		rect = this.#player.game.arena.clampRect(rect);
@@ -255,7 +255,7 @@ export class WebSocketConnection {
 	}
 
 	/**
-	 * @param {import("./gameplay/Arena.js").Rect} rect
+	 * @param {import("./gameplay/util.js").Rect} rect
 	 * @param {number} tileType
 	 * @param {number} patternId
 	 */

@@ -1,7 +1,9 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { createArenaTiles } from "./util.js";
+import { createArenaTiles, serializeRect } from "../util.js";
 import { PLAYER_SPAWN_RADIUS } from "../../config.js";
-import { fillRect } from "./util.js";
+import { fillRect } from "../util.js";
+import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
+import { PlayerBoundsTracker } from "./PlayerBoundsTracker.js";
 
 /**
  * Stores which tiles have been filled and by which player.
@@ -14,6 +16,8 @@ let arenaTiles = [];
 let arenaWidth = 0;
 let arenaHeight = 0;
 
+const boundsTracker = new PlayerBoundsTracker();
+
 const arenaWorkerHandlers = {
 	/**
 	 * @param {number} width
@@ -23,6 +27,7 @@ const arenaWorkerHandlers = {
 		arenaWidth = width;
 		arenaHeight = height;
 		arenaTiles = createArenaTiles(width, height);
+		initializeMask(width, height);
 	},
 	/**
 	 * Fills the spawn area tiles around a player.
@@ -32,10 +37,13 @@ const arenaWorkerHandlers = {
 	 */
 	fillPlayerSpawn(x, y, playerId) {
 		const center = new Vec2(x, y);
-		fillTilesRect({
+		const rect = {
 			min: center.clone().subScalar(PLAYER_SPAWN_RADIUS),
 			max: center.clone().addScalar(PLAYER_SPAWN_RADIUS + 1),
-		}, playerId);
+		};
+		fillTilesRect(rect, playerId);
+		boundsTracker.initializePlayer(playerId, rect);
+		return serializeRect(rect);
 	},
 	/**
 	 * Fills the tiles that are covered with a player trail.
@@ -43,25 +51,39 @@ const arenaWorkerHandlers = {
 	 * @param {number} playerId
 	 */
 	fillPlayerTrail(vertices, playerId) {
-		for (let i = 0; i < vertices.length - 1; i++) {
-			const vertexA = vertices[i];
-			const vertexB = vertices[i + 1];
-			const [ax, ay] = vertexA;
-			const [bx, by] = vertexB;
-			if (ax != bx && ay != by) {
+		const verticesVec2 = vertices.map((v) => new Vec2(v[0], v[1]));
+		for (let i = 0; i < verticesVec2.length - 1; i++) {
+			const vertexA = verticesVec2[i];
+			const vertexB = verticesVec2[i + 1];
+			if (vertexA.x != vertexB.x && vertexA.y != vertexB.y) {
 				throw new Error("Assertion failed, tried to fill a player trail with a diagonal edge.");
 			}
 
 			// Sort the two corners so that `min` is always in the top left.
-			const minX = Math.min(ax, bx);
-			const minY = Math.min(ay, by);
-			const maxX = Math.max(ax, bx) + 1;
-			const maxY = Math.max(ay, by) + 1;
+			const minX = Math.min(vertexA.x, vertexB.x);
+			const minY = Math.min(vertexA.y, vertexB.y);
+			const maxX = Math.max(vertexA.x, vertexB.x) + 1;
+			const maxY = Math.max(vertexA.y, vertexB.y) + 1;
 
 			fillTilesRect({
 				min: new Vec2(minX, minY),
 				max: new Vec2(maxX, maxY),
 			}, playerId);
+		}
+		for (const vertex of verticesVec2) {
+			boundsTracker.expandBoundsWithPoint(playerId, vertex);
+		}
+	},
+	/**
+	 * Finds unfilled areas of the player and fills them.
+	 * @param {number} playerId
+	 * @param {[x: number, y: number][]} otherPlayerLocations
+	 */
+	updateCapturedArea(playerId, otherPlayerLocations) {
+		const bounds = boundsTracker.getBounds(playerId);
+		const { fillRects } = updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLocations);
+		for (const rect of fillRects) {
+			fillTilesRect(rect, playerId);
 		}
 	},
 };
@@ -74,16 +96,18 @@ messenger.initialize(globalThis, arenaWorkerHandlers);
 
 /**
  * Fills a portion of the arena and notifies the main process about the change.
- * @param {import("../Arena.js").Rect} rect
+ * @param {import("../util.js").Rect} rect
  * @param {number} playerId
  */
 function fillTilesRect(rect, playerId) {
 	fillRect(arenaTiles, arenaWidth, arenaHeight, rect, playerId);
 	messenger.send.notifyAreasFilled([{
-		minX: rect.min.x,
-		minY: rect.min.y,
-		maxX: rect.max.x,
-		maxY: rect.max.y,
+		rect: {
+			minX: rect.min.x,
+			minY: rect.min.y,
+			maxX: rect.max.x,
+			maxY: rect.max.y,
+		},
 		tileValue: playerId,
 	}]);
 }
