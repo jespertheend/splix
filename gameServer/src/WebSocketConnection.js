@@ -34,6 +34,9 @@ export class WebSocketConnection {
 
 	static get SendAction() {
 		return {
+			/**
+			 * Legacy, unused.
+			 */
 			UPDATE_BLOCKS: 1,
 			/**
 			 * Updates player state such as position, direction, and trail.
@@ -48,6 +51,10 @@ export class WebSocketConnection {
 			 */
 			SET_PLAYER_TRAIL: 4,
 			PLAYER_DIE: 5,
+			/**
+			 * Sends an area of the map to a player.
+			 * Each tile is sent individually with no form of compression, so the message could be quite big.
+			 */
 			CHUNK_OF_BLOCKS: 6,
 			REMOVE_PLAYER: 7,
 			PLAYER_NAME: 8,
