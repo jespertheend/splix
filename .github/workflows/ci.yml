@@ -10,10 +10,10 @@ on:
 env:
   # be sure to also update these in other workflows
   DENO_DIR: deno_dir
-  DENO_VERSION: "1.36.1"
+  DENO_VERSION: "1.32.1"
 
 jobs:
-  fmt:
+  Check:
     runs-on: ubuntu-latest
     steps:
       - name: Setup repo
