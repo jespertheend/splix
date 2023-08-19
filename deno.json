@@ -6,15 +6,15 @@
 	"importMap": "importmap.json",
 	"fmt": {
 		"files": {
-			"include": [
-				"gameServer/",
-				"scripts/"
+			"exclude": [
+				".denoTypes"
 			]
 		},
 		"options": {
 			"indentWidth": 4,
 			"useTabs": true,
-			"lineWidth": 120
+			"lineWidth": 120,
+			"proseWrap": "preserve"
 		}
 	}
 }
