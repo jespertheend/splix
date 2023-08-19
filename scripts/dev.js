@@ -22,4 +22,6 @@ generateTypes({
 	logLevel: "WARNING",
 });
 
-init();
+if (!Deno.args.includes("--no-init")) {
+	init();
+}
