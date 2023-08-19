@@ -1,6 +1,7 @@
 {
 	"tasks": {
-		"dev": "deno run -A --inspect scripts/dev.js"
+		"dev": "deno run -A --inspect scripts/dev.js",
+		"check": "deno run --allow-env --allow-read npm:typescript@5.0.2/tsc --noEmit -p ./jsconfig.json"
 	},
 	"importMap": "importmap.json",
 	"fmt": {
