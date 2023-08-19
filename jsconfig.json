@@ -11,6 +11,6 @@
 	},
 	"include": [
 		"scripts/**/*.js",
-		"gameServer/src/**/*.js",
+		"gameServer/src/**/*.js"
 	]
 }
