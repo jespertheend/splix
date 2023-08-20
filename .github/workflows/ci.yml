@@ -32,3 +32,6 @@ jobs:
 
       - name: Check Types
         run: deno task check
+
+      - name: Build
+        run: deno task build-gameserver --target linux
