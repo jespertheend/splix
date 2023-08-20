@@ -59,7 +59,7 @@ export class Player {
 
 	/**
 	 * The bounding box of the current trail, used for hit detection with other players.
-	 * @type {import("./util.js").Rect}
+	 * @type {import("../util/util.js").Rect}
 	 */
 	#trailBounds = {
 		min: new Vec2(),
@@ -121,7 +121,7 @@ export class Player {
 
 	/**
 	 * Returns a rect defining the area for which events should be sent to this player.
-	 * @returns {import("./util.js").Rect}
+	 * @returns {import("../util/util.js").Rect}
 	 */
 	getUpdatesViewport() {
 		return {

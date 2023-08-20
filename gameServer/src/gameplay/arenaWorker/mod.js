@@ -1,7 +1,7 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { compressTiles, createArenaTiles, serializeRect } from "../util.js";
+import { compressTiles, createArenaTiles, serializeRect } from "../../util/util.js";
 import { PLAYER_SPAWN_RADIUS } from "../../config.js";
-import { fillRect } from "../util.js";
+import { fillRect } from "../../util/util.js";
 import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
 import { PlayerBoundsTracker } from "./PlayerBoundsTracker.js";
 
@@ -112,7 +112,7 @@ messenger.initialize(globalThis, arenaWorkerHandlers);
 
 /**
  * Fills a portion of the arena and notifies the main process about the change.
- * @param {import("../util.js").Rect} rect
+ * @param {import("../../util/util.js").Rect} rect
  * @param {number} playerId
  */
 function fillTilesRect(rect, playerId) {

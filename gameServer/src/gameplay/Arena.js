@@ -1,9 +1,9 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { clampRect, createArenaTiles, deserializeRect, fillRect } from "./util.js";
+import { clampRect, createArenaTiles, deserializeRect, fillRect } from "../util/util.js";
 
 /**
  * @typedef FilledAreaMessageData
- * @property {import("./util.js").SerializedRect} rect
+ * @property {import("../util/util.js").SerializedRect} rect
  * @property {number} tileValue
  */
 
@@ -12,7 +12,7 @@ import { clampRect, createArenaTiles, deserializeRect, fillRect } from "./util.j
  * @property {(areas: FilledAreaMessageData[]) => void} notifyAreasFilled
  */
 
-/** @typedef {(rect: import("./util.js").Rect, tileValue: number) => void} OnRectFilledCallback */
+/** @typedef {(rect: import("../util/util.js").Rect, tileValue: number) => void} OnRectFilledCallback */
 
 export class Arena {
 	/**
@@ -71,7 +71,7 @@ export class Arena {
 
 	/**
 	 * Modifies a the provided rect to make sure exists within the area of the arena.
-	 * @param {import("./util.js").Rect} rect
+	 * @param {import("../util/util.js").Rect} rect
 	 */
 	clampRect(rect) {
 		return clampRect(rect, {

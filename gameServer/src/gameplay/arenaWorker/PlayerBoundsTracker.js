@@ -15,14 +15,14 @@ import { Vec2 } from "renda";
  * in circumstances where a `updateCapturedArea` doesn't return the updated bounding box in time.
  */
 export class PlayerBoundsTracker {
-	/** @type {Map<number, import("../util.js").Rect>} */
+	/** @type {Map<number, import("../../util/util.js").Rect>} */
 	#bounds = new Map();
 
 	/**
 	 * Returns a copy of the stored player bounds.
 	 * Throws if no bounds for this player exists.
 	 * @param {number} playerId
-	 * @returns {import("../util.js").Rect}
+	 * @returns {import("../../util/util.js").Rect}
 	 */
 	getBounds(playerId) {
 		const bounds = this.#getBounds(playerId);
@@ -45,7 +45,7 @@ export class PlayerBoundsTracker {
 
 	/**
 	 * @param {number} playerId
-	 * @param {import("../util.js").Rect} rect
+	 * @param {import("../../util/util.js").Rect} rect
 	 */
 	initializePlayer(playerId, rect) {
 		if (this.#bounds.has(playerId)) {
@@ -60,7 +60,7 @@ export class PlayerBoundsTracker {
 	/**
 	 * Expands the bounding box of a player.
 	 * @param {number} playerId
-	 * @param {import("../util.js").Rect} rect
+	 * @param {import("../../util/util.js").Rect} rect
 	 */
 	expandBoundsWithRect(playerId, rect) {
 		const bounds = this.#getBounds(playerId);
