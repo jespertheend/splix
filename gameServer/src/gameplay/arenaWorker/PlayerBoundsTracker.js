@@ -81,4 +81,11 @@ export class PlayerBoundsTracker {
 			max: point.clone().addScalar(1),
 		});
 	}
+
+	/**
+	 * @param {number} playerId
+	 */
+	deletePlayer(playerId) {
+		this.#bounds.delete(playerId);
+	}
 }

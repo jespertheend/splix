@@ -312,10 +312,28 @@ export class Player {
 		if (this.#permanentlyDead) return;
 		this.#permanentlyDead = true;
 		this.#permanentlyDieTime = performance.now();
+		this.#clearAllMyTiles();
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
 		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
+	}
+
+	removedFromGame() {
+		this.#clearAllMyTiles();
+	}
+
+	#allMyTilesCleared = false;
+
+	/**
+	 * Resets all owned tiles of this player back to tiles that are not owned by anyone.
+	 * This can only be called once, so after this has been called, no attempts should be
+	 * made to add new tiles of this player to the arena.
+	 */
+	#clearAllMyTiles() {
+		if (this.#allMyTilesCleared) return;
+		this.#allMyTilesCleared = true;
+		this.game.arena.clearAllPlayerTiles(this.id);
 	}
 
 	/**
@@ -374,6 +392,9 @@ export class Player {
 			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.isGeneratingTrail) {
 				this.#trailVertices.push(this.#currentPosition.clone());
+				if (this.#allMyTilesCleared) {
+					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
+				}
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.game.arena.updateCapturedArea(this.id, []);
 				this.#trailVertices = [];
