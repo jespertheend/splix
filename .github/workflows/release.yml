@@ -1,0 +1,41 @@
+name: release
+
+permissions:
+  contents: write # For creating releases.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Name of tag and GitHub release title'
+        type: string
+        required: true
+
+env:
+  # be sure to also update these in other workflows
+  DENO_DIR: deno_dir
+  DENO_VERSION: "1.32.1"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@9db7f66e8e16b5699a514448ce994936c63f0d54
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Build windows
+        run: deno task build-gameserver --compress
+
+      - name: Release
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          tag_name: ${{ inputs.version }}
+          draft: true
+          files: |
+            gameServer/out/*
