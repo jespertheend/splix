@@ -1,5 +1,5 @@
 import { Vec2 } from "renda";
-import { createArenaTiles, fillRect } from "../util.js";
+import { compressTiles, createArenaTiles, fillRect } from "../util.js";
 
 /**
  * Instead of performing the floodfill on the arena itself,
@@ -90,63 +90,9 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 	// We loop over each column of tiles and collect a set of sections that need to be filled.
 	// Then for each column after that, we check if the sections are the same as the column on the left.
 	// If so, we'll expand the rectangles from the previous column, otherwise we'll start with a new set of rectangles.
-	const fillRects = [];
-
-	/** @typedef {[start: number, end: number]} Section */
-
-	/**
-	 * Checks if two columns contain the exact same sections.
-	 * @param {Section[]} columnA
-	 * @param {Section[]} columnB
-	 */
-	function columnsEqual(columnA, columnB) {
-		if (columnA.length != columnB.length) return false;
-		for (let i = 0; i < columnA.length; i++) {
-			const sectionA = columnA[i];
-			const sectionB = columnB[i];
-			if (sectionA[0] != sectionB[0]) return false;
-			if (sectionA[1] != sectionB[1]) return false;
-		}
-		return true;
-	}
-
-	/** @type {Section[]} */
-	let previousSections = [];
-	let equalColumnCount = 0;
-	for (let x = bounds.min.x; x < bounds.max.x; x++) {
-		/** @type {Section[]} */
-		const collectedSections = [];
-		/** @type {Section?} */
-		let currentlyMeasuringSection = null;
-		for (let y = bounds.min.y; y < bounds.max.y; y++) {
-			const tileShouldBeFilled = floodFillMask[x][y] == 0 && arenaTiles[x][y] != playerId;
-			if (tileShouldBeFilled) {
-				if (!currentlyMeasuringSection) {
-					currentlyMeasuringSection = [y, 0];
-					collectedSections.push(currentlyMeasuringSection);
-				}
-			} else {
-				if (currentlyMeasuringSection) {
-					currentlyMeasuringSection[1] = y;
-					currentlyMeasuringSection = null;
-				}
-			}
-		}
-
-		// Compare the current sections to that of the previous column.
-		if (columnsEqual(previousSections, collectedSections)) {
-			equalColumnCount++;
-		} else {
-			for (const section of previousSections) {
-				fillRects.push({
-					min: new Vec2(x - equalColumnCount - 1, section[0]),
-					max: new Vec2(x, section[1]),
-				});
-			}
-			equalColumnCount = 0;
-			previousSections = collectedSections;
-		}
-	}
+	const fillRects = compressTiles(bounds, (x, y) => {
+		return floodFillMask[x][y] == 0 && arenaTiles[x][y] != playerId;
+	});
 
 	return {
 		/** The rectangles that need to be filled with tiles from the player in order to fill all gaps in their area. */

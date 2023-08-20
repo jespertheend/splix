@@ -1,5 +1,5 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { createArenaTiles, serializeRect } from "../util.js";
+import { compressTiles, createArenaTiles, serializeRect } from "../util.js";
 import { PLAYER_SPAWN_RADIUS } from "../../config.js";
 import { fillRect } from "../util.js";
 import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
@@ -85,6 +85,22 @@ const arenaWorkerHandlers = {
 		for (const rect of fillRects) {
 			fillTilesRect(rect, playerId);
 		}
+	},
+	/**
+	 * @param {number} playerId
+	 */
+	clearAllPlayerTiles(playerId) {
+		const bounds = boundsTracker.getBounds(playerId);
+
+		const rects = compressTiles(bounds, (x, y) => {
+			return arenaTiles[x][y] == playerId;
+		});
+
+		for (const rect of rects) {
+			fillTilesRect(rect, 0);
+		}
+
+		boundsTracker.deletePlayer(playerId);
 	},
 };
 

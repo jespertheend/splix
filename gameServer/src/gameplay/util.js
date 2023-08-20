@@ -100,3 +100,80 @@ export function deserializeRect(rect) {
 		max: new Vec2(rect.maxX, rect.maxY),
 	};
 }
+
+/**
+ * Converts arbitrary data to an array of `Rect`s.
+ * This can be used to send less data over the network, instead of sending the value of each tile individually,
+ * you can send just the list of rectangles and then what should happen to them.
+ * For example, when a player fills an area of land, instead of sending which tiles have been filled,
+ * you can send the rectangles that have been filled and the id of the player that they were filled with.
+ *
+ * @param {Rect} rect The coordinates to iterate over. `cb` will be fired for every coordinate in this rectangle.
+ * @param {(x: number, y: number) => boolean} cb A callback that determine whether tiles should be included
+ * in the returned array of rectangles. Basically, this callback should return `true` when you wish to change
+ * the value of a tile, and `false` if when you wish to keep the value as is.
+ */
+export function compressTiles(rect, cb) {
+	const rects = [];
+
+	/** @typedef {[start: number, end: number]} Section */
+
+	/**
+	 * Checks if two columns contain the exact same sections.
+	 * @param {Section[]} columnA
+	 * @param {Section[]} columnB
+	 */
+	function columnsEqual(columnA, columnB) {
+		if (columnA.length != columnB.length) return false;
+		for (let i = 0; i < columnA.length; i++) {
+			const sectionA = columnA[i];
+			const sectionB = columnB[i];
+			if (sectionA[0] != sectionB[0]) return false;
+			if (sectionA[1] != sectionB[1]) return false;
+		}
+		return true;
+	}
+
+	/** @type {Section[]} */
+	let previousSections = [];
+	let equalColumnCount = 0;
+	for (let x = rect.min.x; x < rect.max.x + 1; x++) {
+		/** @type {Section[]} */
+		const collectedSections = [];
+
+		if (x < rect.max.x) {
+			/** @type {Section?} */
+			let currentlyMeasuringSection = null;
+			for (let y = rect.min.y; y < rect.max.y + 1; y++) {
+				const tileShouldBeIncluded = y < rect.max.y && cb(x, y);
+				if (tileShouldBeIncluded) {
+					if (!currentlyMeasuringSection) {
+						currentlyMeasuringSection = [y, 0];
+						collectedSections.push(currentlyMeasuringSection);
+					}
+				} else {
+					if (currentlyMeasuringSection) {
+						currentlyMeasuringSection[1] = y;
+						currentlyMeasuringSection = null;
+					}
+				}
+			}
+		}
+
+		// Compare the current sections to that of the previous column.
+		if (columnsEqual(previousSections, collectedSections)) {
+			equalColumnCount++;
+		} else {
+			for (const section of previousSections) {
+				rects.push({
+					min: new Vec2(x - equalColumnCount - 1, section[0]),
+					max: new Vec2(x, section[1]),
+				});
+			}
+			equalColumnCount = 0;
+			previousSections = collectedSections;
+		}
+	}
+
+	return rects;
+}

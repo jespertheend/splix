@@ -21,7 +21,6 @@ export class Game {
 	constructor({
 		arenaWidth = 600,
 		arenaHeight = 600,
-		gameMode = "default",
 	} = {}) {
 		this.#arena = new Arena(arenaWidth, arenaHeight);
 		this.#arena.onRectFilled((rect, tileValue) => {
@@ -80,6 +79,7 @@ export class Game {
 	 * @param {Player} player
 	 */
 	removePlayer(player) {
+		player.removedFromGame();
 		this.#players.delete(player.id);
 	}
 

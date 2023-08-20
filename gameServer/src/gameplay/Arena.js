@@ -101,6 +101,13 @@ export class Arena {
 	}
 
 	/**
+	 * @param {number} playerId
+	 */
+	clearAllPlayerTiles(playerId) {
+		this.#messenger.send.clearAllPlayerTiles(playerId);
+	}
+
+	/**
 	 * Fills the tiles that are covered with a player trail.
 	 * @param {Vec2[]} vertices
 	 * @param {number} playerId
