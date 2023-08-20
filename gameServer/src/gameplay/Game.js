@@ -138,6 +138,15 @@ export class Game {
 	}
 
 	/**
+	 * @param {Vec2} pos
+	 */
+	*getOverlappingTrailBoundsPlayers(pos) {
+		for (const player of this.#players.values()) {
+			if (player.pointIsInTrailBounds(pos)) yield player;
+		}
+	}
+
+	/**
 	 * Sends the position and direction of a player to all nearby players.
 	 * @param {import("./Player.js").Player} player
 	 */
@@ -168,6 +177,45 @@ export class Game {
 					0,
 					Array.from(player.getTrailVertices()),
 				);
+				nearbyPlayer.connection.send(samePlayerMessage);
+			} else {
+				nearbyPlayer.connection.send(message);
+			}
+		}
+	}
+
+	/**
+	 * Notifies nearby players that this player died.
+	 * @param {import("./Player.js").Player} player
+	 * @param {boolean} sendPosition Whether to let the client know about the location of the player's death.
+	 */
+	broadcastPlayerDeath(player, sendPosition) {
+		const position = sendPosition ? player.getPosition() : null;
+		const message = WebSocketConnection.createPlayerDieMessage(player.id, position);
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+			if (nearbyPlayer == player) {
+				// The client that owns the player should receive 0 as player id
+				const samePlayerMessage = WebSocketConnection.createPlayerDieMessage(0, position);
+				nearbyPlayer.connection.send(samePlayerMessage);
+			} else {
+				nearbyPlayer.connection.send(message);
+			}
+		}
+	}
+
+	/**
+	 * Notifies nearby players to render a hit line animation at a specific point.
+	 * @param {import("./Player.js").Player} player The player that was hit.
+	 * @param {import("./Player.js").Player} hitByPlayer The player that caused the hit.
+	 */
+	broadcastHitLineAnimation(player, hitByPlayer) {
+		const position = hitByPlayer.getPosition();
+		const didHitSelf = player == hitByPlayer;
+		const message = WebSocketConnection.createHitLineMessage(player.id, 0, position, didHitSelf);
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
+			if (nearbyPlayer == player) {
+				// The client that owns the player should receive 0 as player id
+				const samePlayerMessage = WebSocketConnection.createHitLineMessage(0, 0, position, didHitSelf);
 				nearbyPlayer.connection.send(samePlayerMessage);
 			} else {
 				nearbyPlayer.connection.send(message);

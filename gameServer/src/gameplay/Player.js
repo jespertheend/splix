@@ -1,6 +1,7 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import { PLAYER_TRAVEL_SPEED, SKINS_COUNT, UPDATES_VIEWPORT_RECT_SIZE } from "../config.js";
 import { Vec2 } from "renda";
+import { checkTrailSegment } from "../util/util.js";
 
 /**
  * When sent inside messages, these translate to an integer:
@@ -11,6 +12,8 @@ import { Vec2 } from "renda";
  * - paused - 4
  * @typedef {"right" | "down" | "left" | "up" | "paused"} Direction
  */
+
+/** @typedef {"player" | "area-bounds" | "self"} DeathType */
 
 export class Player {
 	#id;
@@ -50,6 +53,19 @@ export class Player {
 	/** @type {Vec2[]} */
 	#trailVertices = [];
 
+	get isGeneratingTrail() {
+		return this.#trailVertices.length > 0;
+	}
+
+	/**
+	 * The bounding box of the current trail, used for hit detection with other players.
+	 * @type {import("./util.js").Rect}
+	 */
+	#trailBounds = {
+		min: new Vec2(),
+		max: new Vec2(),
+	};
+
 	/**
 	 * @typedef MovementQueueItem
 	 * @property {Direction} direction The direction in which the player started moving.
@@ -59,6 +75,21 @@ export class Player {
 
 	/** @type {MovementQueueItem[]} */
 	#movementQueue = [];
+
+	/**
+	 * @typedef DeathState
+	 * @property {number} dieTime
+	 * @property {DeathType} type
+	 */
+
+	/** @type {DeathState?} */
+	#lastDeathState = null;
+	get dead() {
+		return Boolean(this.#lastDeathState);
+	}
+
+	#permanentlyDead = false;
+	#permanentlyDieTime = 0;
 
 	/**
 	 * @param {number} id
@@ -128,7 +159,7 @@ export class Player {
 
 			this.#movementQueue.shift();
 			this.#currentPosition.set(firstItem.desiredPosition);
-			if (this.#trailVertices.length > 0) {
+			if (this.isGeneratingTrail) {
 				this.#trailVertices.push(firstItem.desiredPosition.clone());
 			}
 			this.#currentDirection = firstItem.direction;
@@ -203,7 +234,7 @@ export class Player {
 	 * @param {number} dt
 	 */
 	loop(now, dt) {
-		if (this.currentDirection != "paused") {
+		if (this.currentDirection != "paused" && !this.dead) {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
 			while (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
@@ -216,8 +247,112 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				this.updateCurrentTile();
+				this.#currentPositionChanged();
+				this.#updateCurrentTile();
 			}
+		}
+
+		if (this.#lastDeathState) {
+			const dt = performance.now() - this.#lastDeathState.dieTime;
+			if (dt > 600) {
+				this.#permanentlyDie();
+			}
+		}
+		if (this.#permanentlyDead) {
+			const dt = performance.now() - this.#permanentlyDieTime;
+			if (dt > 5_000) {
+				this.connection.close();
+			}
+		}
+	}
+
+	#currentPositionChanged() {
+		if (this.isGeneratingTrail) {
+			this.#trailBounds.min.x = Math.min(this.#trailBounds.min.x, this.#currentPosition.x);
+			this.#trailBounds.min.y = Math.min(this.#trailBounds.min.y, this.#currentPosition.y);
+			this.#trailBounds.max.x = Math.max(this.#trailBounds.max.x, this.#currentPosition.x);
+			this.#trailBounds.max.y = Math.max(this.#trailBounds.max.y, this.#currentPosition.y);
+		} else {
+			this.#trailBounds.min = this.#currentPosition.clone();
+			this.#trailBounds.max = this.#currentPosition.clone();
+		}
+
+		for (const player of this.game.getOverlappingTrailBoundsPlayers(this.#currentPosition)) {
+			const includeLastSegment = player != this;
+			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegment })) {
+				const killedSelf = player == this;
+				player.die(killedSelf ? "self" : "player", killedSelf);
+				this.game.broadcastHitLineAnimation(player, this);
+			}
+		}
+	}
+
+	/**
+	 * Initiates a player death. Though at this point the death is not permanent yet.
+	 * The death can still be undone by the player that killed the other player, if it turns out
+	 * they moved away just in time before hitting them.
+	 *
+	 * @param {DeathType} deathType
+	 * @param {boolean} sendPosition Whether to let the client know about the location of the player's death.
+	 * If the player died from touching their own trail, or the edge of the map, we want to make it clear
+	 * that this is what caused their death, so we'll change their position.
+	 * But in case the player died from another player, the position doesn't really matter and we'll let the
+	 * client decide where to render the player's death, to prevent a sudden change in their position.
+	 */
+	die(deathType, sendPosition) {
+		if (this.#lastDeathState) return;
+		this.#lastDeathState = {
+			dieTime: performance.now(),
+			type: deathType,
+		};
+		this.game.broadcastPlayerDeath(this, sendPosition);
+	}
+
+	#permanentlyDie() {
+		if (this.#permanentlyDead) return;
+		this.#permanentlyDead = true;
+		this.#permanentlyDieTime = performance.now();
+		if (!this.#lastDeathState) {
+			throw new Error("Assertion failed, no death state is set");
+		}
+		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
+	}
+
+	/**
+	 * @param {Vec2} point
+	 */
+	pointIsInTrailBounds(point) {
+		const bounds = this.#trailBounds;
+		return point.x >= bounds.min.x && point.y >= bounds.min.y && point.x <= bounds.max.x && point.y <= bounds.max.y;
+	}
+
+	/**
+	 * @param {Vec2} point
+	 * @param {Object} options
+	 * @param {boolean} [options.includeLastSegment] When true, also checks if the point lies between the
+	 * last segment and the current position of the player. If the player is not generating a trail,
+	 * this checks if the point lies at the exact location of the current player.
+	 */
+	pointIsInTrail(point, {
+		includeLastSegment = true,
+	} = {}) {
+		if (this.isGeneratingTrail) {
+			for (let i = 0; i < this.#trailVertices.length - 1; i++) {
+				const start = this.#trailVertices[i];
+				const end = this.#trailVertices[i + 1];
+				if (checkTrailSegment(point, start, end)) return true;
+			}
+			if (includeLastSegment) {
+				const last = this.#trailVertices.at(-1);
+				if (!last) throw new Error("Assertion failed, no trail exists");
+				if (checkTrailSegment(point, last, this.#currentPosition)) return true;
+			}
+			return false;
+		} else {
+			if (includeLastSegment) {
+				return point.x == this.#currentPosition.x && point.y == this.#currentPosition.y;
+			}
+			return false;
 		}
 	}
 
@@ -226,18 +361,18 @@ export class Player {
 	 * This can happen either because the player moved to a new coordinate,
 	 * or because the current tile type got changed to that of another player.
 	 */
-	updateCurrentTile() {
+	#updateCurrentTile() {
 		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
 		if (this.#currentTileType != tileValue) {
 			// When the player moves out of their captured area, we will start a new trail.
-			if (tileValue != this.#id && this.#trailVertices.length == 0) {
+			if (tileValue != this.#id && !this.isGeneratingTrail) {
 				this.#trailVertices.push(this.#currentPosition.clone());
 				this.game.broadcastPlayerTrail(this);
 			}
 
 			// When the player comes back into their captured area, we add a final vertex to the trail,
 			// Then fill the tiles underneath the trail, and finally clear the trail.
-			if (tileValue == this.#id && this.#trailVertices.length > 0) {
+			if (tileValue == this.#id && this.isGeneratingTrail) {
 				this.#trailVertices.push(this.#currentPosition.clone());
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.game.arena.updateCapturedArea(this.id, []);
@@ -247,11 +382,5 @@ export class Player {
 
 			this.#currentTileType = tileValue;
 		}
-	}
-
-	/**
-	 * @param {Vec2} pos
-	 */
-	#expandCapturedAreaBounds(pos) {
 	}
 }
