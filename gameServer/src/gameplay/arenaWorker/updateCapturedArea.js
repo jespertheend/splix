@@ -1,4 +1,4 @@
-import { Vec2 } from "../../../../.denoTypes/vendor/raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/mod.js";
+import { Vec2 } from "renda";
 import { createArenaTiles, fillRect } from "../util.js";
 
 /**
