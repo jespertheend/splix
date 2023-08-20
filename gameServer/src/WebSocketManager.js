@@ -3,12 +3,17 @@ import { getMainInstance } from "./mainInstance.js";
 import { WebSocketHoster } from "./util/WebSocketHoster.js";
 
 export class WebSocketManager {
+	#port;
 	#hoster;
 
 	/** @type {Set<WebSocketConnection>} */
 	#activeConnections = new Set();
 
-	constructor() {
+	/**
+	 * @param {number} port
+	 */
+	constructor(port) {
+		this.#port = port;
 		this.#hoster = new WebSocketHoster((socket, ip) => {
 			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
 			this.#activeConnections.add(connection);
@@ -31,7 +36,7 @@ export class WebSocketManager {
 	}
 
 	init() {
-		this.#hoster.startServer(8080);
+		this.#hoster.startServer(this.#port);
 	}
 
 	/**
