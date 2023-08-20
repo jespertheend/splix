@@ -277,6 +277,14 @@ export class Player {
 			this.#trailBounds.max = this.#currentPosition.clone();
 		}
 
+		if (
+			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
+			this.#currentPosition.x >= this.game.arena.width - 1 ||
+			this.#currentPosition.y >= this.game.arena.height - 1
+		) {
+			this.die("area-bounds", true);
+		}
+
 		for (const player of this.game.getOverlappingTrailBoundsPlayers(this.#currentPosition)) {
 			const includeLastSegment = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegment })) {

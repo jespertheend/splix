@@ -26,6 +26,14 @@ export class Arena {
 	#width;
 	#height;
 
+	get width() {
+		return this.#width;
+	}
+
+	get height() {
+		return this.#height;
+	}
+
 	#worker;
 	/** @type {TypedMessenger<WorkerArenaHandlers, import("./arenaWorker/mod.js").ArenaWorkerHandlers>} */
 	#messenger;
