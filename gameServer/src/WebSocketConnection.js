@@ -50,6 +50,9 @@ export class WebSocketConnection {
 			 * Updates the trail of a specific player.
 			 */
 			SET_PLAYER_TRAIL: 4,
+			/**
+			 * Lets all nearby clients know that they should play the death animation for a specific player.
+			 */
 			PLAYER_DIE: 5,
 			/**
 			 * Sends an area of the map to a player.
@@ -62,7 +65,10 @@ export class WebSocketConnection {
 			MY_RANK: 10,
 			LEADERBOARD: 11,
 			MAP_SIZE: 12,
-			YOU_DED: 13,
+			/**
+			 * Tells the client to show the game over screen.
+			 */
+			GAME_OVER: 13,
 			MINIMAP: 14,
 			PLAYER_SKIN: 15,
 			/**
@@ -75,6 +81,9 @@ export class WebSocketConnection {
 			 * This will will hide the loading transition on the client.
 			 */
 			READY: 17,
+			/**
+			 * Notifies clients to render a 'hit line' circle at a location.
+			 */
 			PLAYER_HIT_LINE: 18,
 			REFRESH_AFTER_DIE: 19,
 			PLAYER_HONK: 20,
@@ -317,6 +326,104 @@ export class WebSocketConnection {
 			cursor += 2;
 		}
 		return buffer;
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {Vec2?} position The position where the player died. This is only useful when the player
+	 * died while hitting a wall or their own trail. In that case we want to make it clearly visible that this is
+	 * what caused the player to die. But when the player is killed by another player, the position
+	 * doesn't really matter and we'd rather let the client determine where to render the player's death.
+	 */
+	static createPlayerDieMessage(playerId, position) {
+		const bufferLength = position ? 7 : 3;
+		const buffer = new ArrayBuffer(bufferLength);
+		const view = new DataView(buffer);
+		let cursor = 0;
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_DIE);
+		cursor++;
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+		if (position) {
+			view.setUint16(cursor, position.x, false);
+			cursor += 2;
+			view.setUint16(cursor, position.y, false);
+			cursor += 2;
+		}
+		return buffer;
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {number} otherColorId
+	 * @param {Vec2} position
+	 * @param {boolean} didHitSelf
+	 */
+	static createHitLineMessage(playerId, otherColorId, position, didHitSelf) {
+		const buffer = new ArrayBuffer(9);
+		const view = new DataView(buffer);
+		let cursor = 0;
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_HIT_LINE);
+		cursor++;
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+		view.setUint8(cursor, otherColorId);
+		cursor++;
+		view.setUint16(cursor, position.x, false);
+		cursor += 2;
+		view.setUint16(cursor, position.y, false);
+		cursor += 2;
+		view.setUint8(cursor, didHitSelf ? 1 : 0);
+		cursor++;
+		return buffer;
+	}
+
+	/**
+	 * @param {number} scoreBlocks
+	 * @param {number} scoreKills
+	 * @param {number} scoreRank
+	 * @param {number} timeAlive
+	 * @param {number} timeNo1
+	 * @param {import("./gameplay/Player.js").DeathType} deathType
+	 * @param {string} killedByName
+	 */
+	sendGameOver(scoreBlocks, scoreKills, scoreRank, timeAlive, timeNo1, deathType, killedByName) {
+		const buffer = new ArrayBuffer(18);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.GAME_OVER);
+		cursor++;
+
+		view.setUint32(cursor, scoreBlocks, false);
+		cursor += 4;
+
+		view.setUint16(cursor, scoreKills, false);
+		cursor += 2;
+
+		view.setUint16(cursor, scoreRank, false);
+		cursor += 2;
+
+		view.setUint32(cursor, timeAlive, false);
+		cursor += 4;
+
+		view.setUint32(cursor, timeNo1, false);
+		cursor += 4;
+
+		let deathTypeInt = 0;
+		if (deathType == "player") {
+			deathTypeInt = 1;
+		} else if (deathType == "area-bounds") {
+			deathTypeInt = 2;
+		} else if (deathType == "self") {
+			deathTypeInt = 3;
+		}
+		view.setUint8(cursor, deathTypeInt);
+		cursor++;
+
+		// TODO: Append killedByName to message
+
+		this.send(buffer);
 	}
 
 	/**
