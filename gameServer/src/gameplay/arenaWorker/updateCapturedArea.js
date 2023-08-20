@@ -1,5 +1,5 @@
 import { Vec2 } from "renda";
-import { compressTiles, createArenaTiles, fillRect } from "../util.js";
+import { compressTiles, createArenaTiles, fillRect } from "../../util/util.js";
 
 /**
  * Instead of performing the floodfill on the arena itself,
@@ -29,7 +29,7 @@ export function initializeMask(width, height) {
  * Finds unfilled areas of the player and fills them.
  * @param {number[][]} arenaTiles
  * @param {number} playerId
- * @param {import("../util.js").Rect} bounds
+ * @param {import("../../util/util.js").Rect} bounds
  * @param {[x: number, y: number][]} otherPlayerLocations
  */
 export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLocations) {
