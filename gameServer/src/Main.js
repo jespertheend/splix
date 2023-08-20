@@ -3,11 +3,21 @@ import { Game } from "./gameplay/Game.js";
 import { WebSocketManager } from "./WebSocketManager.js";
 
 export class Main {
-	constructor() {
-		this.websocketManager = new WebSocketManager();
+	/**
+	 * @param {Object} options
+	 * @param {number} options.port
+	 * @param {number} options.arenaWidth
+	 * @param {number} options.arenaHeight
+	 */
+	constructor({
+		port,
+		arenaWidth,
+		arenaHeight,
+	}) {
+		this.websocketManager = new WebSocketManager(port);
 		this.game = new Game({
-			arenaHeight: 100,
-			arenaWidth: 100,
+			arenaWidth,
+			arenaHeight,
 		});
 		this.applicationLoop = new ApplicationLoop();
 	}

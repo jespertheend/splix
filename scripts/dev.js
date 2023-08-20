@@ -23,5 +23,9 @@ generateTypes({
 });
 
 if (!Deno.args.includes("--no-init")) {
-	init();
+	init({
+		port: 8080,
+		arenaWidth: 40,
+		arenaHeight: 40,
+	});
 }
