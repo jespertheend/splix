@@ -1,5 +1,11 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
-import { PLAYER_TRAVEL_SPEED, SKINS_COUNT, UPDATES_VIEWPORT_RECT_SIZE } from "../config.js";
+import {
+	MIN_TILES_VIEWPORT_RECT_SIZE,
+	PLAYER_TRAVEL_SPEED,
+	SKINS_COUNT,
+	UPDATES_VIEWPORT_RECT_SIZE,
+	VIEWPORT_EDGE_CHUNK_SIZE,
+} from "../config.js";
 import { Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
 
@@ -34,6 +40,18 @@ export class Player {
 	getPosition() {
 		return this.#currentPosition.clone();
 	}
+
+	/**
+	 * The X position of the player when the most recent horizontal edge chunk was sent to the client.
+	 * If the player moves too far away from this position, a new edge chunk will be sent.
+	 */
+	#lastEdgeChunkSendX = 20;
+
+	/**
+	 * The Y position of the player when the most recent vertical edge chunk was sent to the client.
+	 * If the player moves too far away from this position, a new edge chunk will be sent.
+	 */
+	#lastEdgeChunkSendY = 20;
 
 	/**
 	 * Indicates how many tiles the player has moved on the client side.
@@ -292,6 +310,58 @@ export class Player {
 				player.die(killedSelf ? "self" : "player", killedSelf);
 				this.game.broadcastHitLineAnimation(player, this);
 			}
+		}
+
+		this.#sendRequiredEdgeChunks();
+	}
+
+	#sendRequiredEdgeChunks() {
+		const chunkSize = VIEWPORT_EDGE_CHUNK_SIZE;
+		const viewportSize = MIN_TILES_VIEWPORT_RECT_SIZE;
+		/** @type {{x: number, y: number, w: number, h: number} | null} */
+		let chunk = null;
+		if (this.#currentPosition.x >= this.#lastEdgeChunkSendX + chunkSize) {
+			chunk = {
+				x: this.#currentPosition.x + viewportSize,
+				y: this.#lastEdgeChunkSendY - viewportSize - chunkSize,
+				w: chunkSize,
+				h: (viewportSize + chunkSize) * 2,
+			};
+			this.#lastEdgeChunkSendX = this.#currentPosition.x;
+		}
+		if (this.#currentPosition.x <= this.#lastEdgeChunkSendX - chunkSize) {
+			chunk = {
+				x: this.#currentPosition.x - viewportSize - chunkSize,
+				y: this.#lastEdgeChunkSendY - viewportSize - chunkSize,
+				w: chunkSize,
+				h: (viewportSize + chunkSize) * 2,
+			};
+			this.#lastEdgeChunkSendX = this.#currentPosition.x;
+		}
+		if (this.#currentPosition.y >= this.#lastEdgeChunkSendY + chunkSize) {
+			chunk = {
+				x: this.#lastEdgeChunkSendX - viewportSize - chunkSize,
+				y: this.#currentPosition.y + viewportSize,
+				w: (viewportSize + chunkSize) * 2,
+				h: chunkSize,
+			};
+			this.#lastEdgeChunkSendY = this.#currentPosition.y;
+		}
+		if (this.#currentPosition.y <= this.#lastEdgeChunkSendY - chunkSize) {
+			chunk = {
+				x: this.#lastEdgeChunkSendX - viewportSize - chunkSize,
+				y: this.#currentPosition.y - viewportSize - chunkSize,
+				w: (viewportSize + chunkSize) * 2,
+				h: chunkSize,
+			};
+			this.#lastEdgeChunkSendY = this.#currentPosition.y;
+		}
+		if (chunk) {
+			const { x, y, w, h } = chunk;
+			this.#connection.sendChunk({
+				min: new Vec2(x, y),
+				max: new Vec2(x + w, y + h),
+			});
 		}
 	}
 
