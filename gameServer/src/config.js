@@ -6,14 +6,9 @@
 export const SKINS_COUNT = 13;
 
 /**
- * Defines a rectangle around the players position for which events will be sent to the player.
- */
-export const UPDATES_VIEWPORT_RECT_SIZE = 30;
-
-/**
  * Defines a rectangle around the players position for which tiles are guaranteed to be visible.
- * Tiles outside this viewport may also have been sent, but if not,
- * the player will have to move closer to them in order to receive them.
+ * Tiles outside this viewport may also have been sent,
+ * but might not be due to `VIEWPORT_EDGE_CHUNK_SIZE` not being reached yet.
  */
 export const MIN_TILES_VIEWPORT_RECT_SIZE = 20;
 
@@ -21,6 +16,11 @@ export const MIN_TILES_VIEWPORT_RECT_SIZE = 20;
  * The width or height of chunks of tiles that will be sent to a client when the player moves.
  */
 export const VIEWPORT_EDGE_CHUNK_SIZE = 5;
+
+/**
+ * Defines a rectangle around the players position for which events will be sent to the player.
+ */
+export const UPDATES_VIEWPORT_RECT_SIZE = MIN_TILES_VIEWPORT_RECT_SIZE + VIEWPORT_EDGE_CHUNK_SIZE;
 
 /**
  * How many tiles around the player should be filled when the player joins a game.

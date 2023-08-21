@@ -1,4 +1,5 @@
 import { Vec2 } from "renda";
+import { UPDATES_VIEWPORT_RECT_SIZE } from "./config.js";
 
 /**
  * - `"add-segment"` - adds a new polygon to the current trail.
@@ -132,9 +133,10 @@ export class WebSocketConnection {
 		const messageType = view.getUint8(0);
 
 		if (messageType == WebSocketConnection.ReceiveAction.READY) {
+			const pos = this.#player.getPosition();
 			this.sendChunk({
-				min: new Vec2(),
-				max: new Vec2(100, 100),
+				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
+				max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
 			});
 			this.#sendReady();
 		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
