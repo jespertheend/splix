@@ -1,9 +1,10 @@
 /** @typedef {"default" | "teams"} GameModes */
 
-import { Vec2 } from "renda";
+import { lerp, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
+import { PLAYER_SPAWN_RADIUS } from "../config.js";
 
 export class Game {
 	#arena;
@@ -73,6 +74,13 @@ export class Game {
 		this.#players.set(id, player);
 		this.broadcastPlayerState(player);
 		return player;
+	}
+
+	getNewSpawnPosition() {
+		return new Vec2(
+			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random())),
+			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random())),
+		);
 	}
 
 	/**

@@ -32,7 +32,7 @@ export class Player {
 	/**
 	 * The current position of the player, rounded to the coordinate of the current tile.
 	 */
-	#currentPosition = new Vec2(20, 20);
+	#currentPosition;
 
 	/**
 	 * Returns the current position of the player, rounded to the coordinate of the current tile.
@@ -45,13 +45,13 @@ export class Player {
 	 * The X position of the player when the most recent horizontal edge chunk was sent to the client.
 	 * If the player moves too far away from this position, a new edge chunk will be sent.
 	 */
-	#lastEdgeChunkSendX = 20;
+	#lastEdgeChunkSendX;
 
 	/**
 	 * The Y position of the player when the most recent vertical edge chunk was sent to the client.
 	 * If the player moves too far away from this position, a new edge chunk will be sent.
 	 */
-	#lastEdgeChunkSendY = 20;
+	#lastEdgeChunkSendY;
 
 	/**
 	 * Indicates how many tiles the player has moved on the client side.
@@ -118,6 +118,12 @@ export class Player {
 		this.#id = id;
 		this.#game = game;
 		this.#connection = connection;
+
+		this.#currentPosition = game.getNewSpawnPosition();
+		this.#lastEdgeChunkSendX = this.#currentPosition.x;
+		this.#lastEdgeChunkSendY = this.#currentPosition.y;
+		this.#currentPositionChanged();
+
 		game.arena.fillPlayerSpawn(this.#currentPosition, id);
 	}
 
