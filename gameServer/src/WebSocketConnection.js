@@ -132,7 +132,7 @@ export class WebSocketConnection {
 		const messageType = view.getUint8(0);
 
 		if (messageType == WebSocketConnection.ReceiveAction.READY) {
-			this.#sendChunk({
+			this.sendChunk({
 				min: new Vec2(),
 				max: new Vec2(100, 100),
 			});
@@ -190,7 +190,7 @@ export class WebSocketConnection {
 	 * Sends a chunk of tiles from an arena.
 	 * @param {import("./util/util.js").Rect} rect
 	 */
-	#sendChunk(rect) {
+	sendChunk(rect) {
 		rect = this.#player.game.arena.clampRect(rect);
 		const width = rect.max.x - rect.min.x;
 		const height = rect.max.y - rect.min.y;
