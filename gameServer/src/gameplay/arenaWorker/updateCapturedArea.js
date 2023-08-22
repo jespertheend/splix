@@ -50,7 +50,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 	 */
 	function testFillNode(coord) {
 		if (coord.x < bounds.min.x || coord.y < bounds.min.y) return false;
-		if (coord.x > bounds.max.x || coord.y > bounds.max.y) return false;
+		if (coord.x >= bounds.max.x || coord.y >= bounds.max.y) return false;
 
 		const alreadyFilled = floodFillMask[coord.x][coord.y];
 		// We've already seen this node, so we can skip it.
