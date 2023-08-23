@@ -1,5 +1,5 @@
-import { Vec2 } from "renda";
-import { UPDATES_VIEWPORT_RECT_SIZE } from "./config.js";
+import { clamp, Vec2 } from "renda";
+import { UPDATES_VIEWPORT_RECT_SIZE, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_RANGE } from "./config.js";
 
 /**
  * - `"add-segment"` - adds a new polygon to the current trail.
@@ -101,6 +101,10 @@ export class WebSocketConnection {
 			 */
 			UPDATE_MY_POS: 1,
 			SET_USERNAME: 2,
+			/**
+			 * Sets the skin of the connected client.
+			 * This message is ignored when it is sent after the `READY` message.
+			 */
 			SKIN: 3,
 			/**
 			 * Lets the server know that the player is ready to join the game.
@@ -125,6 +129,8 @@ export class WebSocketConnection {
 
 	#lastPingTime = performance.now();
 
+	#readyReceived = false;
+
 	/**
 	 * @param {ArrayBuffer} data
 	 */
@@ -133,6 +139,8 @@ export class WebSocketConnection {
 		const messageType = view.getUint8(0);
 
 		if (messageType == WebSocketConnection.ReceiveAction.READY) {
+			this.#readyReceived = true;
+			this.#player.readyReceived();
 			const pos = this.#player.getPosition();
 			this.sendChunk({
 				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
@@ -170,6 +178,17 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.REQUEST_MY_TRAIL) {
 			const message = WebSocketConnection.createTrailMessage(0, Array.from(this.#player.getTrailVertices()));
 			this.send(message);
+		} else if (messageType == WebSocketConnection.ReceiveAction.SKIN) {
+			if (this.#readyReceived) return;
+			if (view.byteLength != 3) return;
+			let cursor = 1;
+			let colorId = view.getUint8(cursor);
+			cursor++;
+			let patternId = view.getUint8(cursor);
+			cursor++;
+			colorId = clamp(colorId, 0, VALID_SKIN_COLOR_RANGE);
+			patternId = clamp(patternId, 0, VALID_SKIN_PATTERN_RANGE);
+			this.#player.setSkin(colorId, patternId);
 		}
 	}
 
@@ -220,8 +239,8 @@ export class WebSocketConnection {
 				const pos = rect.min.clone();
 				pos.add(x, y);
 				const tileValue = this.#player.game.arena.getTileValue(pos);
-				const tileType = this.#player.game.getTileTypeForMessage(this.#player, tileValue);
-				view.setUint8(cursor, tileType);
+				const { colorId } = this.#player.game.getTileTypeForMessage(this.#player, tileValue);
+				view.setUint8(cursor, colorId);
 				cursor++;
 			}
 		}
@@ -269,6 +288,23 @@ export class WebSocketConnection {
 		view.setUint8(cursor, 1);
 		cursor++;
 
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {number} colorId
+	 */
+	sendPlayerSkin(playerId, colorId) {
+		const buffer = new ArrayBuffer(4);
+		const view = new DataView(buffer);
+		let cursor = 0;
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_SKIN);
+		cursor++;
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+		view.setUint8(cursor, colorId);
+		cursor++;
 		this.send(buffer);
 	}
 
@@ -356,20 +392,20 @@ export class WebSocketConnection {
 	}
 
 	/**
-	 * @param {number} playerId
-	 * @param {number} otherColorId
+	 * @param {number} hitByPlayerId
+	 * @param {number} pointsColorId The color of the rendered '+500' text above the effect.
 	 * @param {Vec2} position
 	 * @param {boolean} didHitSelf
 	 */
-	static createHitLineMessage(playerId, otherColorId, position, didHitSelf) {
+	static createHitLineMessage(hitByPlayerId, pointsColorId, position, didHitSelf) {
 		const buffer = new ArrayBuffer(9);
 		const view = new DataView(buffer);
 		let cursor = 0;
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_HIT_LINE);
 		cursor++;
-		view.setUint16(cursor, playerId, false);
+		view.setUint16(cursor, hitByPlayerId, false);
 		cursor += 2;
-		view.setUint8(cursor, otherColorId);
+		view.setUint8(cursor, pointsColorId);
 		cursor++;
 		view.setUint16(cursor, position.x, false);
 		cursor += 2;

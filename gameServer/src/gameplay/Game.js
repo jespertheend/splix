@@ -26,8 +26,8 @@ export class Game {
 		this.#arena = new Arena(arenaWidth, arenaHeight);
 		this.#arena.onRectFilled((rect, tileValue) => {
 			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
-				const tileType = this.getTileTypeForMessage(player, tileValue);
-				player.connection.sendFillRect(rect, tileType, 1);
+				const { colorId, patternId } = this.getTileTypeForMessage(player, tileValue);
+				player.connection.sendFillRect(rect, colorId, patternId);
 			}
 		});
 	}
@@ -99,13 +99,20 @@ export class Game {
 	 *
 	 * @param {import("./Player.js").Player} player The player that the message will be sent to.
 	 * @param {number} tileValue
+	 * @returns {{colorId: number, patternId: number}}
 	 */
 	getTileTypeForMessage(player, tileValue) {
 		if (tileValue == -1) {
-			return 0; // edge of the world
+			return {
+				colorId: 0, // edge of the world
+				patternId: 0,
+			};
 		}
 		if (tileValue == 0) {
-			return 1; // unfilled/grey
+			return {
+				colorId: 1, // unfilled/grey
+				patternId: 0,
+			};
 		}
 
 		const tilePlayer = this.#players.get(tileValue);
@@ -113,8 +120,11 @@ export class Game {
 			throw new Error("Assertion failed, the tile points to a non existent player");
 		}
 
-		const colorId = tilePlayer.skinIdForPlayer(player) + 2;
-		return colorId;
+		const colorId = tilePlayer.skinIdForPlayer(player) + 1;
+		return {
+			colorId,
+			patternId: tilePlayer.skinPatternId,
+		};
 	}
 
 	/**
@@ -219,15 +229,16 @@ export class Game {
 	broadcastHitLineAnimation(player, hitByPlayer) {
 		const position = hitByPlayer.getPosition();
 		const didHitSelf = player == hitByPlayer;
-		const message = WebSocketConnection.createHitLineMessage(player.id, 0, position, didHitSelf);
 		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
-			if (nearbyPlayer == player) {
-				// The client that owns the player should receive 0 as player id
-				const samePlayerMessage = WebSocketConnection.createHitLineMessage(0, 0, position, didHitSelf);
-				nearbyPlayer.connection.send(samePlayerMessage);
-			} else {
-				nearbyPlayer.connection.send(message);
-			}
+			const pointsColorId = player.skinIdForPlayer(nearbyPlayer);
+			const hitByPlayerId = nearbyPlayer == hitByPlayer ? 0 : hitByPlayer.id;
+			const message = WebSocketConnection.createHitLineMessage(
+				hitByPlayerId,
+				pointsColorId,
+				position,
+				didHitSelf,
+			);
+			nearbyPlayer.connection.send(message);
 		}
 	}
 }
