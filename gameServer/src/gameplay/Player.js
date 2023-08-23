@@ -4,9 +4,10 @@ import {
 	PLAYER_TRAVEL_SPEED,
 	SKINS_COUNT,
 	UPDATES_VIEWPORT_RECT_SIZE,
+	VALID_SKIN_COLOR_RANGE,
 	VIEWPORT_EDGE_CHUNK_SIZE,
 } from "../config.js";
-import { Vec2 } from "renda";
+import { lerp, Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
 
 /**
@@ -25,7 +26,6 @@ export class Player {
 	#id;
 	#game;
 	#connection;
-	#skinId = 2;
 
 	#currentTileType = 0;
 
@@ -109,6 +109,9 @@ export class Player {
 	#permanentlyDead = false;
 	#permanentlyDieTime = 0;
 
+	#skinColorId = 0;
+	#skinPatternId = 0;
+
 	/**
 	 * @param {number} id
 	 * @param {import("./Game.js").Game} game
@@ -127,6 +130,12 @@ export class Player {
 		game.arena.fillPlayerSpawn(this.#currentPosition, id);
 	}
 
+	readyReceived() {
+		if (this.#skinColorId == 0) {
+			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
+		}
+	}
+
 	get id() {
 		return this.#id;
 	}
@@ -139,8 +148,12 @@ export class Player {
 		return this.#connection;
 	}
 
-	get skinId() {
-		return this.#skinId;
+	get skinColorId() {
+		return this.#skinColorId;
+	}
+
+	get skinPatternId() {
+		return this.#skinPatternId;
 	}
 
 	/**
@@ -166,6 +179,15 @@ export class Player {
 			desiredPosition,
 		});
 		this.#drainMovementQueue();
+	}
+
+	/**
+	 * @param {number} colorId
+	 * @param {number} patternId
+	 */
+	setSkin(colorId, patternId) {
+		this.#skinColorId = colorId;
+		this.#skinPatternId = patternId;
 	}
 
 	/**
@@ -235,12 +257,12 @@ export class Player {
 	 * @param {Player} otherPlayer
 	 */
 	skinIdForPlayer(otherPlayer) {
-		if (this.#skinId != otherPlayer.skinId || otherPlayer == this) {
-			return this.#skinId;
+		if (this.#skinColorId != otherPlayer.skinColorId || otherPlayer == this) {
+			return this.#skinColorId;
 		} else {
 			// The color of this player is the same as my color, we'll generate a random color (that is not mine)
 			let fakeSkinId = this.id % (SKINS_COUNT - 1); //ranges from 0 to (SKINS_COUNT - 2)
-			if (fakeSkinId >= otherPlayer.skinId - 1) {
+			if (fakeSkinId >= otherPlayer.skinColorId - 1) {
 				fakeSkinId++; //make the value range from 0 to (SKINS_COUNT - 1) but exclude otherPlayer.skinId
 			}
 			return fakeSkinId;

@@ -31,3 +31,13 @@ export const PLAYER_SPAWN_RADIUS = 2;
  * How many tiles players move per millisecond. This should be the same value as on the client.
  */
 export const PLAYER_TRAVEL_SPEED = 0.006;
+
+/**
+ * The maximum allowed skin color id.
+ */
+export const VALID_SKIN_COLOR_RANGE = 13;
+
+/**
+ * The maximum allowed pattern id.
+ */
+export const VALID_SKIN_PATTERN_RANGE = 27;
