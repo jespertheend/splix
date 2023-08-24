@@ -42,7 +42,7 @@ export class Game {
 		}
 	}
 
-	#lastPlayerId = 1;
+	#lastPlayerId = 0;
 	#getNewPlayerId() {
 		while (true) {
 			this.#lastPlayerId++;
@@ -121,7 +121,7 @@ export class Game {
 			throw new Error("Assertion failed, the tile points to a non existent player");
 		}
 
-		const colorId = tilePlayer.skinIdForPlayer(player) + 1;
+		const colorId = tilePlayer.skinColorIdForPlayer(player) + 1;
 		return {
 			colorId,
 			patternId: tilePlayer.skinPatternId,
@@ -147,6 +147,7 @@ export class Game {
 	}
 
 	/**
+	 * Yields a list of players whose viewport contain the provided point.
 	 * @param {Vec2} pos
 	 */
 	*getOverlappingViewportPlayersForPos(pos) {
@@ -157,12 +158,32 @@ export class Game {
 	}
 
 	/**
+	 * Yields a list of players that are either inside the provided rect,
+	 * or have a part of their trail inside the rect.
+	 * @param {import("../util/util.js").Rect} rect
+	 */
+	*getOverlappingTrailBoundsPlayersForRect(rect) {
+		for (const player of this.#players.values()) {
+			const trailBounds = player.getTrailBounds();
+			if (
+				rect.max.x < trailBounds.min.x || trailBounds.max.x < rect.min.x || rect.max.y < trailBounds.min.y ||
+				trailBounds.max.y < rect.min.y
+			) {
+				continue;
+			}
+
+			yield player;
+		}
+	}
+
+	/**
 	 * @param {Vec2} pos
 	 */
-	*getOverlappingTrailBoundsPlayers(pos) {
-		for (const player of this.#players.values()) {
-			if (player.pointIsInTrailBounds(pos)) yield player;
-		}
+	*getOverlappingTrailBoundsPlayersForPos(pos) {
+		yield* this.getOverlappingTrailBoundsPlayersForRect({
+			min: pos.clone(),
+			max: pos.clone(),
+		});
 	}
 
 	/**
@@ -170,16 +191,9 @@ export class Game {
 	 * @param {import("./Player.js").Player} player
 	 */
 	broadcastPlayerState(player) {
-		// TODO: Cache the list of nearby players
-		const position = player.getPosition();
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
-			const playerId = player == nearbyPlayer ? 0 : player.id;
-			nearbyPlayer.connection.sendPlayerState(
-				position.x,
-				position.y,
-				playerId,
-				player.currentDirection,
-			);
+		const bounds = player.getTrailBounds();
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(bounds)) {
+			player.sendPlayerStateToPlayer(nearbyPlayer);
 		}
 	}
 
@@ -231,7 +245,7 @@ export class Game {
 		const position = hitByPlayer.getPosition();
 		const didHitSelf = player == hitByPlayer;
 		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
-			const pointsColorId = player.skinIdForPlayer(nearbyPlayer);
+			const pointsColorId = player.skinColorIdForPlayer(nearbyPlayer);
 			const hitByPlayerId = nearbyPlayer == hitByPlayer ? 0 : hitByPlayer.id;
 			const message = WebSocketConnection.createHitLineMessage(
 				hitByPlayerId,

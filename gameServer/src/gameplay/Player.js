@@ -87,7 +87,8 @@ export class Player {
 	}
 
 	/**
-	 * The bounding box of the current trail, used for hit detection with other players.
+	 * The bounding box of the current trail, used for hit detection with other players
+	 * and determining which players are inside another player's viewport.
 	 * @type {import("../util/util.js").Rect}
 	 */
 	#trailBounds = {
@@ -122,6 +123,21 @@ export class Player {
 
 	#skinColorId = 0;
 	#skinPatternId = 0;
+
+	/**
+	 * The list of other players that this player currently has in their viewport.
+	 * We use this to keep track of when new players have entered this player's viewport.
+	 * That way we can send stuff like the skin and player name.
+	 * @type {Set<Player>}
+	 */
+	#playersInViewport = new Set();
+
+	/**
+	 * A list of other players for which this player is currently in their viewport.
+	 * We use this to notify other players that they are no longer observing this player.
+	 * @type {Set<Player>}
+	 */
+	#inOtherPlayerViewports = new Set();
 
 	/**
 	 * @param {number} id
@@ -182,6 +198,17 @@ export class Player {
 	}
 
 	/**
+	 * Returns the bounding box of the trail of the player.
+	 * If the player doesn't have a trail, the bounding box is just the player's position.
+	 */
+	getTrailBounds() {
+		return {
+			min: this.#trailBounds.min.clone(),
+			max: this.#trailBounds.max.clone(),
+		};
+	}
+
+	/**
 	 * The client requested a new position and direction for its player.
 	 * The request will be added to a queue and might not immediately get parsed.
 	 * @param {Direction} direction
@@ -227,6 +254,30 @@ export class Player {
 	}
 
 	/**
+	 * Sends the state of this player to `receivingPlayer`.
+	 * @param {import("./Player.js").Player} receivingPlayer
+	 */
+	sendPlayerStateToPlayer(receivingPlayer) {
+		const playerId = this == receivingPlayer ? 0 : this.id;
+		receivingPlayer.connection.sendPlayerState(
+			this.#currentPosition.x,
+			this.#currentPosition.y,
+			playerId,
+			this.#currentDirection,
+		);
+	}
+
+	/**
+	 * Sends the state of this player to `receivingPlayer`.
+	 * @param {import("./Player.js").Player} receivingPlayer
+	 */
+	sendTrailToPlayer(receivingPlayer) {
+		const playerId = this == receivingPlayer ? 0 : this.id;
+		const message = WebSocketConnection.createTrailMessage(playerId, Array.from(this.#trailVertices));
+		receivingPlayer.connection.send(message);
+	}
+
+	/**
 	 * Checks if this is a valid next move, and if not, returns the reason why it's invalid.
 	 * @param {Vec2} desiredPosition
 	 * @param {Direction} newDirection
@@ -263,13 +314,13 @@ export class Player {
 	}
 
 	/**
-	 * Returns an integer that a client can use to render the correct color for a player or tile.
+	 * Returns an integer that a client can use to render the correct color for this player or one of its tiles.
 	 * When two players have the same color, a different integer is returned to make sure a
 	 * player doesn't see any players with their own color.
 	 * The returned value ranges from 0 to (SKINS_COUNT - 1).
-	 * @param {Player} otherPlayer
+	 * @param {Player} otherPlayer The player that the message will be sent to.
 	 */
-	skinIdForPlayer(otherPlayer) {
+	skinColorIdForPlayer(otherPlayer) {
 		if (this.#skinColorId != otherPlayer.skinColorId || otherPlayer == this) {
 			return this.#skinColorId;
 		} else {
@@ -326,6 +377,7 @@ export class Player {
 	}
 
 	#currentPositionChanged() {
+		// Update the trailbounds
 		if (this.isGeneratingTrail) {
 			this.#trailBounds.min.x = Math.min(this.#trailBounds.min.x, this.#currentPosition.x);
 			this.#trailBounds.min.y = Math.min(this.#trailBounds.min.y, this.#currentPosition.y);
@@ -336,6 +388,31 @@ export class Player {
 			this.#trailBounds.max = this.#currentPosition.clone();
 		}
 
+		{
+			// Check if any new players entered or left our viewport
+			let leftPlayers = new Set([...this.#playersInViewport]);
+			for (const player of this.game.getOverlappingTrailBoundsPlayersForRect(this.getUpdatesViewport())) {
+				leftPlayers.delete(player);
+				this.#playerAddedToViewport(player);
+			}
+			for (const player of leftPlayers) {
+				this.#playerRemovedFromViewport(player);
+			}
+
+			// Check if we moved in or out of someone elses viewport
+			leftPlayers = new Set([...this.#inOtherPlayerViewports]);
+			for (const player of this.game.getOverlappingViewportPlayersForRect(this.getTrailBounds())) {
+				leftPlayers.delete(player);
+				this.#inOtherPlayerViewports.add(player);
+				player.#playerAddedToViewport(this);
+			}
+			for (const player of leftPlayers) {
+				this.#inOtherPlayerViewports.delete(player);
+				player.#playerRemovedFromViewport(this);
+			}
+		}
+
+		// Check if we touch the edge of the map.
 		if (
 			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
@@ -344,7 +421,8 @@ export class Player {
 			this.die("area-bounds", true);
 		}
 
-		for (const player of this.game.getOverlappingTrailBoundsPlayers(this.#currentPosition)) {
+		// Check if we are touching someone's trail.
+		for (const player of this.game.getOverlappingTrailBoundsPlayersForPos(this.#currentPosition)) {
 			const includeLastSegment = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegment })) {
 				const killedSelf = player == this;
@@ -353,7 +431,35 @@ export class Player {
 			}
 		}
 
+		// Send new sections of the map when needed.
 		this.#sendRequiredEdgeChunks();
+	}
+
+	/**
+	 * Another player just moved into our viewport, or we moved closer to another player.
+	 * We need to notify the client of their skin and name etc.
+	 * @param {Player} player
+	 */
+	#playerAddedToViewport(player) {
+		if (this.#playersInViewport.has(player)) return;
+		this.#playersInViewport.add(player);
+		player.sendPlayerStateToPlayer(this);
+		const colorId = player.skinColorIdForPlayer(this);
+		const playerId = player == this ? 0 : player.id;
+		this.#connection.sendPlayerSkin(playerId, colorId);
+		player.sendTrailToPlayer(this);
+	}
+
+	/**
+	 * Another player just moved out of our viewport, or we moved away from it.
+	 * We need to notify the client that they can stop rendering this player.
+	 * @param {Player} player
+	 */
+	#playerRemovedFromViewport(player) {
+		if (this.#removedFromGame) return;
+		if (!this.#playersInViewport.has(player)) return;
+		this.#playersInViewport.delete(player);
+		this.#connection.sendRemovePlayer(player.id);
 	}
 
 	#sendRequiredEdgeChunks() {
@@ -438,8 +544,18 @@ export class Player {
 		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
 	}
 
+	/**
+	 * If true, the player is no longer in game and
+	 * updates should no longer be sent since the connection is likely already closed.
+	 */
+	#removedFromGame = false;
+
 	removedFromGame() {
+		this.#removedFromGame = true;
 		this.#clearAllMyTiles();
+		for (const player of this.#inOtherPlayerViewports) {
+			player.#playerRemovedFromViewport(this);
+		}
 	}
 
 	#allMyTilesCleared = false;
@@ -458,7 +574,7 @@ export class Player {
 	/**
 	 * @param {Vec2} point
 	 */
-	pointIsInTrailBounds(point) {
+	rectOverlapsTrailBounds(point) {
 		const bounds = this.#trailBounds;
 		return point.x >= bounds.min.x && point.y >= bounds.min.y && point.x <= bounds.max.x && point.y <= bounds.max.y;
 	}

@@ -10,6 +10,19 @@ import { Player } from "./gameplay/Player.js";
  */
 
 /**
+ * The color ids that clients send to servers include 0,
+ * which assigns a random color on the server's end.
+ * But there is no need to ever send 0 to the client, so it expects the first color
+ * to start at 0 instead.
+ * Ideally we should have kept the color ids for both server and client mapped to the same colors.
+ * But mistakes have been made, and we need to subtract 1 from the id now.
+ * @param {number} colorId
+ */
+function serverToClientColorId(colorId) {
+	return colorId - 1;
+}
+
+/**
  * Handles the messaging between server and client.
  * Received messages are converted to a format that is easier to work with.
  * For instance, ArrayBuffers with coordinates are converted to Vec2 and then
@@ -61,6 +74,11 @@ export class WebSocketConnection {
 			 * Each tile is sent individually with no form of compression, so the message could be quite big.
 			 */
 			CHUNK_OF_BLOCKS: 6,
+			/**
+			 * Notifies the client that they can stop rendering and remove all data from a player.
+			 * This is sent when a player moves out of another player's viewport.
+			 * When they enter each other's viewport again, data such as skin id and player name needs to be sent again.
+			 */
 			REMOVE_PLAYER: 7,
 			PLAYER_NAME: 8,
 			MY_SCORE: 9,
@@ -72,6 +90,9 @@ export class WebSocketConnection {
 			 */
 			GAME_OVER: 13,
 			MINIMAP: 14,
+			/**
+			 * Tells the client which skin a specific player has.
+			 */
 			PLAYER_SKIN: 15,
 			/**
 			 * Notifies the client that whatever trail it is currently creating for a player,
@@ -205,7 +226,14 @@ export class WebSocketConnection {
 	 * @param {ArrayBufferLike | Blob | ArrayBufferView} data
 	 */
 	send(data) {
-		this.#socket.send(data);
+		try {
+			this.#socket.send(data);
+		} catch (e) {
+			console.error("An error occurred while trying to send a message", data, e);
+			if (e instanceof Error) {
+				console.error(e.stack);
+			}
+		}
 	}
 
 	#sendReady() {
@@ -315,8 +343,23 @@ export class WebSocketConnection {
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
-		view.setUint8(cursor, colorId);
+		view.setUint8(cursor, serverToClientColorId(colorId));
 		cursor++;
+		this.send(buffer);
+	}
+
+	/**
+	 * Notifies the client that they can stop rendering a player and remove it from their memory.
+	 * @param {number} playerId
+	 */
+	sendRemovePlayer(playerId) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+		view.setUint8(cursor, WebSocketConnection.SendAction.REMOVE_PLAYER);
+		cursor++;
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
 		this.send(buffer);
 	}
 
@@ -417,7 +460,7 @@ export class WebSocketConnection {
 		cursor++;
 		view.setUint16(cursor, hitByPlayerId, false);
 		cursor += 2;
-		view.setUint8(cursor, pointsColorId);
+		view.setUint8(cursor, serverToClientColorId(pointsColorId));
 		cursor++;
 		view.setUint16(cursor, position.x, false);
 		cursor += 2;
