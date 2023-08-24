@@ -1,5 +1,6 @@
 import { clamp, Vec2 } from "renda";
 import { UPDATES_VIEWPORT_RECT_SIZE, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_RANGE } from "./config.js";
+import { Player } from "./gameplay/Player.js";
 
 /**
  * - `"add-segment"` - adds a new polygon to the current trail.
@@ -20,7 +21,8 @@ import { UPDATES_VIEWPORT_RECT_SIZE, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_
 export class WebSocketConnection {
 	#socket;
 	#game;
-	#player;
+	/** @type {Player?} */
+	#player = null;
 
 	/**
 	 * @param {WebSocket} socket
@@ -30,7 +32,6 @@ export class WebSocketConnection {
 	constructor(socket, ip, game) {
 		this.#socket = socket;
 		this.#game = game;
-		this.#player = game.createPlayer(this);
 	}
 
 	static get SendAction() {
@@ -129,7 +130,8 @@ export class WebSocketConnection {
 
 	#lastPingTime = performance.now();
 
-	#readyReceived = false;
+	/** @type {import("./gameplay/Player.js").SkinData?} */
+	#receivedSkinData = null;
 
 	/**
 	 * @param {ArrayBuffer} data
@@ -139,8 +141,10 @@ export class WebSocketConnection {
 		const messageType = view.getUint8(0);
 
 		if (messageType == WebSocketConnection.ReceiveAction.READY) {
-			this.#readyReceived = true;
-			this.#player.readyReceived();
+			if (this.#player) return;
+			this.#player = this.#game.createPlayer(this, {
+				skin: this.#receivedSkinData,
+			});
 			const pos = this.#player.getPosition();
 			this.sendChunk({
 				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
@@ -152,6 +156,7 @@ export class WebSocketConnection {
 			this.#sendPong();
 		} else if (messageType == WebSocketConnection.ReceiveAction.UPDATE_MY_POS) {
 			if (view.byteLength < 6) return;
+			if (!this.#player) return;
 			let cursor = 1;
 			const newDir = view.getInt8(cursor);
 			cursor++;
@@ -176,10 +181,11 @@ export class WebSocketConnection {
 			}
 			this.#player.clientPosUpdateRequested(direction, new Vec2(x, y));
 		} else if (messageType == WebSocketConnection.ReceiveAction.REQUEST_MY_TRAIL) {
+			if (!this.#player) return;
 			const message = WebSocketConnection.createTrailMessage(0, Array.from(this.#player.getTrailVertices()));
 			this.send(message);
 		} else if (messageType == WebSocketConnection.ReceiveAction.SKIN) {
-			if (this.#readyReceived) return;
+			if (this.#player) return;
 			if (view.byteLength != 3) return;
 			let cursor = 1;
 			let colorId = view.getUint8(cursor);
@@ -188,7 +194,10 @@ export class WebSocketConnection {
 			cursor++;
 			colorId = clamp(colorId, 0, VALID_SKIN_COLOR_RANGE);
 			patternId = clamp(patternId, 0, VALID_SKIN_PATTERN_RANGE);
-			this.#player.setSkin(colorId, patternId);
+			this.#receivedSkinData = {
+				colorId,
+				patternId,
+			};
 		}
 	}
 
@@ -212,6 +221,9 @@ export class WebSocketConnection {
 	 * @param {import("./util/util.js").Rect} rect
 	 */
 	sendChunk(rect) {
+		if (!this.#player) {
+			throw new Error("Assertion failed, no player for this connection");
+		}
 		rect = this.#player.game.arena.clampRect(rect);
 		const width = rect.max.x - rect.min.x;
 		const height = rect.max.y - rect.min.y;
@@ -473,7 +485,9 @@ export class WebSocketConnection {
 	}
 
 	onClose() {
-		this.#game.removePlayer(this.#player);
+		if (this.#player) {
+			this.#game.removePlayer(this.#player);
+		}
 	}
 
 	/**

@@ -22,6 +22,17 @@ import { checkTrailSegment } from "../util/util.js";
 
 /** @typedef {"player" | "area-bounds" | "self"} DeathType */
 
+/**
+ * @typedef SkinData
+ * @property {number} colorId
+ * @property {number} patternId
+ */
+
+/**
+ * @typedef CreatePlayerOptions
+ * @property {SkinData?} skin
+ */
+
 export class Player {
 	#id;
 	#game;
@@ -116,11 +127,20 @@ export class Player {
 	 * @param {number} id
 	 * @param {import("./Game.js").Game} game
 	 * @param {WebSocketConnection} connection
+	 * @param {CreatePlayerOptions} options
 	 */
-	constructor(id, game, connection) {
+	constructor(id, game, connection, options) {
 		this.#id = id;
 		this.#game = game;
 		this.#connection = connection;
+
+		if (options.skin) {
+			this.#skinColorId = options.skin.colorId;
+			this.#skinPatternId = options.skin.patternId;
+		}
+		if (this.#skinColorId == 0) {
+			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
+		}
 
 		this.#currentPosition = game.getNewSpawnPosition();
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
@@ -128,12 +148,6 @@ export class Player {
 		this.#currentPositionChanged();
 
 		game.arena.fillPlayerSpawn(this.#currentPosition, id);
-	}
-
-	readyReceived() {
-		if (this.#skinColorId == 0) {
-			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
-		}
 	}
 
 	get id() {
@@ -182,10 +196,9 @@ export class Player {
 	}
 
 	/**
-	 * @param {number} colorId
-	 * @param {number} patternId
+	 * @param {SkinData} skinData
 	 */
-	setSkin(colorId, patternId) {
+	setSkin({ colorId, patternId }) {
 		this.#skinColorId = colorId;
 		this.#skinPatternId = patternId;
 	}
