@@ -67,10 +67,11 @@ export class Game {
 
 	/**
 	 * @param {WebSocketConnection} connection
+	 * @param {import("./Player.js").CreatePlayerOptions} playerOptions
 	 */
-	createPlayer(connection) {
+	createPlayer(connection, playerOptions) {
 		const id = this.#getNewPlayerId();
-		const player = new Player(id, this, connection);
+		const player = new Player(id, this, connection, playerOptions);
 		this.#players.set(id, player);
 		this.broadcastPlayerState(player);
 		return player;
