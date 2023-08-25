@@ -31,6 +31,7 @@ import { checkTrailSegment } from "../util/util.js";
 /**
  * @typedef CreatePlayerOptions
  * @property {SkinData?} skin
+ * @property {string} name
  */
 
 export class Player {
@@ -123,6 +124,7 @@ export class Player {
 
 	#skinColorId = 0;
 	#skinPatternId = 0;
+	#name = "";
 
 	/**
 	 * The list of other players that this player currently has in their viewport.
@@ -154,6 +156,7 @@ export class Player {
 			this.#skinColorId = options.skin.colorId;
 			this.#skinPatternId = options.skin.patternId;
 		}
+		this.#name = options.name;
 		if (this.#skinColorId == 0) {
 			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
 		}
@@ -447,6 +450,7 @@ export class Player {
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
 		this.#connection.sendPlayerSkin(playerId, colorId);
+		this.#connection.sendPlayerName(playerId, player.#name);
 		player.sendTrailToPlayer(this);
 	}
 

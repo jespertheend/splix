@@ -80,6 +80,9 @@ export class WebSocketConnection {
 			 * When they enter each other's viewport again, data such as skin id and player name needs to be sent again.
 			 */
 			REMOVE_PLAYER: 7,
+			/**
+			 * Notifies the client about the name of a specific player.
+			 */
 			PLAYER_NAME: 8,
 			MY_SCORE: 9,
 			MY_RANK: 10,
@@ -122,6 +125,10 @@ export class WebSocketConnection {
 			 * The client changed their position and direction.
 			 */
 			UPDATE_MY_POS: 1,
+			/**
+			 * Sets the name of the player that will be created.
+			 * If this is sent after the player has been created, the message is ignored.
+			 */
 			SET_USERNAME: 2,
 			/**
 			 * Sets the skin of the connected client.
@@ -153,6 +160,7 @@ export class WebSocketConnection {
 
 	/** @type {import("./gameplay/Player.js").SkinData?} */
 	#receivedSkinData = null;
+	#receivedName = "";
 
 	/**
 	 * @param {ArrayBuffer} data
@@ -165,6 +173,7 @@ export class WebSocketConnection {
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
+				name: this.#receivedName,
 			});
 			const pos = this.#player.getPosition();
 			this.sendChunk({
@@ -219,6 +228,11 @@ export class WebSocketConnection {
 				colorId,
 				patternId,
 			};
+		} else if (messageType == WebSocketConnection.ReceiveAction.SET_USERNAME) {
+			if (this.#player) return;
+			const decoder = new TextDecoder();
+			const bytes = new Uint8Array(data, 1);
+			this.#receivedName = decoder.decode(bytes);
 		}
 	}
 
@@ -345,6 +359,29 @@ export class WebSocketConnection {
 		cursor += 2;
 		view.setUint8(cursor, serverToClientColorId(colorId));
 		cursor++;
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {string} playerName
+	 */
+	sendPlayerName(playerId, playerName) {
+		const encoder = new TextEncoder();
+		const nameBytes = encoder.encode(playerName);
+		const buffer = new ArrayBuffer(3 + nameBytes.byteLength);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
+		cursor++;
+
+		view.setUint16(cursor, playerId);
+		cursor += 2;
+
+		const intView = new Uint8Array(buffer);
+		intView.set(nameBytes, cursor);
+
 		this.send(buffer);
 	}
 
