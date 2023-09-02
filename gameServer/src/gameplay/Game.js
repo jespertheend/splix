@@ -77,11 +77,43 @@ export class Game {
 		return player;
 	}
 
+	/**
+	 * @returns {{position: Vec2, direction: import("./Player.js").Direction}}
+	 */
 	getNewSpawnPosition() {
-		return new Vec2(
+		const position = new Vec2(
 			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 		);
+		/** @type {{direction: import("./Player.js").Direction, distance: number}[]} */
+		const wallDistances = [
+			{
+				direction: "up",
+				distance: this.arena.height - position.y,
+			},
+			{
+				direction: "down",
+				distance: position.y,
+			},
+			{
+				direction: "right",
+				distance: position.x,
+			},
+			{
+				direction: "left",
+				distance: this.arena.width - position.x,
+			},
+		];
+		let closestWall = null;
+		for (const wall of wallDistances) {
+			if (!closestWall || wall.distance < closestWall.distance) {
+				closestWall = wall;
+			}
+		}
+		return {
+			position,
+			direction: closestWall?.direction || "up",
+		};
 	}
 
 	/**
