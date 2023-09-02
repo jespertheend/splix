@@ -74,7 +74,7 @@ export class Player {
 	#nextTileProgress = 0;
 
 	/** @type {Direction} */
-	#currentDirection = "up";
+	#currentDirection = "paused";
 	/**
 	 * The direction the player was moving in before they paused.
 	 * Or the current direction if the player is not currently paused.
@@ -167,7 +167,9 @@ export class Player {
 			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
 		}
 
-		this.#currentPosition = game.getNewSpawnPosition();
+		const { position, direction } = game.getNewSpawnPosition();
+		this.#currentPosition = position;
+		this.#currentDirection = direction;
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#currentPositionChanged();
