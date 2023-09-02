@@ -669,4 +669,11 @@ export class Player {
 			this.#currentTileType = tileValue;
 		}
 	}
+
+	/**
+	 * @param {number} honkDuration
+	 */
+	honk(honkDuration) {
+		this.game.broadcastHonk(this, honkDuration);
+	}
 }

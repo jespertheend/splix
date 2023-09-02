@@ -256,4 +256,16 @@ export class Game {
 			nearbyPlayer.connection.send(message);
 		}
 	}
+
+	/**
+	 * @param {import("./Player.js").Player} player
+	 * @param {number} honkDuration
+	 */
+	broadcastHonk(player, honkDuration) {
+		const message = WebSocketConnection.createHonkMessage(player.id, honkDuration);
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+			if (nearbyPlayer == player) continue;
+			nearbyPlayer.connection.send(message);
+		}
+	}
 }

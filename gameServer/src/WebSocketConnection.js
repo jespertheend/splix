@@ -112,6 +112,9 @@ export class WebSocketConnection {
 			 */
 			PLAYER_HIT_LINE: 18,
 			REFRESH_AFTER_DIE: 19,
+			/**
+			 * A player honked.
+			 */
 			PLAYER_HONK: 20,
 			PONG: 21,
 			UNDO_PLAYER_DIE: 22,
@@ -140,6 +143,9 @@ export class WebSocketConnection {
 			 */
 			READY: 4,
 			REQUEST_CLOSE: 5,
+			/**
+			 * The player honked.
+			 */
 			HONK: 6,
 			PING: 7,
 			/**
@@ -233,6 +239,12 @@ export class WebSocketConnection {
 			const decoder = new TextDecoder();
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes);
+		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
+			if (!this.#player) return;
+			if (view.byteLength != 2) return;
+			let honkDuration = view.getUint8(1);
+			honkDuration = Math.max(honkDuration, 70);
+			this.#player.honk(honkDuration);
 		}
 	}
 
@@ -505,6 +517,27 @@ export class WebSocketConnection {
 		cursor += 2;
 		view.setUint8(cursor, didHitSelf ? 1 : 0);
 		cursor++;
+		return buffer;
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {number} honkDuration
+	 */
+	static createHonkMessage(playerId, honkDuration) {
+		const buffer = new ArrayBuffer(4);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_HONK);
+		cursor++;
+
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+
+		view.setUint8(cursor, honkDuration);
+		cursor++;
+
 		return buffer;
 	}
 
