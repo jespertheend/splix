@@ -56,7 +56,7 @@ export class WebSocketConnection {
 			/**
 			 * Updates player state such as position, direction, and trail.
 			 */
-			PLAYER_POS: 2,
+			PLAYER_STATE: 2,
 			/**
 			 * Informs the client to replace all tiles in a rectangle with a specified color.
 			 */
@@ -314,7 +314,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(9);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_POS);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_STATE);
 		cursor++;
 		view.setUint16(cursor, Math.round(x), false);
 		cursor += 2;

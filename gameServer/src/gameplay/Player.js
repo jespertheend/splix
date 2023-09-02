@@ -75,6 +75,12 @@ export class Player {
 
 	/** @type {Direction} */
 	#currentDirection = "up";
+	/**
+	 * The direction the player was moving in before they paused.
+	 * Or the current direction if the player is not currently paused.
+	 * @type {Exclude<Direction, "paused">}
+	 */
+	#lastUnpausedDirection = "up";
 
 	get currentDirection() {
 		return this.#currentDirection;
@@ -237,13 +243,16 @@ export class Player {
 	 * Tries to empty the movement queue until an item is encountered for which the player hasn't reached its location yet.
 	 */
 	#drainMovementQueue() {
-		while (true) {
-			if (this.#movementQueue.length <= 0) return;
+		let lastMoveWasInvalid = false;
+		while (this.#movementQueue.length > 0) {
 			const firstItem = this.#movementQueue[0];
 			const valid = this.#checkNextMoveValidity(firstItem.desiredPosition, firstItem.direction);
 			if (!valid) {
 				this.#movementQueue.shift();
+				lastMoveWasInvalid = true;
 				continue;
+			} else {
+				lastMoveWasInvalid = false;
 			}
 
 			this.#movementQueue.shift();
@@ -252,7 +261,16 @@ export class Player {
 				this.#trailVertices.push(firstItem.desiredPosition.clone());
 			}
 			this.#currentDirection = firstItem.direction;
+			if (firstItem.direction != "paused") {
+				this.#lastUnpausedDirection = firstItem.direction;
+			}
 			this.game.broadcastPlayerState(this);
+		}
+
+		// If the last move was invalid, we want to let the client know so they can
+		// teleport the player to the correct position so that it stays in sync with the position on the server
+		if (lastMoveWasInvalid) {
+			this.sendPlayerStateToPlayer(this);
 		}
 	}
 
@@ -300,6 +318,14 @@ export class Player {
 			return false;
 		}
 		if (this.#currentDirection == newDirection) return false;
+
+		// Prevent the player from going back into their own trail when paused
+		if (this.#currentDirection == "paused" && this.isGeneratingTrail) {
+			if (this.#lastUnpausedDirection == "right" && newDirection == "left") return false;
+			if (this.#lastUnpausedDirection == "left" && newDirection == "right") return false;
+			if (this.#lastUnpausedDirection == "up" && newDirection == "down") return false;
+			if (this.#lastUnpausedDirection == "down" && newDirection == "up") return false;
+		}
 
 		// Pausing should always be allowed, if the provided position is invalid
 		// it will be adjusted later
