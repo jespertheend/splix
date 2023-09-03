@@ -108,15 +108,22 @@ export function deserializeRect(rect) {
  * For example, when a player fills an area of land, instead of sending which tiles have been filled,
  * you can send the rectangles that have been filled and the id of the player that they were filled with.
  *
+ * @template {Object} T
  * @param {Rect} rect The coordinates to iterate over. `cb` will be fired for every coordinate in this rectangle.
- * @param {(x: number, y: number) => boolean} cb A callback that determine whether tiles should be included
- * in the returned array of rectangles. Basically, this callback should return `true` when you wish to change
- * the value of a tile, and `false` if when you wish to keep the value as is.
+ * @param {(x: number, y: number) => T?} cb A callback that determines how to group different rectangles.
+ * This callback should return the same reference from tiles that share the same type of data,
+ * or `null` if you wish to ommit the tile from the results.
  */
 export function compressTiles(rect, cb) {
+	/** @type {{ref: T, rect: Rect}[]} */
 	const rects = [];
 
-	/** @typedef {[start: number, end: number]} Section */
+	/**
+	 * @typedef Section
+	 * @property {number} start
+	 * @property {number} end
+	 * @property {T} ref
+	 */
 
 	/**
 	 * Checks if two columns contain the exact same sections.
@@ -128,8 +135,9 @@ export function compressTiles(rect, cb) {
 		for (let i = 0; i < columnA.length; i++) {
 			const sectionA = columnA[i];
 			const sectionB = columnB[i];
-			if (sectionA[0] != sectionB[0]) return false;
-			if (sectionA[1] != sectionB[1]) return false;
+			if (sectionA.start != sectionB.start) return false;
+			if (sectionA.end != sectionB.end) return false;
+			if (sectionA.ref !== sectionB.ref) return false;
 		}
 		return true;
 	}
@@ -145,16 +153,22 @@ export function compressTiles(rect, cb) {
 			/** @type {Section?} */
 			let currentlyMeasuringSection = null;
 			for (let y = rect.min.y; y < rect.max.y + 1; y++) {
-				const tileShouldBeIncluded = y < rect.max.y && cb(x, y);
-				if (tileShouldBeIncluded) {
-					if (!currentlyMeasuringSection) {
-						currentlyMeasuringSection = [y, 0];
+				let ref = null;
+				if (y < rect.max.y) {
+					ref = cb(x, y);
+				}
+				if (
+					Boolean(ref) != Boolean(currentlyMeasuringSection) ||
+					(ref && currentlyMeasuringSection && ref != currentlyMeasuringSection.ref)
+				) {
+					currentlyMeasuringSection = null;
+					if (ref) {
+						currentlyMeasuringSection = { start: y, end: y + 1, ref };
 						collectedSections.push(currentlyMeasuringSection);
 					}
 				} else {
 					if (currentlyMeasuringSection) {
-						currentlyMeasuringSection[1] = y;
-						currentlyMeasuringSection = null;
+						currentlyMeasuringSection.end = y + 1;
 					}
 				}
 			}
@@ -166,8 +180,11 @@ export function compressTiles(rect, cb) {
 		} else {
 			for (const section of previousSections) {
 				rects.push({
-					min: new Vec2(x - equalColumnCount - 1, section[0]),
-					max: new Vec2(x, section[1]),
+					rect: {
+						min: new Vec2(x - equalColumnCount - 1, section.start),
+						max: new Vec2(x, section.end),
+					},
+					ref: section.ref,
 				});
 			}
 			equalColumnCount = 0;

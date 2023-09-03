@@ -6,6 +6,12 @@ import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import { PLAYER_SPAWN_RADIUS } from "../config.js";
 
+/**
+ * @typedef TileTypeForMessage
+ * @property {number} colorId
+ * @property {number} patternId
+ */
+
 export class Game {
 	#arena;
 
@@ -125,6 +131,18 @@ export class Game {
 	}
 
 	/**
+	 * Gets a chunk of the arena and compresses it into rectangles,
+	 * ready to be sent to clients.
+	 * @param {import("../util/util.js").Rect} rect
+	 * @param {Player} receivingPlayer
+	 */
+	getArenaChunkForMessage(rect, receivingPlayer) {
+		return this.#arena.getChunk(rect, (tileValue) => {
+			return this.getTileTypeForMessage(receivingPlayer, tileValue);
+		});
+	}
+
+	/**
 	 * Gets the type of a tile that can be used for sending to clients.
 	 * The returns a number that the client understands and uses to render the correct tile color.
 	 * The player argument is used to make sure no tiles from other players appear with
@@ -132,7 +150,7 @@ export class Game {
 	 *
 	 * @param {import("./Player.js").Player} player The player that the message will be sent to.
 	 * @param {number} tileValue
-	 * @returns {{colorId: number, patternId: number}}
+	 * @returns {TileTypeForMessage}
 	 */
 	getTileTypeForMessage(player, tileValue) {
 		if (tileValue == -1) {
