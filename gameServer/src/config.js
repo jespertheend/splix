@@ -41,3 +41,9 @@ export const VALID_SKIN_COLOR_RANGE = 13;
  * The maximum allowed pattern id.
  */
 export const VALID_SKIN_PATTERN_RANGE = 27;
+
+/**
+ * How often (in milliseconds) a new part of the minimap is updated.
+ * The minimap is divided in 4 parts, so a value of 250 would mean the full map sent every second.
+ */
+export const MINIMAP_PART_UPDATE_FREQUENCY = 250;

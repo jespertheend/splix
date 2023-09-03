@@ -87,11 +87,18 @@ export class WebSocketConnection {
 			MY_SCORE: 9,
 			MY_RANK: 10,
 			LEADERBOARD: 11,
+			/**
+			 * Lets the client know about the size of the map.
+			 * This is used for correctly rendering the position on the minimap, among other things.
+			 */
 			MAP_SIZE: 12,
 			/**
 			 * Tells the client to show the game over screen.
 			 */
 			GAME_OVER: 13,
+			/**
+			 * Sends a part of the minimap to the client.
+			 */
 			MINIMAP: 14,
 			/**
 			 * Tells the client which skin a specific player has.
@@ -186,6 +193,12 @@ export class WebSocketConnection {
 				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
 				max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
 			});
+			// Clients only really expect a single number, so we'll just take the maximum size of the map.
+			const mapSize = Math.max(this.#game.arena.width, this.#game.arena.height);
+			this.#sendMapSize(mapSize);
+			for (const message of this.#game.getMinimapMessages()) {
+				this.send(message);
+			}
 			this.#sendReady();
 		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
 			this.#lastPingTime = performance.now();
@@ -268,6 +281,23 @@ export class WebSocketConnection {
 
 	#sendPong() {
 		this.send(new Uint8Array([WebSocketConnection.SendAction.PONG]));
+	}
+
+	/**
+	 * @param {number} mapSize
+	 */
+	#sendMapSize(mapSize) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.MAP_SIZE);
+		cursor++;
+
+		view.setUint16(cursor, mapSize, false);
+		cursor += 2;
+
+		this.send(buffer);
 	}
 
 	/**
@@ -494,6 +524,22 @@ export class WebSocketConnection {
 		view.setUint8(cursor, honkDuration);
 		cursor++;
 
+		return buffer;
+	}
+
+	/**
+	 * @param {number} partId
+	 * @param {ArrayBuffer} minimapData
+	 */
+	static createMinimapMessage(partId, minimapData) {
+		const buffer = new ArrayBuffer(2 + minimapData.byteLength);
+		const view = new Uint8Array(buffer);
+		const minmapView = new Uint8Array(minimapData);
+
+		view[0] = WebSocketConnection.SendAction.MINIMAP;
+		view[1] = partId;
+
+		view.set(minmapView, 2);
 		return buffer;
 	}
 

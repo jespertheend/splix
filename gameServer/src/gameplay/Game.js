@@ -4,7 +4,7 @@ import { lerp, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
-import { PLAYER_SPAWN_RADIUS } from "../config.js";
+import { MINIMAP_PART_UPDATE_FREQUENCY, PLAYER_SPAWN_RADIUS } from "../config.js";
 
 /**
  * @typedef TileTypeForMessage
@@ -14,6 +14,11 @@ import { PLAYER_SPAWN_RADIUS } from "../config.js";
 
 export class Game {
 	#arena;
+
+	/** @type {ArrayBuffer[]} */
+	#minimapMessages = [];
+	#lastMinimapUpdateTime = 0;
+	#lastMinimapPart = 0;
 
 	get arena() {
 		return this.#arena;
@@ -45,6 +50,11 @@ export class Game {
 	loop(now, dt) {
 		for (const player of this.#players.values()) {
 			player.loop(now, dt);
+		}
+
+		if (now - this.#lastMinimapUpdateTime > MINIMAP_PART_UPDATE_FREQUENCY) {
+			this.#lastMinimapUpdateTime = now;
+			this.#updateNextMinimapPart();
 		}
 	}
 
@@ -176,6 +186,21 @@ export class Game {
 			colorId,
 			patternId: tilePlayer.skinPatternId,
 		};
+	}
+
+	async #updateNextMinimapPart() {
+		this.#lastMinimapPart++;
+		this.#lastMinimapPart = this.#lastMinimapPart % 4;
+		const part = await this.#arena.getMinimapPart(this.#lastMinimapPart);
+		const message = WebSocketConnection.createMinimapMessage(this.#lastMinimapPart, part);
+		this.#minimapMessages[this.#lastMinimapPart] = message;
+		for (const player of this.#players.values()) {
+			player.connection.send(message);
+		}
+	}
+
+	*getMinimapMessages() {
+		yield* this.#minimapMessages;
 	}
 
 	/**
