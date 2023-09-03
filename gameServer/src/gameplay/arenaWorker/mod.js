@@ -4,6 +4,7 @@ import { PLAYER_SPAWN_RADIUS } from "../../config.js";
 import { fillRect } from "../../util/util.js";
 import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
 import { PlayerBoundsTracker } from "./PlayerBoundsTracker.js";
+import { getMinimapPart } from "./getMinimapPart.js";
 
 /**
  * Stores which tiles have been filled and by which player.
@@ -101,6 +102,12 @@ const arenaWorkerHandlers = {
 		}
 
 		boundsTracker.deletePlayer(playerId);
+	},
+	/**
+	 * @param {number} part Which part of the client canvas to fill, value of 0, 1, 2, or 3
+	 */
+	getMinimapPart(part) {
+		return getMinimapPart(part, arenaWidth, arenaHeight, arenaTiles);
 	},
 };
 

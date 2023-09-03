@@ -163,4 +163,11 @@ export class Arena {
 			};
 		});
 	}
+
+	/**
+	 * @param {number} part
+	 */
+	getMinimapPart(part) {
+		return this.#messenger.send.getMinimapPart(part);
+	}
 }
