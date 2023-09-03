@@ -1,5 +1,5 @@
 import { TypedMessenger, Vec2 } from "renda";
-import { clampRect, createArenaTiles, deserializeRect, fillRect } from "../util/util.js";
+import { clampRect, compressTiles, createArenaTiles, deserializeRect, fillRect } from "../util/util.js";
 
 /**
  * @typedef FilledAreaMessageData
@@ -131,5 +131,36 @@ export class Arena {
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
 		this.#messenger.send.updateCapturedArea(playerId, otherPlayerLocations.map((v) => v.toArray()));
+	}
+
+	/**
+	 * Gets a chunk of the arena and compresses it into rectangles,
+	 * ready to be sent to clients.
+	 * @param {import("../util/util.js").Rect} rect
+	 * @param {(tileValue: number) => import("./Game.js").TileTypeForMessage} convertTileDataCb
+	 */
+	getChunk(rect, convertTileDataCb) {
+		rect = this.clampRect(rect);
+		const width = rect.max.x - rect.min.x;
+		const height = rect.max.y - rect.min.y;
+		if (width <= 0 || height <= 0) return [];
+
+		/** @type {Map<string, import("./Game.js").TileTypeForMessage>} */
+		const tileDataRefs = new Map();
+
+		return compressTiles(rect, (x, y) => {
+			const tileValue = this.#tiles[x][y];
+			const tileData = convertTileDataCb(tileValue);
+			const key = tileData.colorId + "-" + tileData.patternId;
+			let ref = tileDataRefs.get(key);
+			if (ref) return ref;
+			tileDataRefs.set(key, tileData);
+			return tileData;
+		}).map((rectData) => {
+			return {
+				rect: rectData.rect,
+				tileType: rectData.ref,
+			};
+		});
 	}
 }

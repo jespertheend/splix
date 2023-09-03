@@ -537,10 +537,21 @@ export class Player {
 		}
 		if (chunk) {
 			const { x, y, w, h } = chunk;
-			this.#connection.sendChunk({
+			this.sendChunk({
 				min: new Vec2(x, y),
 				max: new Vec2(x + w, y + h),
 			});
+		}
+	}
+
+	/**
+	 * Sends a chunk of tiles from the arena.
+	 * @param {import("../util/util.js").Rect} rect The area to send.
+	 */
+	sendChunk(rect) {
+		const chunkData = this.game.getArenaChunkForMessage(rect, this);
+		for (const rect of chunkData) {
+			this.connection.sendFillRect(rect.rect, rect.tileType.colorId, rect.tileType.patternId);
 		}
 	}
 

@@ -182,7 +182,7 @@ export class WebSocketConnection {
 				name: this.#receivedName,
 			});
 			const pos = this.#player.getPosition();
-			this.sendChunk({
+			this.#player.sendChunk({
 				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
 				max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
 			});
@@ -268,50 +268,6 @@ export class WebSocketConnection {
 
 	#sendPong() {
 		this.send(new Uint8Array([WebSocketConnection.SendAction.PONG]));
-	}
-
-	/**
-	 * Sends a chunk of tiles from an arena.
-	 * @param {import("./util/util.js").Rect} rect
-	 */
-	sendChunk(rect) {
-		if (!this.#player) {
-			throw new Error("Assertion failed, no player for this connection");
-		}
-		rect = this.#player.game.arena.clampRect(rect);
-		const width = rect.max.x - rect.min.x;
-		const height = rect.max.y - rect.min.y;
-		if (width <= 0 || height <= 0) return;
-
-		const headerSize = 1 + 2 * 4; // sendaction + 4x 16bit int
-		const bodySize = width * height;
-		const buffer = new ArrayBuffer(headerSize + bodySize);
-		const view = new DataView(buffer);
-
-		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.CHUNK_OF_BLOCKS);
-		cursor++;
-		view.setUint16(cursor, rect.min.x, false);
-		cursor += 2;
-		view.setUint16(cursor, rect.min.y, false);
-		cursor += 2;
-		view.setUint16(cursor, width, false);
-		cursor += 2;
-		view.setUint16(cursor, height, false);
-		cursor += 2;
-
-		for (let x = 0; x < width; x++) {
-			for (let y = 0; y < height; y++) {
-				const pos = rect.min.clone();
-				pos.add(x, y);
-				const tileValue = this.#player.game.arena.getTileValue(pos);
-				const { colorId } = this.#player.game.getTileTypeForMessage(this.#player, tileValue);
-				view.setUint8(cursor, colorId);
-				cursor++;
-			}
-		}
-
-		this.send(buffer);
 	}
 
 	/**
