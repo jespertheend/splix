@@ -727,7 +727,7 @@ export class Player {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
-				this.game.arena.updateCapturedArea(this.id, []);
+				this.game.arena.updateCapturedArea(this.id, Array.from(this.game.getPlayerPositions()));
 				this.#trailVertices = [];
 				this.game.broadcastPlayerTrail(this);
 			}
