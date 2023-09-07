@@ -1,5 +1,6 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
+	MAX_UNDO_EVENT_TIME,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
 	PLAYER_TRAVEL_SPEED,
 	SKINS_COUNT,
@@ -9,6 +10,7 @@ import {
 } from "../config.js";
 import { lerp, Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
+import { PlayerEventHistory } from "./PlayerEventHistory.js";
 
 /**
  * When sent inside messages, these translate to an integer:
@@ -113,6 +115,8 @@ export class Player {
 	/** @type {MovementQueueItem[]} */
 	#movementQueue = [];
 
+	#eventHistory = new PlayerEventHistory();
+
 	/**
 	 * @typedef DeathState
 	 * @property {number} dieTime
@@ -173,6 +177,12 @@ export class Player {
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#currentPositionChanged();
+
+		this.#eventHistory.onUndoEvent((event) => {
+			if (event.type == "kill-player") {
+				const player = this.game.undoPlayerDeath(event.playerId);
+			}
+		});
 
 		game.arena.fillPlayerSpawn(this.#currentPosition, id);
 	}
@@ -257,7 +267,15 @@ export class Player {
 				lastMoveWasInvalid = false;
 			}
 
+			if (this.#isFuturePosition(firstItem.desiredPosition)) {
+				// The position is valid, but the player hasn't reached this location yet.
+				// We'll wait until the player is there, and then handle it accordingly.
+				// If we handle the movement item now, we would allow players to teleport ahead and move very fast.
+				return;
+			}
+
 			this.#movementQueue.shift();
+			let previousPosition = this.#currentPosition.clone();
 			this.#currentPosition.set(firstItem.desiredPosition);
 			if (this.isGeneratingTrail) {
 				this.#trailVertices.push(firstItem.desiredPosition.clone());
@@ -267,6 +285,7 @@ export class Player {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
 			this.game.broadcastPlayerState(this);
+			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -274,6 +293,23 @@ export class Player {
 		if (lastMoveWasInvalid) {
 			this.sendPlayerStateToPlayer(this);
 		}
+	}
+
+	/**
+	 * Returns true if the target is directly in front of the player (based on their current direction of travel).
+	 * Returns false if it's either behind the player, or not on the current path of the player.
+	 * @param {Vec2} target
+	 */
+	#isFuturePosition(target) {
+		if (target.x == this.#currentPosition.x && target.y == this.#currentPosition.y) return false;
+		if (this.#currentDirection == "paused") return false;
+
+		if (this.#currentDirection == "right" && target.x > this.#currentPosition.x) return true;
+		if (this.#currentDirection == "left" && target.x < this.#currentPosition.x) return true;
+		if (this.#currentDirection == "up" && target.y < this.#currentPosition.y) return true;
+		if (this.#currentDirection == "down" && target.y > this.#currentPosition.y) return true;
+
+		return false;
 	}
 
 	/**
@@ -301,7 +337,7 @@ export class Player {
 	}
 
 	/**
-	 * Checks if this is a valid next move, and if not, returns the reason why it's invalid.
+	 * Checks if this is a valid next move.
 	 * @param {Vec2} desiredPosition
 	 * @param {Direction} newDirection
 	 */
@@ -395,7 +431,7 @@ export class Player {
 
 		if (this.#lastDeathState) {
 			const dt = performance.now() - this.#lastDeathState.dieTime;
-			if (dt > 600) {
+			if (dt > MAX_UNDO_EVENT_TIME) {
 				this.#permanentlyDie();
 			}
 		}
@@ -449,7 +485,7 @@ export class Player {
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
 			this.#currentPosition.y >= this.game.arena.height - 1
 		) {
-			this.die("area-bounds", true);
+			this.#killPlayer(this, "area-bounds");
 		}
 
 		// Check if we are touching someone's trail.
@@ -457,7 +493,7 @@ export class Player {
 			const includeLastSegment = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegment })) {
 				const killedSelf = player == this;
-				player.die(killedSelf ? "self" : "player", killedSelf);
+				this.#killPlayer(player, killedSelf ? "self" : "player");
 				this.game.broadcastHitLineAnimation(player, this);
 			}
 		}
@@ -556,24 +592,39 @@ export class Player {
 	}
 
 	/**
+	 * Kills another player (or this player itself) and records an event in the event history.
+	 * So that the death can be undone should the player move back in time.
+	 *
+	 * @param {Player} otherPlayer
+	 * @param {DeathType} deathType
+	 */
+	#killPlayer(otherPlayer, deathType) {
+		this.#eventHistory.addEvent(this.getPosition(), {
+			type: "kill-player",
+			playerId: otherPlayer.id,
+		});
+		otherPlayer.#die(deathType);
+	}
+
+	/**
 	 * Initiates a player death. Though at this point the death is not permanent yet.
 	 * The death can still be undone by the player that killed the other player, if it turns out
 	 * they moved away just in time before hitting them.
 	 *
 	 * @param {DeathType} deathType
-	 * @param {boolean} sendPosition Whether to let the client know about the location of the player's death.
-	 * If the player died from touching their own trail, or the edge of the map, we want to make it clear
-	 * that this is what caused their death, so we'll change their position.
-	 * But in case the player died from another player, the position doesn't really matter and we'll let the
-	 * client decide where to render the player's death, to prevent a sudden change in their position.
 	 */
-	die(deathType, sendPosition) {
+	#die(deathType) {
 		if (this.#lastDeathState) return;
 		this.#lastDeathState = {
 			dieTime: performance.now(),
 			type: deathType,
 		};
-		this.game.broadcastPlayerDeath(this, sendPosition);
+		this.game.broadcastPlayerDeath(this);
+	}
+
+	undoDie() {
+		this.#lastDeathState = null;
+		this.game.broadcastUndoPlayerDeath(this);
 	}
 
 	#permanentlyDie() {
