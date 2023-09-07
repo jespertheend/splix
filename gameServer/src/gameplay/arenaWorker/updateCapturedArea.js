@@ -62,13 +62,29 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 
 	// We could seed the flood fill along anywhere across the edge of the bounds really,
 	// but we'll just go with the top left corner.
-	const seed = bounds.min.clone();
+	const cornerSeed = bounds.min.clone();
 
-	if (!testFillNode(seed)) {
+	// We do a quick assertion to make sure our seed is not outside the bounds or already owned by the player.
+	// There needs to be a border of one tile around the players area,
+	// otherwise the floodfill algorithm won't be able to fully wrap around the player area.
+	if (!testFillNode(cornerSeed)) {
 		throw new Error("Assertion failed, expected the top left corner to get filled");
 	}
 
-	const nodes = [seed];
+	const nodes = [cornerSeed];
+
+	// We also add seeds for all the player positions in the game,
+	// Since we don't want players to just fill a large area around another player.
+	for (const location of otherPlayerLocations) {
+		const pos = new Vec2(location);
+		nodes.push(pos);
+		// We don't need to do a `testFillNode` assertion for these seeds.
+		// There are actually good reasons why player positions might not be valid nodes.
+		// They could lie outside the bounds for instance, or maybe this player is currently inside the
+		// captured area of the other player.
+		// `otherPlayerLocations` will also contain the location of the player that is currently filling this area itself,
+		// so this check should exclude the players own location as well.
+	}
 
 	while (true) {
 		const node = nodes.pop();
@@ -84,12 +100,8 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 		}
 	}
 
-	// At this point, the floodFillMask contains `0` values for each tile that needs to be filled.
-	// We could send a long list of all coordinates that need to be filled.
-	// But let's try to reduce this somewhat into larger rectangles.
-	// We loop over each column of tiles and collect a set of sections that need to be filled.
-	// Then for each column after that, we check if the sections are the same as the column on the left.
-	// If so, we'll expand the rectangles from the previous column, otherwise we'll start with a new set of rectangles.
+	// At this point, the floodFillMask contains `0` values for each tile that needs to be filled or has already been filled.
+	// We can filter out the ones that are already filled and only send rectangles of the tiles that need to be changed.
 	const fillRects = compressTiles(bounds, (x, y) => {
 		return floodFillMask[x][y] == 0 && arenaTiles[x][y] != playerId;
 	});

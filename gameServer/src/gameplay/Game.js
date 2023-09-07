@@ -241,8 +241,8 @@ export class Game {
 		for (const player of this.#players.values()) {
 			const trailBounds = player.getTrailBounds();
 			if (
-				rect.max.x < trailBounds.min.x || trailBounds.max.x < rect.min.x || rect.max.y < trailBounds.min.y ||
-				trailBounds.max.y < rect.min.y
+				rect.max.x < trailBounds.min.x || trailBounds.max.x < rect.min.x ||
+				rect.max.y < trailBounds.min.y || trailBounds.max.y < rect.min.y
 			) {
 				continue;
 			}
@@ -252,6 +252,8 @@ export class Game {
 	}
 
 	/**
+	 * Yields a list of players that are either at the provided position,
+	 * or have might have a part of their trail at the provided position.
 	 * @param {Vec2} pos
 	 */
 	*getOverlappingTrailBoundsPlayersForPos(pos) {
@@ -259,6 +261,12 @@ export class Game {
 			min: pos.clone(),
 			max: pos.clone(),
 		});
+	}
+
+	*getPlayerPositions() {
+		for (const player of this.#players.values()) {
+			yield player.getPosition();
+		}
 	}
 
 	/**
