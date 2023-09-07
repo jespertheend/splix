@@ -424,6 +424,7 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
+				this.#drainMovementQueue();
 				this.#currentPositionChanged();
 				this.#updateCurrentTile();
 			}
@@ -490,8 +491,8 @@ export class Player {
 
 		// Check if we are touching someone's trail.
 		for (const player of this.game.getOverlappingTrailBoundsPlayersForPos(this.#currentPosition)) {
-			const includeLastSegment = player != this;
-			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegment })) {
+			const includeLastSegments = player != this;
+			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
 				this.#killPlayer(player, killedSelf ? "self" : "player");
 				this.game.broadcastHitLineAnimation(player, this);
@@ -674,29 +675,30 @@ export class Player {
 	}
 
 	/**
+	 * Checks if a point is inside the trail of the player.
+	 * If the player is not generating a trail,
+	 * this checks if the point lies at the exact location of the current player.
 	 * @param {Vec2} point
 	 * @param {Object} options
-	 * @param {boolean} [options.includeLastSegment] When true, also checks if the point lies between the
-	 * last segment and the current position of the player. If the player is not generating a trail,
-	 * this checks if the point lies at the exact location of the current player.
+	 * @param {boolean} [options.includeLastSegments] When true, also checks if the point lies between the
+	 * last two segments and the current position of the player. When checking if the player is touching their own
+	 * trail, we need to ignore the last two segments since the player position is always touching the last segment.
+	 * If the player made a turn recently, it might also be inside the second to last segment.
 	 */
 	pointIsInTrail(point, {
-		includeLastSegment = true,
+		includeLastSegments = true,
 	} = {}) {
 		if (this.isGeneratingTrail) {
-			for (let i = 0; i < this.#trailVertices.length - 1; i++) {
+			const verticesLengthOffset = includeLastSegments ? 1 : 3;
+			const verticesLength = this.#trailVertices.length - verticesLengthOffset;
+			for (let i = 0; i < verticesLength; i++) {
 				const start = this.#trailVertices[i];
 				const end = this.#trailVertices[i + 1];
 				if (checkTrailSegment(point, start, end)) return true;
 			}
-			if (includeLastSegment) {
-				const last = this.#trailVertices.at(-1);
-				if (!last) throw new Error("Assertion failed, no trail exists");
-				if (checkTrailSegment(point, last, this.#currentPosition)) return true;
-			}
 			return false;
 		} else {
-			if (includeLastSegment) {
+			if (includeLastSegments) {
 				return point.x == this.#currentPosition.x && point.y == this.#currentPosition.y;
 			}
 			return false;
