@@ -33,6 +33,14 @@ export const PLAYER_SPAWN_RADIUS = 2;
 export const PLAYER_TRAVEL_SPEED = 0.006;
 
 /**
+ * Time in milliseconds that we allow the player to undo events.
+ * This is essentially the max ping we allow the player to have before they start having a bad time.
+ * If the player kills a player or themselves for instance, we give the client this amount of milliseconds
+ * to make a turn and prevent the event from happening.
+ */
+export const MAX_UNDO_EVENT_TIME = 600;
+
+/**
  * The maximum allowed skin color id.
  */
 export const VALID_SKIN_COLOR_RANGE = 13;

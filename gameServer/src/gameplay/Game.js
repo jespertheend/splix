@@ -295,19 +295,47 @@ export class Game {
 	/**
 	 * Notifies nearby players that this player died.
 	 * @param {import("./Player.js").Player} player
-	 * @param {boolean} sendPosition Whether to let the client know about the location of the player's death.
 	 */
-	broadcastPlayerDeath(player, sendPosition) {
-		const position = sendPosition ? player.getPosition() : null;
+	broadcastPlayerDeath(player) {
+		const position = player.getPosition();
 		const message = WebSocketConnection.createPlayerDieMessage(player.id, position);
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(position)) {
 			if (nearbyPlayer == player) {
 				// The client that owns the player should receive 0 as player id
-				const samePlayerMessage = WebSocketConnection.createPlayerDieMessage(0, position);
+				// We don't want to send the current position of the player either, the client already
+				// keeps track of the location where the player died, and if we do send the position,
+				// it might cause issues later when the death is undone.
+				const samePlayerMessage = WebSocketConnection.createPlayerDieMessage(0, null);
 				nearbyPlayer.connection.send(samePlayerMessage);
 			} else {
 				nearbyPlayer.connection.send(message);
 			}
+		}
+	}
+
+	/**
+	 * Notifies nearby players that a player didn't die after all.
+	 * @param {import("./Player.js").Player} player
+	 */
+	broadcastUndoPlayerDeath(player) {
+		const message = WebSocketConnection.createPlayerUndoDieMessage(player.id);
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+			if (nearbyPlayer == player) {
+				const samePlayerMessage = WebSocketConnection.createPlayerUndoDieMessage(0);
+				nearbyPlayer.connection.send(samePlayerMessage);
+			} else {
+				nearbyPlayer.connection.send(message);
+			}
+		}
+	}
+
+	/**
+	 * @param {number} playerId
+	 */
+	undoPlayerDeath(playerId) {
+		const player = this.#players.get(playerId);
+		if (player) {
+			player.undoDie();
 		}
 	}
 

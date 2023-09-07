@@ -124,6 +124,10 @@ export class WebSocketConnection {
 			 */
 			PLAYER_HONK: 20,
 			PONG: 21,
+			/**
+			 * Lets the client know that a player didn't die after all, and it should
+			 * start rendering and moving it again.
+			 */
 			UNDO_PLAYER_DIE: 22,
 			TEAM_LIFE_COUNT: 23,
 		};
@@ -478,6 +482,23 @@ export class WebSocketConnection {
 			view.setUint16(cursor, position.y, false);
 			cursor += 2;
 		}
+		return buffer;
+	}
+
+	/**
+	 * @param {number} playerId
+	 */
+	static createPlayerUndoDieMessage(playerId) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.UNDO_PLAYER_DIE);
+		cursor++;
+
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+
 		return buffer;
 	}
 
