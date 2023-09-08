@@ -177,6 +177,7 @@ export class Player {
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#currentPositionChanged();
+		this.clientPosUpdateRequested(direction, position);
 
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
