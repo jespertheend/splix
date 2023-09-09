@@ -4,7 +4,7 @@ import { lerp, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
-import { MINIMAP_PART_UPDATE_FREQUENCY, PLAYER_SPAWN_RADIUS } from "../config.js";
+import { LEADERBOARD_UPDATE_FREQUENCY, MINIMAP_PART_UPDATE_FREQUENCY, PLAYER_SPAWN_RADIUS } from "../config.js";
 
 /**
  * @typedef TileTypeForMessage
@@ -15,13 +15,20 @@ import { MINIMAP_PART_UPDATE_FREQUENCY, PLAYER_SPAWN_RADIUS } from "../config.js
 export class Game {
 	#arena;
 
+	get arena() {
+		return this.#arena;
+	}
+
 	/** @type {ArrayBuffer[]} */
 	#minimapMessages = [];
 	#lastMinimapUpdateTime = 0;
 	#lastMinimapPart = 0;
+	#lastLeaderboardSendTime = 0;
+	/** @type {ArrayBuffer?} */
+	#lastLeaderboardMessage = null;
 
-	get arena() {
-		return this.#arena;
+	get lastLeaderboardMessage() {
+		return this.#lastLeaderboardMessage;
 	}
 
 	/**
@@ -55,6 +62,11 @@ export class Game {
 		if (now - this.#lastMinimapUpdateTime > MINIMAP_PART_UPDATE_FREQUENCY) {
 			this.#lastMinimapUpdateTime = now;
 			this.#updateNextMinimapPart();
+		}
+
+		if (now - this.#lastLeaderboardSendTime > LEADERBOARD_UPDATE_FREQUENCY) {
+			this.#lastLeaderboardSendTime = now;
+			this.#sendLeaderboard();
 		}
 	}
 
@@ -201,6 +213,29 @@ export class Game {
 
 	*getMinimapMessages() {
 		yield* this.#minimapMessages;
+	}
+
+	#sendLeaderboard() {
+		/** @type {[player: Player, score: number][]} */
+		const playerScores = [];
+		for (const player of this.#players.values()) {
+			playerScores.push([player, player.getTotalScore()]);
+		}
+
+		playerScores.sort((a, b) => b[1] - a[1]);
+
+		/** @type {[name: string, score: number][]} */
+		const scores = playerScores.slice(0, 10).map((scoreData) => {
+			const [player, score] = scoreData;
+			return [player.name, score];
+		});
+
+		const message = WebSocketConnection.createLeaderboardMessage(scores, this.#players.size);
+		this.#lastLeaderboardMessage = message;
+
+		for (const player of this.#players.values()) {
+			player.connection.send(message);
+		}
 	}
 
 	/**

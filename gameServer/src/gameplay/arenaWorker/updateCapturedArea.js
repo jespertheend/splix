@@ -100,6 +100,14 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 		}
 	}
 
+	let totalFilledTileCount = 0;
+	for (let x = bounds.min.x; x < bounds.max.x; x++) {
+		for (let y = bounds.min.y; y < bounds.max.y; y++) {
+			if (floodFillMask[x][y] == 0 || arenaTiles[x][y] == playerId) {
+				totalFilledTileCount++;
+			}
+		}
+	}
 	// At this point, the floodFillMask contains `0` values for each tile that needs to be filled or has already been filled.
 	// We can filter out the ones that are already filled and only send rectangles of the tiles that need to be changed.
 	const fillRects = compressTiles(bounds, (x, y) => {
@@ -109,5 +117,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 	return {
 		/** The rectangles that need to be filled with tiles from the player in order to fill all gaps in their area. */
 		fillRects,
+		totalFilledTileCount,
 	};
 }

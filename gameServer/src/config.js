@@ -55,3 +55,8 @@ export const VALID_SKIN_PATTERN_RANGE = 27;
  * The minimap is divided in 4 parts, so a value of 250 would mean the full map sent every second.
  */
 export const MINIMAP_PART_UPDATE_FREQUENCY = 250;
+
+/**
+ * How often (in milliseconds) the leaderboard is sent to all players in a game.
+ */
+export const LEADERBOARD_UPDATE_FREQUENCY = 3_000;
