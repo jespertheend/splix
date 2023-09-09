@@ -22,6 +22,10 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @typedef {"right" | "down" | "left" | "up" | "paused"} Direction
  */
 
+/**
+ * @typedef {Exclude<Direction, "paused">} UnpausedDirection 
+ */
+
 /** @typedef {"player" | "area-bounds" | "self"} DeathType */
 
 /**
@@ -174,11 +178,10 @@ export class Player {
 		const { position, direction } = game.getNewSpawnPosition();
 		this.#currentPosition = position;
 		this.#currentDirection = direction;
-		this.#lastUnpausedDirection = direction === "paused" ? this.#lastUnpausedDirection : direction;
+		this.#lastUnpausedDirection = direction;
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#currentPositionChanged();
-		this.clientPosUpdateRequested(direction, position);
 
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {

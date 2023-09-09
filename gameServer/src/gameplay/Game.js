@@ -94,14 +94,14 @@ export class Game {
 	}
 
 	/**
-	 * @returns {{position: Vec2, direction: import("./Player.js").Direction}}
+	 * @returns {{position: Vec2, direction: import("./Player.js").UnpausedDirection}}
 	 */
 	getNewSpawnPosition() {
 		const position = new Vec2(
 			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 		);
-		/** @type {{direction: import("./Player.js").Direction, distance: number}[]} */
+		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
 		const wallDistances = [
 			{
 				direction: "up",
