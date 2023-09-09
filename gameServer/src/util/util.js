@@ -149,11 +149,17 @@ export function compressTiles(rect, cb) {
 		/** @type {Section[]} */
 		const collectedSections = [];
 
+		// In the for loops above, we run one extra time (hence the `rect.max.x + 1`).
+		// This is so we can do one final pass where we compare it to the row above.
+		// We don't actually check any tiles, since these tiles would lie outside the prived `rect`.
+		// The if statement below ensures no tiles are parsed, resulting in an empty `collectedSections` array.
+		// That way we compare an empty array against the row above, resulting in the final set of rectangles being created.
 		if (x < rect.max.x) {
 			/** @type {Section?} */
 			let currentlyMeasuringSection = null;
 			for (let y = rect.min.y; y < rect.max.y + 1; y++) {
 				let ref = null;
+				// Here we do the same thing as with the `for x` loop above. Making sure the last tile is handled correctly.
 				if (y < rect.max.y) {
 					ref = cb(x, y);
 				}

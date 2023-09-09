@@ -1,5 +1,6 @@
 import { TypedMessenger, Vec2 } from "renda";
 import { clampRect, compressTiles, createArenaTiles, deserializeRect, fillRect } from "../util/util.js";
+import { PLAYER_SPAWN_RADIUS } from "../config.js";
 
 /**
  * @typedef FilledAreaMessageData
@@ -103,9 +104,10 @@ export class Arena {
 	 * @param {Vec2} pos
 	 * @param {number} playerId
 	 */
-	async fillPlayerSpawn(pos, playerId) {
-		const newBoundsRect = await this.#messenger.send.fillPlayerSpawn(pos.x, pos.y, playerId);
-		return deserializeRect(newBoundsRect);
+	fillPlayerSpawn(pos, playerId) {
+		this.#messenger.send.fillPlayerSpawn(pos.x, pos.y, playerId);
+		const size = PLAYER_SPAWN_RADIUS * 2 + 1;
+		return size * size;
 	}
 
 	/**
@@ -130,7 +132,7 @@ export class Arena {
 	 * @param {Vec2[]} otherPlayerLocations
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
-		this.#messenger.send.updateCapturedArea(playerId, otherPlayerLocations.map((v) => v.toArray()));
+		return this.#messenger.send.updateCapturedArea(playerId, otherPlayerLocations.map((v) => v.toArray()));
 	}
 
 	/**

@@ -44,7 +44,6 @@ const arenaWorkerHandlers = {
 		};
 		fillTilesRect(rect, playerId);
 		boundsTracker.initializePlayer(playerId, rect);
-		return serializeRect(rect);
 	},
 	/**
 	 * Fills the tiles that are covered with a player trail.
@@ -82,10 +81,16 @@ const arenaWorkerHandlers = {
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
-		const { fillRects } = updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLocations);
+		const { fillRects, totalFilledTileCount } = updateCapturedArea(
+			arenaTiles,
+			playerId,
+			bounds,
+			otherPlayerLocations,
+		);
 		for (const { rect } of fillRects) {
 			fillTilesRect(rect, playerId);
 		}
+		return totalFilledTileCount;
 	},
 	/**
 	 * @param {number} playerId
