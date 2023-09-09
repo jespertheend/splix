@@ -117,6 +117,9 @@ export class Player {
 
 	#eventHistory = new PlayerEventHistory();
 
+	#capturedTileCount = 0;
+	#killCount = 0;
+
 	/**
 	 * @typedef DeathState
 	 * @property {number} dieTime
@@ -135,6 +138,9 @@ export class Player {
 	#skinColorId = 0;
 	#skinPatternId = 0;
 	#name = "";
+	get name() {
+		return this.#name;
+	}
 
 	/**
 	 * The list of other players that this player currently has in their viewport.
@@ -180,11 +186,16 @@ export class Player {
 
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
-				const player = this.game.undoPlayerDeath(event.playerId);
+				this.game.undoPlayerDeath(event.playerId);
+				this.#killCount--;
+				this.#killCount = Math.max(0, this.#killCount);
+				this.#sendMyScore();
 			}
 		});
 
-		game.arena.fillPlayerSpawn(this.#currentPosition, id);
+		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
+		this.#capturedTileCount = capturedTileCount;
+		this.#sendMyScore();
 	}
 
 	get id() {
@@ -605,6 +616,8 @@ export class Player {
 			playerId: otherPlayer.id,
 		});
 		otherPlayer.#die(deathType);
+		this.#killCount++;
+		this.#sendMyScore();
 	}
 
 	/**
@@ -727,13 +740,32 @@ export class Player {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
-				this.game.arena.updateCapturedArea(this.id, Array.from(this.game.getPlayerPositions()));
+				this.#updateCapturedArea();
 				this.#trailVertices = [];
 				this.game.broadcastPlayerTrail(this);
 			}
 
 			this.#currentTileType = tileValue;
 		}
+	}
+
+	async #updateCapturedArea() {
+		const totalFilledTileCount = await this.game.arena.updateCapturedArea(
+			this.id,
+			Array.from(this.game.getPlayerPositions()),
+		);
+		if (this.#capturedTileCount != totalFilledTileCount) {
+			this.#capturedTileCount = totalFilledTileCount;
+			this.#sendMyScore();
+		}
+	}
+
+	#sendMyScore() {
+		this.#connection.sendMyScore(this.#capturedTileCount, this.#killCount);
+	}
+
+	getTotalScore() {
+		return this.#capturedTileCount + this.#killCount * 500;
 	}
 
 	/**

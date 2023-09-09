@@ -84,8 +84,14 @@ export class WebSocketConnection {
 			 * Notifies the client about the name of a specific player.
 			 */
 			PLAYER_NAME: 8,
+			/**
+			 * Sends the captured tile count and kill count of the current player.
+			 */
 			MY_SCORE: 9,
 			MY_RANK: 10,
+			/**
+			 * Sends the player names and scores of the top 10 players, and the total amount of players in the game.
+			 */
 			LEADERBOARD: 11,
 			/**
 			 * Lets the client know about the size of the map.
@@ -202,6 +208,10 @@ export class WebSocketConnection {
 			this.#sendMapSize(mapSize);
 			for (const message of this.#game.getMinimapMessages()) {
 				this.send(message);
+			}
+			const leaderboard = this.#game.lastLeaderboardMessage;
+			if (leaderboard) {
+				this.send(leaderboard);
 			}
 			this.#sendReady();
 		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
@@ -610,6 +620,70 @@ export class WebSocketConnection {
 		// TODO: Append killedByName to message
 
 		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} capturedTiles
+	 * @param {number} kills
+	 */
+	sendMyScore(capturedTiles, kills) {
+		const buffer = new ArrayBuffer(7);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.MY_SCORE);
+		cursor++;
+
+		view.setUint32(cursor, capturedTiles, false);
+		cursor += 4;
+
+		view.setUint16(cursor, kills, false);
+		cursor += 2;
+
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {[name: string, score: number][]} scores
+	 * @param {number} totalPlayers
+	 */
+	static createLeaderboardMessage(scores, totalPlayers) {
+		const encoder = new TextEncoder();
+		const encodedScores = scores.map((scoreData) => {
+			const [name, score] = scoreData;
+			const nameBytes = encoder.encode(name);
+			const scoreBytes = new Uint8Array(4);
+			const view = new DataView(scoreBytes.buffer);
+			view.setUint32(0, score);
+			return [scoreBytes, new Uint8Array([nameBytes.byteLength]), nameBytes];
+		});
+
+		let scoreBoardLength = 0;
+		for (const scoreData of encodedScores) {
+			for (const byteArray of scoreData) {
+				scoreBoardLength += byteArray.length;
+			}
+		}
+
+		const buffer = new ArrayBuffer(3 + scoreBoardLength);
+		const intView = new Uint8Array(buffer);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.LEADERBOARD);
+		cursor++;
+
+		view.setUint16(cursor, totalPlayers, false);
+		cursor += 2;
+
+		for (const scoreData of encodedScores) {
+			for (const byteArray of scoreData) {
+				intView.set(byteArray, cursor);
+				cursor += byteArray.byteLength;
+			}
+		}
+
+		return buffer;
 	}
 
 	/**
