@@ -23,7 +23,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  */
 
 /**
- * @typedef {Exclude<Direction, "paused">} UnpausedDirection 
+ * @typedef {Exclude<Direction, "paused">} UnpausedDirection
  */
 
 /** @typedef {"player" | "area-bounds" | "self"} DeathType */
