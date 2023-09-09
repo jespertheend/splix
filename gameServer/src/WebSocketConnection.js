@@ -19,7 +19,7 @@ import { Player } from "./gameplay/Player.js";
  * @param {number} colorId
  */
 function serverToClientColorId(colorId) {
-	return colorId - 1;
+	return clamp(colorId - 1, 0, VALID_SKIN_COLOR_RANGE);
 }
 
 /**
