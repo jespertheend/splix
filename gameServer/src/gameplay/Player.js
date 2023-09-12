@@ -294,7 +294,7 @@ export class Player {
 			let previousPosition = this.#currentPosition.clone();
 			this.#currentPosition.set(firstItem.desiredPosition);
 			if (this.isGeneratingTrail) {
-				this.#trailVertices.push(firstItem.desiredPosition.clone());
+				this.#addTrailVertex(firstItem.desiredPosition);
 			}
 			this.#currentDirection = firstItem.direction;
 			if (firstItem.direction != "paused") {
@@ -309,6 +309,51 @@ export class Player {
 		if (lastMoveWasInvalid) {
 			this.sendPlayerStateToPlayer(this);
 		}
+	}
+
+	/**
+	 * Adds a vertex to the current trail, deduplicating any unnecessary vertices.
+	 * Throws when a diagonal vertex is added.
+	 * @param {Vec2} pos
+	 */
+	#addTrailVertex(pos) {
+		const lastVertexA = this.#trailVertices.at(-1);
+		if (lastVertexA) {
+			if (pos.x == lastVertexA.x && pos.y == lastVertexA.y) {
+				// The last vertex is already at the same location,
+				// we won't do anything to avoid duplicate vertices.
+				return;
+			}
+			if (pos.x != lastVertexA.x && pos.y != lastVertexA.y) {
+				throw new Error(
+					"Assertion failed: Attempted to add a trail vertex that would result in a diagonal segment.",
+				);
+			}
+			const lastVertexB = this.#trailVertices.at(-2);
+			if (lastVertexB) {
+				// We check if the previous two vertices are on the same line as the one we're about to add.
+				// If so, we modify the last vertex instead of adding a new one.
+				if (lastVertexA.x == lastVertexB.x && lastVertexA.x == pos.x) {
+					if (pos.y >= lastVertexA.y && pos.y <= lastVertexB.y) {
+						throw new Error(
+							"Assertion failed: Attempted to add a trail vertex in between two previous vertices.",
+						);
+					}
+					lastVertexA.set(pos);
+					return;
+				}
+				if (lastVertexA.y == lastVertexB.y && lastVertexA.y == pos.y) {
+					if (pos.x >= lastVertexA.x && pos.x <= lastVertexB.x) {
+						throw new Error(
+							"Assertion failed: Attempted to add a trail vertex in between two previous vertices.",
+						);
+					}
+					lastVertexA.set(pos);
+					return;
+				}
+			}
+		}
+		this.#trailVertices.push(pos.clone());
 	}
 
 	/**
@@ -733,14 +778,14 @@ export class Player {
 		if (this.#currentTileType != tileValue) {
 			// When the player moves out of their captured area, we will start a new trail.
 			if (tileValue != this.#id && !this.isGeneratingTrail) {
-				this.#trailVertices.push(this.#currentPosition.clone());
+				this.#addTrailVertex(this.#currentPosition);
 				this.game.broadcastPlayerTrail(this);
 			}
 
 			// When the player comes back into their captured area, we add a final vertex to the trail,
 			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.isGeneratingTrail) {
-				this.#trailVertices.push(this.#currentPosition.clone());
+				this.#addTrailVertex(this.#currentPosition);
 				if (this.#allMyTilesCleared) {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
