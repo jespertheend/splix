@@ -81,12 +81,13 @@ const arenaWorkerHandlers = {
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
-		const { fillRects, totalFilledTileCount } = updateCapturedArea(
+		const { fillRects, totalFilledTileCount, newBounds } = updateCapturedArea(
 			arenaTiles,
 			playerId,
 			bounds,
 			otherPlayerLocations,
 		);
+		boundsTracker.updateBounds(playerId, newBounds);
 		for (const { rect } of fillRects) {
 			fillTilesRect(rect, playerId);
 		}
