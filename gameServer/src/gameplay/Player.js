@@ -92,6 +92,14 @@ export class Player {
 		return this.#currentDirection;
 	}
 
+	/**
+	 * We want to allow clients to jump back slightly, but in order to prevent cheaters from abusing this,
+	 * we'll keep track of the last valid position we received from the client.
+	 * We'll use this in combination with the lastUnpausedDirection to verify that the client
+	 * is not trying to move to locations it has never been in the first place.
+	 */
+	#lastCertainClientPosition;
+
 	/** @type {Vec2[]} */
 	#trailVertices = [];
 
@@ -187,6 +195,7 @@ export class Player {
 		this.#lastUnpausedDirection = direction;
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
+		this.#lastCertainClientPosition = position.clone();
 		this.#currentPositionChanged();
 
 		this.#eventHistory.onUndoEvent((event) => {
@@ -293,6 +302,7 @@ export class Player {
 			this.#movementQueue.shift();
 			let previousPosition = this.#currentPosition.clone();
 			this.#currentPosition.set(firstItem.desiredPosition);
+			this.#lastCertainClientPosition.set(firstItem.desiredPosition);
 			if (this.isGeneratingTrail) {
 				this.#addTrailVertex(firstItem.desiredPosition);
 			}
@@ -426,16 +436,36 @@ export class Player {
 			if (this.#lastUnpausedDirection == "down" && newDirection == "up") return false;
 		}
 
-		// Pausing should always be allowed, if the provided position is invalid
-		// it will be adjusted later
-		if (newDirection == "paused") return true;
-
-		// Finally we'll make sure the desiredPosition is aligned with the current direction of movement
-		if (this.#currentDirection == "left" || this.#currentDirection == "right") {
+		// We'll make sure the desiredPosition is aligned with the current direction of movement
+		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
 			if (desiredPosition.y != this.#currentPosition.y) return false;
 		}
-		if (this.#currentDirection == "up" || this.#currentDirection == "down") {
+		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
 			if (desiredPosition.x != this.#currentPosition.x) return false;
+		}
+
+		// Make sure the client isn't trying to move further back than the last location where it changed direction.
+		if (this.#currentDirection == "paused") {
+			// If the player is currently paused, the client will basically always send the current position,
+			if (
+				(this.#lastUnpausedDirection == "left" && desiredPosition.x > this.#lastCertainClientPosition.x) ||
+				(this.#lastUnpausedDirection == "right" && desiredPosition.x < this.#lastCertainClientPosition.x) ||
+				(this.#lastUnpausedDirection == "up" && desiredPosition.y > this.#lastCertainClientPosition.y) ||
+				(this.#lastUnpausedDirection == "down" && desiredPosition.y < this.#lastCertainClientPosition.y)
+			) {
+				return false;
+			}
+		} else {
+			// but if the player is moving, we won't allow the client to send something equal to the lastCertainClientPosition.
+			// Otherwise we would allow players to go so far back that it never made a move in the first place.
+			if (
+				(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
+				(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
+				(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
+				(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
+			) {
+				return false;
+			}
 		}
 
 		return true;
