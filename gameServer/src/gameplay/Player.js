@@ -1,6 +1,7 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
 	MAX_UNDO_EVENT_TIME,
+	MAX_UNDO_TILE_COUNT,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
 	PLAYER_TRAVEL_SPEED,
 	SKINS_COUNT,
@@ -283,8 +284,8 @@ export class Player {
 		let lastMoveWasInvalid = false;
 		while (this.#movementQueue.length > 0) {
 			const firstItem = this.#movementQueue[0];
-			const valid = this.#checkNextMoveValidity(firstItem.desiredPosition, firstItem.direction);
-			if (!valid) {
+			const validity = this.#checkNextMoveValidity(firstItem.desiredPosition, firstItem.direction);
+			if (validity == "invalid") {
 				this.#movementQueue.shift();
 				lastMoveWasInvalid = true;
 				continue;
@@ -292,7 +293,12 @@ export class Player {
 				lastMoveWasInvalid = false;
 			}
 
-			if (this.#isFuturePosition(firstItem.desiredPosition)) {
+			let desiredPosition = firstItem.desiredPosition;
+			if (validity == "valid-direction") {
+				desiredPosition = this.#currentPosition.clone();
+			}
+
+			if (this.#isFuturePosition(desiredPosition)) {
 				// The position is valid, but the player hasn't reached this location yet.
 				// We'll wait until the player is there, and then handle it accordingly.
 				// If we handle the movement item now, we would allow players to teleport ahead and move very fast.
@@ -301,10 +307,10 @@ export class Player {
 
 			this.#movementQueue.shift();
 			let previousPosition = this.#currentPosition.clone();
-			this.#currentPosition.set(firstItem.desiredPosition);
-			this.#lastCertainClientPosition.set(firstItem.desiredPosition);
+			this.#currentPosition.set(desiredPosition);
+			this.#lastCertainClientPosition.set(desiredPosition);
 			if (this.isGeneratingTrail) {
-				this.#addTrailVertex(firstItem.desiredPosition);
+				this.#addTrailVertex(desiredPosition);
 			}
 			this.#currentDirection = firstItem.direction;
 			if (firstItem.direction != "paused") {
@@ -411,6 +417,7 @@ export class Player {
 	 * Checks if this is a valid next move.
 	 * @param {Vec2} desiredPosition
 	 * @param {Direction} newDirection
+	 * @returns {"valid" | "invalid" | "valid-direction"}
 	 */
 	#checkNextMoveValidity(desiredPosition, newDirection) {
 		// If the player is already moving in the same or opposite direction
@@ -418,30 +425,30 @@ export class Player {
 			(this.#currentDirection == "right" || this.#currentDirection == "left") &&
 			(newDirection == "right" || newDirection == "left")
 		) {
-			return false;
+			return "invalid";
 		}
 		if (
 			(this.#currentDirection == "up" || this.#currentDirection == "down") &&
 			(newDirection == "up" || newDirection == "down")
 		) {
-			return false;
+			return "invalid";
 		}
-		if (this.#currentDirection == newDirection) return false;
+		if (this.#currentDirection == newDirection) return "invalid";
 
 		// Prevent the player from going back into their own trail when paused
 		if (this.#currentDirection == "paused" && this.isGeneratingTrail) {
-			if (this.#lastUnpausedDirection == "right" && newDirection == "left") return false;
-			if (this.#lastUnpausedDirection == "left" && newDirection == "right") return false;
-			if (this.#lastUnpausedDirection == "up" && newDirection == "down") return false;
-			if (this.#lastUnpausedDirection == "down" && newDirection == "up") return false;
+			if (this.#lastUnpausedDirection == "right" && newDirection == "left") return "invalid";
+			if (this.#lastUnpausedDirection == "left" && newDirection == "right") return "invalid";
+			if (this.#lastUnpausedDirection == "up" && newDirection == "down") return "invalid";
+			if (this.#lastUnpausedDirection == "down" && newDirection == "up") return "invalid";
 		}
 
 		// We'll make sure the desiredPosition is aligned with the current direction of movement
 		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
-			if (desiredPosition.y != this.#currentPosition.y) return false;
+			if (desiredPosition.y != this.#currentPosition.y) return "invalid";
 		}
 		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
-			if (desiredPosition.x != this.#currentPosition.x) return false;
+			if (desiredPosition.x != this.#currentPosition.x) return "invalid";
 		}
 
 		// Make sure the client isn't trying to move further back than the last location where it changed direction.
@@ -453,7 +460,7 @@ export class Player {
 				(this.#lastUnpausedDirection == "up" && desiredPosition.y > this.#lastCertainClientPosition.y) ||
 				(this.#lastUnpausedDirection == "down" && desiredPosition.y < this.#lastCertainClientPosition.y)
 			) {
-				return false;
+				return "invalid";
 			}
 		} else {
 			// but if the player is moving, we won't allow the client to send something equal to the lastCertainClientPosition.
@@ -464,11 +471,23 @@ export class Player {
 				(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
 				(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
 			) {
-				return false;
+				return "invalid";
 			}
 		}
 
-		return true;
+		// Make sure players don't move back too far
+		if (
+			Math.abs(this.#currentPosition.x - desiredPosition.x) > MAX_UNDO_TILE_COUNT ||
+			Math.abs(this.#currentPosition.y - desiredPosition.y) > MAX_UNDO_TILE_COUNT
+		) {
+			// Players having a ping higher than 500 should be rare, but when they do,
+			// marking the move as "invalid" would mean the player never gets a chance to change their direction.
+			// So we'll mark this as "valid-direction" instead.
+			// That way only the direction of the movement queue will be used.
+			return "valid-direction";
+		}
+
+		return "valid";
 	}
 
 	/**
