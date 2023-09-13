@@ -83,6 +83,17 @@ export class PlayerBoundsTracker {
 	}
 
 	/**
+	 * Replaces the bounding box of a player.
+	 * @param {number} playerId
+	 * @param {import("../../util/util.js").Rect} newBounds
+	 */
+	updateBounds(playerId, newBounds) {
+		const bounds = this.#getBounds(playerId);
+		bounds.min.set(newBounds.min);
+		bounds.max.set(newBounds.max);
+	}
+
+	/**
 	 * @param {number} playerId
 	 */
 	deletePlayer(playerId) {
