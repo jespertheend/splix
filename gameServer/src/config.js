@@ -41,6 +41,13 @@ export const PLAYER_TRAVEL_SPEED = 0.006;
 export const MAX_UNDO_EVENT_TIME = 600;
 
 /**
+ * How many tiles players are allowed to move backwards due to latency.
+ * Assuming a speed of 6 tiles per second and a value of 3 would mean that clients need more than 500ms ping
+ * in order to not be able to control themselves.
+ */
+export const MAX_UNDO_TILE_COUNT = 3;
+
+/**
  * The maximum allowed skin color id.
  */
 export const VALID_SKIN_COLOR_RANGE = 13;
