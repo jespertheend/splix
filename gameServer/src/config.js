@@ -1,9 +1,8 @@
 /**
- * How many different skin colors there are.
- * Clients only have a few hardcoded skin colors.
- * This is a limit to make sure we don't send skin ids that the client doesn't know about.
+ * How many of the skins should be randomly assigned to players if they either didn't provide one,
+ * or when two players have the same skin and a new color needs to be picked to distinguish the two players.
  */
-export const SKINS_COUNT = 13;
+export const FREE_SKINS_COUNT = 12;
 
 /**
  * Defines a rectangle around the players position for which tiles are guaranteed to be visible.

@@ -1,10 +1,10 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
+	FREE_SKINS_COUNT,
 	MAX_UNDO_EVENT_TIME,
 	MAX_UNDO_TILE_COUNT,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
 	PLAYER_TRAVEL_SPEED,
-	SKINS_COUNT,
 	UPDATES_VIEWPORT_RECT_SIZE,
 	VALID_SKIN_COLOR_RANGE,
 	VIEWPORT_EDGE_CHUNK_SIZE,
@@ -187,7 +187,7 @@ export class Player {
 		}
 		this.#name = options.name;
 		if (this.#skinColorId == 0) {
-			this.#skinColorId = Math.floor(lerp(1, VALID_SKIN_COLOR_RANGE, Math.random()));
+			this.#skinColorId = Math.floor(lerp(1, FREE_SKINS_COUNT + 1, Math.random()));
 		}
 
 		const { position, direction } = game.getNewSpawnPosition();
@@ -494,18 +494,37 @@ export class Player {
 	 * Returns an integer that a client can use to render the correct color for this player or one of its tiles.
 	 * When two players have the same color, a different integer is returned to make sure a
 	 * player doesn't see any players with their own color.
-	 * The returned value ranges from 0 to (SKINS_COUNT - 1).
+	 * The returned value ranges from 1 to FREE_SKINS_COUNT.
 	 * @param {Player} otherPlayer The player that the message will be sent to.
 	 */
 	skinColorIdForPlayer(otherPlayer) {
 		if (this.#skinColorId != otherPlayer.skinColorId || otherPlayer == this) {
 			return this.#skinColorId;
 		} else {
-			// The color of this player is the same as my color, we'll generate a random color (that is not mine)
-			let fakeSkinId = this.id % (SKINS_COUNT - 1); //ranges from 0 to (SKINS_COUNT - 2)
-			if (fakeSkinId >= otherPlayer.skinColorId - 1) {
-				fakeSkinId++; //make the value range from 0 to (SKINS_COUNT - 1) but exclude otherPlayer.skinId
+			// At this point, the color of this player is the same as my color, we'll generate a random color (that is not mine)
+			// The color is not strictly random, but instead we use the id of the player as 'seed',
+			// that way the colorId stays consistent when this is called multiple times.
+
+			// This modulo operator maps 0 to 0, 1 to 1 etc. until (FREE_SKINS_COUNT - 1) is reached, which is mapped to 0 again.
+			let fakeSkinId = this.id % (FREE_SKINS_COUNT - 1);
+			// So now fakeSkinId could range anywhere from 0 to (FREE_SKINS_COUNT - 2).
+
+			// But we want to exclude 0 from this range, since that colorId represents grey.
+			// We 'shift' the range to the right by incrementing it.
+			fakeSkinId++;
+			// Now fakeSkinId could range anywhere from 1 to (FREE_SKINS_COUNT - 1).
+
+			// But what we want is to generate any color except the one from the other player.
+			// Otherwise we still might end up displaying this player with the same color as that of the client we are sending it to.
+			// Which is exactly what we were trying to prevent in the first place.
+
+			// We 'cut' the range in half by shifting only one portion to the right.
+			// Only if the the current value is higher than or equal to the color of the other player, will we increment it.
+			if (fakeSkinId >= otherPlayer.skinColorId) {
+				fakeSkinId++;
 			}
+			// Now fakeSkinId could range anywhere from 1 to (otherPlayer.skinId - 1)
+			// or from (otherPlayer.skinId + 1) to FREE_SKINS_COUNT.
 			return fakeSkinId;
 		}
 	}
