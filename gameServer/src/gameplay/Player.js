@@ -608,6 +608,13 @@ export class Player {
 				if (success) {
 					this.game.broadcastHitLineAnimation(player, this);
 				}
+				if (
+					!killedSelf &&
+					player.#currentPosition.x == this.#currentPosition.x &&
+					player.#currentPosition.y == this.#currentPosition.y
+				) {
+					player.#killPlayer(this, "player");
+				}
 			}
 		}
 
