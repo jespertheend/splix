@@ -604,8 +604,10 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
-				this.#killPlayer(player, killedSelf ? "self" : "player");
-				this.game.broadcastHitLineAnimation(player, this);
+				const success = this.#killPlayer(player, killedSelf ? "self" : "player");
+				if (success) {
+					this.game.broadcastHitLineAnimation(player, this);
+				}
 			}
 		}
 
@@ -710,6 +712,7 @@ export class Player {
 	 * @param {DeathType} deathType
 	 */
 	#killPlayer(otherPlayer, deathType) {
+		if (otherPlayer.dead) return false;
 		this.#eventHistory.addEvent(this.getPosition(), {
 			type: "kill-player",
 			playerId: otherPlayer.id,
@@ -717,6 +720,7 @@ export class Player {
 		otherPlayer.#die(deathType);
 		this.#killCount++;
 		this.#sendMyScore();
+		return true;
 	}
 
 	/**
