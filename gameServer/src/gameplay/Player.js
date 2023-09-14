@@ -805,12 +805,17 @@ export class Player {
 		includeLastSegments = true,
 	} = {}) {
 		if (this.isGeneratingTrail) {
-			const verticesLengthOffset = includeLastSegments ? 1 : 3;
+			const verticesLengthOffset = includeLastSegments ? 1 : 2;
 			const verticesLength = this.#trailVertices.length - verticesLengthOffset;
 			for (let i = 0; i < verticesLength; i++) {
 				const start = this.#trailVertices[i];
 				const end = this.#trailVertices[i + 1];
 				if (checkTrailSegment(point, start, end)) return true;
+			}
+			if (includeLastSegments) {
+				const lastVertex = this.#trailVertices.at(-1);
+				if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
+				if (checkTrailSegment(point, lastVertex, this.#currentPosition)) return true;
 			}
 			return false;
 		} else {
