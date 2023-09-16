@@ -318,6 +318,8 @@ export class Player {
 			}
 			this.game.broadcastPlayerState(this);
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
+			this.#currentPositionChanged();
+			this.#updateCurrentTile();
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
