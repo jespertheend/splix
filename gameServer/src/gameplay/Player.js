@@ -205,6 +205,12 @@ export class Player {
 				this.#killCount--;
 				this.#killCount = Math.max(0, this.#killCount);
 				this.#sendMyScore();
+			} else if (event.type == "start-trail") {
+				// The player started creating a trail, we reset it in order to prevent
+				// the tiles underneath the trail from getting filled as a result of the player
+				// returning to their captured area.
+				this.#trailVertices = [];
+				this.game.broadcastPlayerTrail(this);
 			}
 		});
 
@@ -318,6 +324,8 @@ export class Player {
 			}
 			this.game.broadcastPlayerState(this);
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
+			this.#currentPositionChanged();
+			this.#updateCurrentTile();
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -862,6 +870,7 @@ export class Player {
 		if (this.#currentTileType != tileValue) {
 			// When the player moves out of their captured area, we will start a new trail.
 			if (tileValue != this.#id && !this.isGeneratingTrail) {
+				this.#eventHistory.addEvent(this.getPosition(), { type: "start-trail" });
 				this.#addTrailVertex(this.#currentPosition);
 				this.game.broadcastPlayerTrail(this);
 			}
