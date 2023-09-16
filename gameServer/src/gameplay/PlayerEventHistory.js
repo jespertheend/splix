@@ -22,7 +22,12 @@ import { MAX_UNDO_EVENT_TIME } from "../config.js";
  */
 
 /**
- * @typedef {PlayerEventKillPlayer} PlayerEvent
+ * @typedef PlayerEventStartTrail
+ * @property {"start-trail"} type
+ */
+
+/**
+ * @typedef {PlayerEventKillPlayer | PlayerEventStartTrail} PlayerEvent
  */
 
 /**
