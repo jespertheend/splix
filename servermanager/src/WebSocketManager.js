@@ -1,6 +1,5 @@
+import { WebSocketHoster } from "../../gameServer/src/util/WebSocketHoster.js";
 import { WebSocketConnection } from "./WebSocketConnection.js";
-import { getMainInstance } from "./mainInstance.js";
-import { WebSocketHoster } from "./util/WebSocketHoster.js";
 
 export class WebSocketManager {
 	#hoster;
@@ -10,23 +9,29 @@ export class WebSocketManager {
 
 	constructor() {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
-			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
+			const connection = new WebSocketConnection();
 			this.#activeConnections.add(connection);
 			socket.addEventListener("message", async (message) => {
 				try {
-					if (message.data instanceof ArrayBuffer) {
-						await connection.onMessage(message.data);
-					} else if (typeof message.data == "string") {
-						// Text messages are ignored for now
+					if (typeof message.data == "string") {
+						const parsed = JSON.parse(message.data);
+						connection.onMessage(parsed);
 					}
 				} catch (e) {
 					console.error("An error occurred while handling a websocket message", message.data, e);
 				}
 			});
 			socket.addEventListener("close", () => {
-				connection.onClose();
 				this.#activeConnections.delete(connection);
 			});
+		}, {
+			async overrideRequestHandler(request) {
+				const url = new URL(request.url);
+				if (url.pathname == "/servermanager/gameservers") {
+					return new Response("TODO");
+				}
+				return null;
+			},
 		});
 		this.#hoster.handleRequest;
 	}
@@ -43,15 +48,5 @@ export class WebSocketManager {
 	 */
 	handleRequest(...args) {
 		return this.#hoster.handleRequest(...args);
-	}
-
-	/**
-	 * @param {number} now
-	 * @param {number} dt
-	 */
-	loop(now, dt) {
-		for (const connection of this.#activeConnections) {
-			connection.loop(now, dt);
-		}
 	}
 }
