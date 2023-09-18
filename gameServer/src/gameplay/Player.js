@@ -884,8 +884,8 @@ export class Player {
 				}
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.#updateCapturedArea();
+				this.game.broadcastPlayerEmptyTrail(this);
 				this.#trailVertices = [];
-				this.game.broadcastPlayerTrail(this);
 			}
 
 			this.#currentTileType = tileValue;
