@@ -1,11 +1,18 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
+import { dev } from "https://deno.land/x/dev@v0.3.0/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { setCwd } from "chdir-anywhere";
 import { init as initGameServer } from "../gameServer/src/mainInstance.js";
-import { init as initServerManager } from "../servermanager/src/mainInstance.js";
+import { init as initServerManager } from "../serverManager/src/mainInstance.js";
+import "$std/dotenv/load.ts";
 setCwd();
 
 Deno.chdir("..");
+
+// TODO: vendor renda files
+await dev({
+	actions: [],
+});
 
 generateTypes({
 	include: [

@@ -7,9 +7,12 @@ export class WebSocketManager {
 	/** @type {Set<WebSocketConnection>} */
 	#activeConnections = new Set();
 
-	constructor() {
+	/**
+	 * @param {import("./Main.js").Main} mainInstance
+	 */
+	constructor(mainInstance) {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
-			const connection = new WebSocketConnection();
+			const connection = new WebSocketConnection(socket, ip, mainInstance);
 			this.#activeConnections.add(connection);
 			socket.addEventListener("message", async (message) => {
 				try {
@@ -28,12 +31,12 @@ export class WebSocketManager {
 			async overrideRequestHandler(request) {
 				const url = new URL(request.url);
 				if (url.pathname == "/servermanager/gameservers") {
-					return new Response("TODO");
+					const data = mainInstance.servermanager.getServersJson();
+					return Response.json(data);
 				}
 				return null;
 			},
 		});
-		this.#hoster.handleRequest;
 	}
 
 	/**
@@ -48,5 +51,23 @@ export class WebSocketManager {
 	 */
 	handleRequest(...args) {
 		return this.#hoster.handleRequest(...args);
+	}
+
+	sendAllServerConfigs() {
+		for (const connection of this.#activeConnections) {
+			if (!connection.authenticated) continue;
+			connection.sendAllServerConfigs();
+		}
+	}
+
+	/**
+	 * @param {number} id
+	 * @param {import("./GameServer.js").GameServerConfig} config
+	 */
+	sendAllServerConfig(id, config) {
+		for (const connection of this.#activeConnections) {
+			if (!connection.authenticated) continue;
+			connection.sendServerConfig(id, config);
+		}
 	}
 }
