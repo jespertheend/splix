@@ -336,6 +336,26 @@ export class Game {
 	}
 
 	/**
+	 * Notifies nearby players that the trail this player is currently creating has ended.
+	 * @param {import("./Player.js").Player} player
+	 */
+	broadcastPlayerEmptyTrail(player) {
+		const lastVertex = Array.from(player.getTrailVertices()).at(-1);
+		if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
+
+		const message = WebSocketConnection.createEmptyTrailMessage(player.id, lastVertex);
+		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
+			if (nearbyPlayer == player) {
+				// The client that owns the player should receive 0 as player id
+				const samePlayerMessage = WebSocketConnection.createEmptyTrailMessage(0, lastVertex);
+				nearbyPlayer.connection.send(samePlayerMessage);
+			} else {
+				nearbyPlayer.connection.send(message);
+			}
+		}
+	}
+
+	/**
 	 * Notifies nearby players that this player died.
 	 * @param {import("./Player.js").Player} player
 	 */

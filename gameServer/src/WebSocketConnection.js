@@ -472,6 +472,29 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
+	 * @param {Vec2} vertex The final vertex of the trail.
+	 */
+	static createEmptyTrailMessage(playerId, vertex) {
+		const buffer = new ArrayBuffer(7);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.EMPTY_TRAIL_WITH_LAST_POS);
+		cursor++;
+
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+
+		view.setUint16(cursor, vertex.x, false);
+		cursor += 2;
+		view.setUint16(cursor, vertex.y, false);
+		cursor += 2;
+
+		return buffer;
+	}
+
+	/**
+	 * @param {number} playerId
 	 * @param {Vec2?} position The position where the player died. This is only useful when the player
 	 * died while hitting a wall or their own trail. In that case we want to make it clearly visible that this is
 	 * what caused the player to die. But when the player is killed by another player, the position
