@@ -361,6 +361,17 @@ export class Game {
 		const lastVertex = Array.from(player.getTrailVertices()).at(-1);
 		if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
 
+		// The trail ending is displayed on the previous tile.
+		if (player.currentDirection == "left") {
+			lastVertex.x += 1;
+		} else if (player.currentDirection == "right") {
+			lastVertex.x -= 1;
+		} else if (player.currentDirection == "up") {
+			lastVertex.y += 1;
+		} else if (player.currentDirection == "down") {
+			lastVertex.y -= 1;
+		}
+
 		const message = WebSocketConnection.createEmptyTrailMessage(player.id, lastVertex);
 		for (const nearbyPlayer of this.getOverlappingViewportPlayersForPos(player.getPosition())) {
 			if (nearbyPlayer == player) {
