@@ -15,6 +15,8 @@ export class ServerManager {
 	 */
 	constructor(mainInstance) {
 		this.#mainInstance = mainInstance;
+
+		this.#loadServersData();
 	}
 
 	createGameServer() {
@@ -38,6 +40,7 @@ export class ServerManager {
 		const server = new GameServer(id);
 		this.#servers.set(id, server);
 		this.#mainInstance.websocketManager.sendAllServerConfigs();
+		this.#saveServersData();
 	}
 
 	/**
@@ -46,6 +49,7 @@ export class ServerManager {
 	deleteGameServer(id) {
 		this.#servers.delete(id);
 		this.#mainInstance.websocketManager.sendAllServerConfigs();
+		this.#saveServersData();
 	}
 
 	/**
@@ -88,5 +92,24 @@ export class ServerManager {
 		}
 		server.setConfig(config);
 		this.#mainInstance.websocketManager.sendAllServerConfig(id, config);
+		this.#saveServersData();
+	}
+
+	#loadServersData() {
+		const serversData =
+			/** @type {GameServerConfigs | undefined} */ (this.#mainInstance.persistentStorage.get("servers"));
+		if (serversData) {
+			for (const serverData of serversData) {
+				const server = new GameServer(serverData.id);
+				this.#servers.set(serverData.id, server);
+				server.setConfig(serverData.config);
+			}
+		}
+	}
+
+	#saveServersData() {
+		/** @type {GameServerConfigs} */
+		const serversData = this.getServerConfigs();
+		this.#mainInstance.persistentStorage.set("servers", serversData);
 	}
 }

@@ -1,6 +1,7 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
 import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
+import { resolve } from "$std/path/mod.ts";
 import { setCwd } from "chdir-anywhere";
 import { init as initGameServer } from "../gameServer/src/mainInstance.js";
 import { init as initServerManager } from "../serverManager/src/mainInstance.js";
@@ -39,7 +40,8 @@ if (!Deno.args.includes("--no-init")) {
 		arenaHeight: 40,
 	});
 
-	const serverManager = initServerManager();
+	const persistentStoragePath = resolve("serverManager/persistentStorage.json");
+	const serverManager = initServerManager(persistentStoragePath);
 
 	/** Directories that should be served using serveDir() */
 	const serveRootDirs = [
