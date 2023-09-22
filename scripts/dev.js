@@ -1,5 +1,5 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
-import { dev } from "https://deno.land/x/dev@v0.3.0/mod.js";
+import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { setCwd } from "chdir-anywhere";
 import { init as initGameServer } from "../gameServer/src/mainInstance.js";
@@ -9,9 +9,11 @@ setCwd();
 
 Deno.chdir("..");
 
-// TODO: vendor renda files
-await dev({
-	actions: [],
+vendor({
+	entryPoints: [
+		"https://raw.githubusercontent.com/rendajs/Renda/705c5a01bc4d3ca4a282fff1a7a8567d1be7ce04/mod.js",
+	],
+	outDir: "./deps",
 });
 
 generateTypes({
@@ -43,6 +45,7 @@ if (!Deno.args.includes("--no-init")) {
 	const serveRootDirs = [
 		"adminpanel",
 		"shared",
+		"deps",
 	];
 
 	Deno.serve({
