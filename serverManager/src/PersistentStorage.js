@@ -4,7 +4,7 @@ export class PersistentStorage {
 	#storageData = {};
 
 	/**
-	 * @param {string} filePath
+	 * @param {string?} filePath
 	 */
 	constructor(filePath) {
 		this.#filePath = filePath;
@@ -13,6 +13,8 @@ export class PersistentStorage {
 	}
 
 	#load() {
+		if (!this.#filePath) return;
+
 		let contents;
 		try {
 			contents = Deno.readTextFileSync(this.#filePath);
@@ -26,6 +28,8 @@ export class PersistentStorage {
 	}
 
 	async #save() {
+		if (!this.#filePath) return;
+
 		const contents = JSON.stringify(this.#storageData);
 		try {
 			await Deno.writeTextFile(this.#filePath, contents);

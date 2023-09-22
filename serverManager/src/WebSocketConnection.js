@@ -1,5 +1,4 @@
 import { TypedMessenger } from "renda";
-import { INSECURE_LOCALHOST_SERVERMANAGER_TOKEN } from "../../shared/config.js";
 
 /** @typedef {ReturnType<WebSocketConnection["getResponseHandlers"]>} ServerManagerResponseHandlers */
 
@@ -9,15 +8,18 @@ export class WebSocketConnection {
 	#ip;
 	#mainInstance;
 	#authenticated = false;
+	#configuredAuthToken;
 
 	/**
 	 * @param {WebSocket} socket
 	 * @param {string} ip
 	 * @param {import("./Main.js").Main} mainInstance
+	 * @param {string} configuredAuthToken
 	 */
-	constructor(socket, ip, mainInstance) {
+	constructor(socket, ip, mainInstance, configuredAuthToken) {
 		this.#ip = ip;
 		this.#mainInstance = mainInstance;
+		this.#configuredAuthToken = configuredAuthToken;
 
 		this.#messenger.setResponseHandlers(this.getResponseHandlers());
 		this.#messenger.setSendHandler((data) => {
@@ -50,7 +52,8 @@ export class WebSocketConnection {
 			 */
 			authenticate: async (token) => {
 				await this.#mainInstance.authRateLimitManager.waitForAuthenticationAllowed(this.#ip);
-				if (token != INSECURE_LOCALHOST_SERVERMANAGER_TOKEN) {
+				if (!this.#configuredAuthToken) return false;
+				if (token != this.#configuredAuthToken) {
 					this.#mainInstance.authRateLimitManager.markIpAsRecentAttempt(this.#ip);
 					return false;
 				}

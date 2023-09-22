@@ -12,7 +12,7 @@
 	"include": [
 		"scripts/**/*.js",
 		"gameServer/src/**/*.js",
-		"serverManager/src/**/*.js",
+		"serverManager/**/*.js",
 		"adminPanel/src/**/*.js",
 		"shared/**/*.js"
 	]

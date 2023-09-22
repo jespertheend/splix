@@ -6,6 +6,7 @@ import { setCwd } from "chdir-anywhere";
 import { init as initGameServer } from "../gameServer/src/mainInstance.js";
 import { init as initServerManager } from "../serverManager/src/mainInstance.js";
 import "$std/dotenv/load.ts";
+import { INSECURE_LOCALHOST_SERVERMANAGER_TOKEN } from "../shared/config.js";
 setCwd();
 
 Deno.chdir("..");
@@ -41,7 +42,10 @@ if (!Deno.args.includes("--no-init")) {
 	});
 
 	const persistentStoragePath = resolve("serverManager/persistentStorage.json");
-	const serverManager = initServerManager(persistentStoragePath);
+	const serverManager = initServerManager({
+		persistentStoragePath,
+		websocketAuthToken: INSECURE_LOCALHOST_SERVERMANAGER_TOKEN,
+	});
 
 	/** Directories that should be served using serveDir() */
 	const serveRootDirs = [

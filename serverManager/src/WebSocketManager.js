@@ -9,10 +9,11 @@ export class WebSocketManager {
 
 	/**
 	 * @param {import("./Main.js").Main} mainInstance
+	 * @param {string} websocketAuthToken
 	 */
-	constructor(mainInstance) {
+	constructor(mainInstance, websocketAuthToken) {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
-			const connection = new WebSocketConnection(socket, ip, mainInstance);
+			const connection = new WebSocketConnection(socket, ip, mainInstance, websocketAuthToken);
 			this.#activeConnections.add(connection);
 			socket.addEventListener("message", async (message) => {
 				try {

@@ -5,12 +5,14 @@ import { WebSocketManager } from "./WebSocketManager.js";
 
 export class Main {
 	/**
-	 * @param {string} storagePath The location where the json file with persistent storage is located.
+	 * @param {Object} options
+	 * @param {string?} options.persistentStoragePath The location where the json file with persistent storage is located.
+	 * @param {string} options.websocketAuthToken
 	 */
-	constructor(storagePath) {
-		this.persistentStorage = new PersistentStorage(storagePath);
+	constructor({ persistentStoragePath, websocketAuthToken }) {
+		this.persistentStorage = new PersistentStorage(persistentStoragePath);
 		this.servermanager = new ServerManager(this);
-		this.websocketManager = new WebSocketManager(this);
+		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
 		this.authRateLimitManager = new AuthRateLimitManager();
 	}
 }
