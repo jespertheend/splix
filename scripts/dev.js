@@ -22,6 +22,7 @@ generateTypes({
 	include: [
 		"scripts/",
 		"gameServer/",
+		"shared/",
 	],
 	importMap: "importmap.json",
 	excludeUrls: [
@@ -32,6 +33,11 @@ generateTypes({
 		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/deps/rollup.browser.js",
 		"rollup",
 	],
+	exactTypeModules: {
+		"$rollup": "https://unpkg.com/rollup@3.5.0/dist/rollup.d.ts",
+		"$rollup-plugin-alias": "https://unpkg.com/@rollup/plugin-alias@4.0.2/types/index.d.ts",
+		"$terser": "https://unpkg.com/terser@5.16.0/tools/terser.d.ts",
+	},
 	logLevel: "WARNING",
 });
 
