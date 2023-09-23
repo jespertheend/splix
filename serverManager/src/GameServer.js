@@ -1,6 +1,7 @@
 /**
  * @typedef GameServerConfig
  * @property {boolean} public
+ * @property {boolean} official
  * @property {string} displayName
  * @property {string} endpoint
  */
@@ -8,6 +9,7 @@
 export class GameServer {
 	#id;
 	#public = false;
+	#official = false;
 	#displayName = "";
 	#endpoint = "";
 
@@ -33,6 +35,7 @@ export class GameServer {
 		return {
 			displayName: this.#displayName,
 			endpoint: this.#endpoint,
+			official: this.#official,
 		};
 	}
 
@@ -42,6 +45,7 @@ export class GameServer {
 	getConfig() {
 		return {
 			public: this.#public,
+			official: this.#official,
 			displayName: this.#displayName,
 			endpoint: this.#endpoint,
 		};
@@ -54,5 +58,6 @@ export class GameServer {
 		this.#public = config.public;
 		this.#displayName = config.displayName;
 		this.#endpoint = config.endpoint;
+		this.#official = config.official;
 	}
 }

@@ -25,3 +25,8 @@ html, body{
 	display: flex;
 	flex-direction: column;
 }
+
+.checkboxes-container {
+	display: flex;
+	gap: 15px;
+}
