@@ -46,3 +46,5 @@ If you want to make changes to the code, you can run the server in a development
 1. [Install Deno](https://deno.land/manual@v1.36.1/getting_started/installation)
 2. [Clone this repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
 3. `cd` into the cloned repository and run `deno task dev`
+
+This will start a local server, with several endpoints. Visit https://localhost:8080 for a list of endpoints.

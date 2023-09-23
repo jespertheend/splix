@@ -1,0 +1,27 @@
+:root{
+	--background-color: #white;
+	--text-color: black;
+	--server-background-color: #bebebe;
+}
+@media(prefers-color-scheme: dark){
+	:root{
+		--background-color: black;
+		--text-color: white;
+		--server-background-color: #464646;
+	}
+}
+
+html, body{
+	font-family: Helvetica, Arial, sans-serif;
+	background-color: var(--background-color);
+	color: var(--text-color);
+}
+
+.game-server {
+	background-color: var(--server-background-color);
+	width: fit-content;
+	padding: 10px;
+	margin: 10px;
+	display: flex;
+	flex-direction: column;
+}

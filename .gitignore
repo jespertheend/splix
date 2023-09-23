@@ -1,2 +1,7 @@
 deno.lock
 gameServer/out
+serverManager/out
+.env
+deps
+serverManager/persistentStorage.json
+adminPanel/out/

@@ -10,9 +10,9 @@ let main = null;
  */
 export function init(...args) {
 	main = new Main(...args);
-	main.init();
 	// @ts-ignore
 	globalThis.mainInstance = main;
+	return main;
 }
 
 export function getMainInstance() {
@@ -55,10 +55,10 @@ if (import.meta.main) {
 			arenaWidth = arenaSize;
 			arenaHeight = arenaSize;
 		}
-		init({
-			port,
+		const main = init({
 			arenaWidth,
 			arenaHeight,
 		});
+		main.init({ port });
 	}
 }
