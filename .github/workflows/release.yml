@@ -29,8 +29,11 @@ jobs:
         with:
           deno-version: ${{ env.DENO_VERSION }}
 
-      - name: Build windows
-        run: deno task build-gameserver --compress
+      - name: Build gameserver
+        run: deno task build-gameserver --archive
+
+      - name: Build servermanager
+        run: deno task build-servermanager --archive
 
       - name: Release
         uses: softprops/action-gh-release@v0.1.15
@@ -39,3 +42,4 @@ jobs:
           draft: true
           files: |
             gameServer/out/*
+            serverManager/out/*

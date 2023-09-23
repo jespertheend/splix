@@ -5,14 +5,13 @@ setCwd();
 Deno.chdir("..");
 
 await buildExecutable({
-	outputDir: resolve("gameServer/out"),
-	outputFileName: "splixGameServer",
-	entryPoint: resolve("gameServer/src/mainInstance.js"),
+	outputDir: resolve("serverManager/out"),
+	outputFileName: "serverManager",
+	entryPoint: resolve("serverManager/main.js"),
 	permissionFlags: [
 		"--allow-net",
 		"--allow-read",
-	],
-	include: [
-		resolve("gameServer/src/gameplay/arenaWorker/mod.js"),
+		"--allow-write",
+		"--allow-env",
 	],
 });
