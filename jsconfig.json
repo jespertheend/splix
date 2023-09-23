@@ -11,6 +11,9 @@
 	},
 	"include": [
 		"scripts/**/*.js",
-		"gameServer/src/**/*.js"
+		"gameServer/src/**/*.js",
+		"serverManager/**/*.js",
+		"adminPanel/src/**/*.js",
+		"shared/**/*.js"
 	]
 }

@@ -1,0 +1,13 @@
+[Unit]
+Description=Splix server manager
+After=network.target
+
+[Service]
+Type=simple
+Environment="WEBSOCKET_AUTH_TOKEN="
+Environment="PERSISTENT_STORAGE_PATH=/root/serverManager/persistentStorage.json"
+ExecStart=/root/serverManager/serverManager
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

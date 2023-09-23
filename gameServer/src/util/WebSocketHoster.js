@@ -1,4 +1,4 @@
-import { Timeout } from "./Timeout.js";
+import { Timeout } from "../../../shared/Timeout.js";
 import { announceAddrs } from "./announceAddrs.js";
 
 const INITIAL_ACCEPT_BACKOFF_DELAY = 5;
