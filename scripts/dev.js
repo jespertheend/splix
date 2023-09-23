@@ -99,6 +99,8 @@ if (!Deno.args.includes("--no-init")) {
 			return gameServer.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
 		} else if (url.pathname.startsWith("/servermanager/")) {
 			return serverManager.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
+		} else if (url.pathname.startsWith("/servermanagerToken")) {
+			return new Response(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
 		}
 
 		for (const dir of serveRootDirs) {

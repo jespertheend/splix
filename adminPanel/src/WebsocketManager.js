@@ -36,8 +36,17 @@ export class WebSocketManager {
 			this.#messenger.handleReceivedMessage(data);
 		});
 
+		const serverManagerToken = (async () => {
+			const response = await fetch("/servermanagerToken");
+			if (!response.ok) {
+				alert("Failed to fetch the servermanager token");
+			}
+			const token = await response.text();
+			return token.trim();
+		})();
+
 		socket.onOpen(async () => {
-			const success = await this.#messenger.send.authenticate(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
+			const success = await this.#messenger.send.authenticate(await serverManagerToken);
 			if (!success) {
 				alert(
 					"Failed to authenticate with server manager, the server manager token may not have been configured correctly.",
