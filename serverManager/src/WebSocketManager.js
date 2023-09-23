@@ -31,7 +31,7 @@ export class WebSocketManager {
 		}, {
 			async overrideRequestHandler(request) {
 				const url = new URL(request.url);
-				if (url.pathname == "/servermanager/gameservers") {
+				if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
 					const data = mainInstance.servermanager.getServersJson();
 					return Response.json(data);
 				}
