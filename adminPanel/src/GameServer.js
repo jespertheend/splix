@@ -1,5 +1,7 @@
 export class GameServer {
+	#checkboxesContainer;
 	#publicCheckbox;
+	#officialCheckbox;
 	#displayNameEl;
 	#endpointEl;
 	/** @type {Set<() => void>} */
@@ -13,16 +15,12 @@ export class GameServer {
 		this.el = document.createElement("div");
 		this.el.classList.add("game-server");
 
-		const publicLabel = document.createElement("label");
-		publicLabel.textContent = "Public";
-		this.el.appendChild(publicLabel);
+		this.#checkboxesContainer = document.createElement("div");
+		this.#checkboxesContainer.classList.add("checkboxes-container");
+		this.el.appendChild(this.#checkboxesContainer);
 
-		this.#publicCheckbox = document.createElement("input");
-		this.#publicCheckbox.type = "checkbox";
-		publicLabel.appendChild(this.#publicCheckbox);
-		this.#publicCheckbox.addEventListener("change", () => {
-			this.#fireConfigChange();
-		});
+		this.#publicCheckbox = this.#createCheckboxInput("Public");
+		this.#officialCheckbox = this.#createCheckboxInput("Official");
 
 		this.#displayNameEl = this.#createTextInput("Display name");
 		this.#endpointEl = this.#createTextInput("Endpoint");
@@ -33,6 +31,23 @@ export class GameServer {
 		deleteButton.addEventListener("click", () => {
 			mainInstance.webSocketManager.requestDeleteGameServer(id);
 		});
+	}
+
+	/**
+	 * @param {string} label
+	 */
+	#createCheckboxInput(label) {
+		const labelEl = document.createElement("label");
+		labelEl.textContent = label;
+		this.#checkboxesContainer.appendChild(labelEl);
+
+		const checkboxEl = document.createElement("input");
+		checkboxEl.type = "checkbox";
+		labelEl.appendChild(checkboxEl);
+		checkboxEl.addEventListener("change", () => {
+			this.#fireConfigChange();
+		});
+		return checkboxEl;
 	}
 
 	/**
@@ -56,6 +71,7 @@ export class GameServer {
 	 */
 	setConfig(config) {
 		this.#publicCheckbox.checked = config.public;
+		this.#officialCheckbox.checked = config.official;
 		this.#displayNameEl.value = config.displayName;
 		this.#endpointEl.value = config.endpoint;
 	}
@@ -66,6 +82,7 @@ export class GameServer {
 	getConfig() {
 		return {
 			public: this.#publicCheckbox.checked,
+			official: this.#officialCheckbox.checked,
 			displayName: this.#displayNameEl.value,
 			endpoint: this.#endpointEl.value,
 		};
