@@ -16,10 +16,16 @@ export class WebSocketManager {
 		this.#mainInstance = mainInstance;
 
 		const url = new URL(location.href);
-		url.pathname = "/servermanager/";
-		url.protocol = "ws:";
+		let endpoint;
+		if (url.hostname == "localhost") {
+			url.pathname = "/servermanager/";
+			url.protocol = "ws:";
+			endpoint = url.href;
+		} else {
+			endpoint = "wss://servermanager.splix.io";
+		}
 		/** @type {PersistentWebSocket<import("renda").TypedMessengerMessageSendData<AdminPanelResponseHandlers, import("../../serverManager/src/WebSocketConnection.js").ServerManagerResponseHandlers, false>>} */
-		const socket = new PersistentWebSocket(url.href);
+		const socket = new PersistentWebSocket(endpoint);
 
 		this.#messenger = new TypedMessenger();
 		this.#messenger.setSendHandler((data) => {
