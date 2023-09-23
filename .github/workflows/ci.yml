@@ -28,7 +28,7 @@ jobs:
         run: deno fmt --check
 
       - name: Install Types
-        run: deno task dev --no-init
+        run: deno task install-types
 
       - name: Check Types
         run: deno task check
