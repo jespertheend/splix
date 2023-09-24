@@ -1,6 +1,7 @@
 import { clamp, Vec2 } from "renda";
 import { UPDATES_VIEWPORT_RECT_SIZE, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_RANGE } from "./config.js";
 import { Player } from "./gameplay/Player.js";
+import { ControlSocketConnection } from "./ControlSocketConnection.js";
 
 /**
  * - `"add-segment"` - adds a new polygon to the current trail.
@@ -22,6 +23,8 @@ function serverToClientColorId(colorId) {
 	return colorId - 1;
 }
 
+export const initializeControlSocketMessage = "initializeControlSocket";
+
 /**
  * Handles the messaging between server and client.
  * Received messages are converted to a format that is easier to work with.
@@ -36,6 +39,12 @@ export class WebSocketConnection {
 	#game;
 	/** @type {Player?} */
 	#player = null;
+	/** @type {ControlSocketConnection?} */
+	#controlSocket = null;
+
+	get controlSocket() {
+		return this.#controlSocket;
+	}
 
 	/**
 	 * @param {WebSocket} socket
@@ -186,9 +195,26 @@ export class WebSocketConnection {
 	#receivedName = "";
 
 	/**
+	 * @param {string} data
+	 */
+	async onStringMessage(data) {
+		if (this.#player) return;
+
+		const parsed = JSON.parse(data);
+
+		if (this.#controlSocket) {
+			this.#controlSocket.onMessage(parsed);
+		} else if (parsed == initializeControlSocketMessage) {
+			this.#controlSocket = new ControlSocketConnection(this);
+		}
+	}
+
+	/**
 	 * @param {ArrayBuffer} data
 	 */
 	async onMessage(data) {
+		if (this.#controlSocket) return;
+
 		const view = new DataView(data);
 		const messageType = view.getUint8(0);
 
@@ -276,7 +302,7 @@ export class WebSocketConnection {
 	}
 
 	/**
-	 * @param {ArrayBufferLike | Blob | ArrayBufferView} data
+	 * @param {string | ArrayBufferLike | Blob | ArrayBufferView} data
 	 */
 	send(data) {
 		try {

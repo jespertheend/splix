@@ -47,9 +47,13 @@ export class ServerManager {
 	 * @param {number} id
 	 */
 	deleteGameServer(id) {
-		this.#servers.delete(id);
-		this.#mainInstance.websocketManager.sendAllServerConfigs();
-		this.#saveServersData();
+		const server = this.#servers.get(id);
+		if (server) {
+			server.destructor();
+			this.#servers.delete(id);
+			this.#mainInstance.websocketManager.sendAllServerConfigs();
+			this.#saveServersData();
+		}
 	}
 
 	/**
@@ -58,7 +62,7 @@ export class ServerManager {
 	getServersJson() {
 		const servers = [];
 		for (const server of this.#servers.values()) {
-			if (!server.public) continue;
+			if (!server.available) continue;
 			servers.push(server.getJson());
 		}
 		return {
