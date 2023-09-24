@@ -17,6 +17,9 @@ export class Main {
 			arenaWidth,
 			arenaHeight,
 		});
+		this.game.onPlayerCountChange((playerCount) => {
+			this.websocketManager.notifyControlSocketsPlayerCount(playerCount);
+		});
 		this.applicationLoop = new ApplicationLoop();
 	}
 
