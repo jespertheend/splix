@@ -7,7 +7,7 @@
  * @property {string} endpoint
  */
 
-import { TypedMessenger } from "../../.denoTypes/vendor/raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/mod.js";
+import { TypedMessenger } from "renda";
 import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
 import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
 
