@@ -102,6 +102,7 @@ export class Game {
 		const player = new Player(id, this, connection, playerOptions);
 		this.#players.set(id, player);
 		this.broadcastPlayerState(player);
+		this.#fireOnPlayerCountChange();
 		return player;
 	}
 
@@ -150,6 +151,23 @@ export class Game {
 	removePlayer(player) {
 		player.removedFromGame();
 		this.#players.delete(player.id);
+		this.#fireOnPlayerCountChange();
+	}
+
+	/** @typedef {(count: number) => void} OnPlayerCountChangeCallback */
+
+	/** @type {Set<OnPlayerCountChangeCallback>} */
+	#onPlayerCountChangeCbs = new Set();
+
+	/**
+	 * @param {OnPlayerCountChangeCallback} cb
+	 */
+	onPlayerCountChange(cb) {
+		this.#onPlayerCountChangeCbs.add(cb);
+	}
+
+	#fireOnPlayerCountChange() {
+		this.#onPlayerCountChangeCbs.forEach((cb) => cb(this.#players.size));
 	}
 
 	/**

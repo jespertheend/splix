@@ -17,7 +17,7 @@ export class WebSocketManager {
 					if (message.data instanceof ArrayBuffer) {
 						await connection.onMessage(message.data);
 					} else if (typeof message.data == "string") {
-						// Text messages are ignored for now
+						await connection.onStringMessage(message.data);
 					}
 				} catch (e) {
 					console.error("An error occurred while handling a websocket message", message.data, e);
@@ -52,6 +52,21 @@ export class WebSocketManager {
 	loop(now, dt) {
 		for (const connection of this.#activeConnections) {
 			connection.loop(now, dt);
+		}
+	}
+
+	*#controlSocketConnections() {
+		for (const connection of this.#activeConnections) {
+			if (connection.controlSocket) yield connection.controlSocket;
+		}
+	}
+
+	/**
+	 * @param {number} count
+	 */
+	notifyControlSocketsPlayerCount(count) {
+		for (const connection of this.#controlSocketConnections()) {
+			connection.messenger.send.reportPlayerCount(count);
 		}
 	}
 }

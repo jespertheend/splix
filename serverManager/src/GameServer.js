@@ -7,7 +7,25 @@
  * @property {string} endpoint
  */
 
+import { TypedMessenger } from "../../.denoTypes/vendor/raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/mod.js";
+import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
 import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
+
+/**
+ * @param {GameServer} gameServer
+ */
+function createResponseHandlers(gameServer) {
+	return {
+		/**
+		 * @param {number} count
+		 */
+		reportPlayerCount(count) {
+			gameServer.updatePlayerCount(count);
+		},
+	};
+}
+
+/** @typedef {ReturnType<typeof createResponseHandlers>} ServerManagerResponseHandlers */
 
 export class GameServer {
 	#id;
@@ -17,14 +35,25 @@ export class GameServer {
 	#displayName = "";
 	#endpoint = "";
 	#validEndpoint = false;
-	/** @type {PersistentWebSocket<any>?} */
+	/** @type {PersistentWebSocket<import("renda").TypedMessengerMessageSendData<ServerManagerResponseHandlers, import("../../gameServer/src/ControlSocketConnection.js").ControlSocketResponseHandlers, false>>?} */
 	#persistentWebSocket = null;
+	/** @type {TypedMessenger<ServerManagerResponseHandlers, import("../../gameServer/src/ControlSocketConnection.js").ControlSocketResponseHandlers>} */
+	#messenger = new TypedMessenger();
+
+	#playerCount = 0;
 
 	/**
 	 * @param {number} id
 	 */
 	constructor(id) {
 		this.#id = id;
+		this.#messenger.setResponseHandlers(createResponseHandlers(this));
+		this.#messenger.setSendHandler((data) => {
+			if (!this.#persistentWebSocket || !this.#persistentWebSocket.connected) {
+				throw new Error("Assertion failed, tried to send a control socket message without an open socket");
+			}
+			this.#persistentWebSocket.send(data.sendData);
+		});
 	}
 
 	destructor() {
@@ -53,6 +82,7 @@ export class GameServer {
 			displayName: this.#displayName,
 			endpoint: this.#endpoint,
 			official: this.#official,
+			playerCount: this.#playerCount,
 		};
 	}
 
@@ -96,6 +126,13 @@ export class GameServer {
 		}
 	}
 
+	/**
+	 * @param {number} count
+	 */
+	updatePlayerCount(count) {
+		this.#playerCount = count;
+	}
+
 	#closeWebSocket() {
 		if (this.#persistentWebSocket) {
 			this.#persistentWebSocket.close();
@@ -107,8 +144,12 @@ export class GameServer {
 		this.#closeWebSocket();
 		if (this.#validEndpoint) {
 			this.#persistentWebSocket = new PersistentWebSocket(this.#endpoint);
-			this.#persistentWebSocket.onOpen(() => {
-				console.log("open");
+			const socket = this.#persistentWebSocket;
+			socket.onOpen(() => {
+				socket.send(initializeControlSocketMessage);
+			});
+			socket.onMessage((data) => {
+				this.#messenger.handleReceivedMessage(data);
 			});
 		}
 	}
