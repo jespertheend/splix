@@ -322,10 +322,10 @@ export class Player {
 			if (firstItem.direction != "paused") {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
-			this.game.broadcastPlayerState(this);
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
-			this.#currentPositionChanged();
+			this.game.broadcastPlayerState(this);
 			this.#updateCurrentTile();
+			this.#currentPositionChanged();
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -561,9 +561,9 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				this.#drainMovementQueue();
-				this.#currentPositionChanged();
 				this.#updateCurrentTile();
+				this.#currentPositionChanged();
+				this.#drainMovementQueue();
 			}
 		}
 
