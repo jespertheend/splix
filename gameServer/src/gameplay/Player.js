@@ -550,7 +550,7 @@ export class Player {
 	loop(now, dt) {
 		if (this.currentDirection != "paused" && !this.dead) {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
-			while (this.#nextTileProgress > 1) {
+			if (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
 				if (this.currentDirection == "left") {
 					this.#currentPosition.x -= 1;
