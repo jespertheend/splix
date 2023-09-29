@@ -453,34 +453,29 @@ export class Player {
 
 		// We'll make sure the desiredPosition is aligned with the current direction of movement
 		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
-			if (desiredPosition.y != this.#currentPosition.y) return "invalid";
+			if (desiredPosition.y != this.#currentPosition.y) return "valid-direction";
 		}
 		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
-			if (desiredPosition.x != this.#currentPosition.x) return "invalid";
+			if (desiredPosition.x != this.#currentPosition.x) return "valid-direction";
+		}
+
+		// If the player is currently paused, the client will always send the current position.
+		if (this.#currentDirection == "paused") {
+			if (desiredPosition.x != this.#currentPosition.x || desiredPosition.y != this.#currentPosition.y) {
+				return "valid-direction";
+			}
 		}
 
 		// Make sure the client isn't trying to move further back than the last location where it changed direction.
-		if (this.#currentDirection == "paused") {
-			// If the player is currently paused, the client will basically always send the current position,
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x > this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x < this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y > this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y < this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
-		} else {
-			// but if the player is moving, we won't allow the client to send something equal to the lastCertainClientPosition.
-			// Otherwise we would allow players to go so far back that it never made a move in the first place.
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
+		// We won't allow the client to send something equal to the lastCertainClientPosition,
+		// otherwise we would allow players to go so far back that it never made a move in the first place.
+		if (
+			(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
+			(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
+		) {
+			return "valid-direction";
 		}
 
 		// Make sure players don't move back too far
