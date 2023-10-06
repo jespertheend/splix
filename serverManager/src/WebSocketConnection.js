@@ -46,7 +46,7 @@ export class WebSocketConnection {
 	}
 
 	getResponseHandlers() {
-		return {
+		const handlers = {
 			/**
 			 * @param {string} token
 			 */
@@ -62,14 +62,12 @@ export class WebSocketConnection {
 				return true;
 			},
 			createGameServer: () => {
-				this.#assertAuthenticated();
 				this.#mainInstance.servermanager.createGameServer();
 			},
 			/**
 			 * @param {number} id
 			 */
 			requestDeleteGameServer: (id) => {
-				this.#assertAuthenticated();
 				this.#mainInstance.servermanager.deleteGameServer(id);
 			},
 			/**
@@ -80,6 +78,21 @@ export class WebSocketConnection {
 				this.#mainInstance.servermanager.setGameServerConfig(id, config);
 			},
 		};
+
+		// Add an assertion that the client is authenticated for all handlers except 'authenticate'.
+		for (const name of Object.keys(handlers)) {
+			const castName = /** @type {keyof handlers} */ (name);
+			if (name == "authenticate") continue;
+
+			const originalHandler = /** @type {(...args: any[]) => any} */ (handlers[castName]);
+			const newHandler = /** @type {(...args: any[]) => any} */ ((...args) => {
+				this.#assertAuthenticated();
+				return originalHandler(...args);
+			});
+			handlers[castName] = newHandler;
+		}
+
+		return handlers;
 	}
 
 	sendAllServerConfigs() {
@@ -93,6 +106,7 @@ export class WebSocketConnection {
 	 * @param {import("./GameServer.js").GameServerConfig} config
 	 */
 	sendServerConfig(id, config) {
+		this.#assertAuthenticated();
 		this.#messenger.send.udpateServerConfig(id, config);
 	}
 }
