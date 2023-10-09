@@ -322,10 +322,10 @@ export class Player {
 			if (firstItem.direction != "paused") {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
-			this.game.broadcastPlayerState(this);
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
-			this.#currentPositionChanged();
+			this.game.broadcastPlayerState(this);
 			this.#updateCurrentTile();
+			this.#currentPositionChanged();
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -453,34 +453,29 @@ export class Player {
 
 		// We'll make sure the desiredPosition is aligned with the current direction of movement
 		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
-			if (desiredPosition.y != this.#currentPosition.y) return "invalid";
+			if (desiredPosition.y != this.#currentPosition.y) return "valid-direction";
 		}
 		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
-			if (desiredPosition.x != this.#currentPosition.x) return "invalid";
+			if (desiredPosition.x != this.#currentPosition.x) return "valid-direction";
+		}
+
+		// If the player is currently paused, the client will always send the current position.
+		if (this.#currentDirection == "paused") {
+			if (desiredPosition.x != this.#currentPosition.x || desiredPosition.y != this.#currentPosition.y) {
+				return "valid-direction";
+			}
 		}
 
 		// Make sure the client isn't trying to move further back than the last location where it changed direction.
-		if (this.#currentDirection == "paused") {
-			// If the player is currently paused, the client will basically always send the current position,
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x > this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x < this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y > this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y < this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
-		} else {
-			// but if the player is moving, we won't allow the client to send something equal to the lastCertainClientPosition.
-			// Otherwise we would allow players to go so far back that it never made a move in the first place.
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
+		// We won't allow the client to send something equal to the lastCertainClientPosition,
+		// otherwise we would allow players to go so far back that it never made a move in the first place.
+		if (
+			(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
+			(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
+		) {
+			return "valid-direction";
 		}
 
 		// Make sure players don't move back too far
@@ -550,7 +545,7 @@ export class Player {
 	loop(now, dt) {
 		if (this.currentDirection != "paused" && !this.dead) {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
-			while (this.#nextTileProgress > 1) {
+			if (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
 				if (this.currentDirection == "left") {
 					this.#currentPosition.x -= 1;
@@ -561,9 +556,9 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				this.#drainMovementQueue();
-				this.#currentPositionChanged();
 				this.#updateCurrentTile();
+				this.#currentPositionChanged();
+				this.#drainMovementQueue();
 			}
 		}
 
@@ -608,11 +603,9 @@ export class Player {
 			leftPlayers = new Set([...this.#inOtherPlayerViewports]);
 			for (const player of this.game.getOverlappingViewportPlayersForRect(this.getTrailBounds())) {
 				leftPlayers.delete(player);
-				this.#inOtherPlayerViewports.add(player);
 				player.#playerAddedToViewport(this);
 			}
 			for (const player of leftPlayers) {
-				this.#inOtherPlayerViewports.delete(player);
 				player.#playerRemovedFromViewport(this);
 			}
 		}
@@ -657,6 +650,7 @@ export class Player {
 	#playerAddedToViewport(player) {
 		if (this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.add(player);
+		player.#inOtherPlayerViewports.add(this);
 		player.sendPlayerStateToPlayer(this);
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
@@ -674,6 +668,7 @@ export class Player {
 		if (this.#removedFromGame) return;
 		if (!this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.delete(player);
+		player.#inOtherPlayerViewports.delete(this);
 		this.#connection.sendRemovePlayer(player.id);
 	}
 
