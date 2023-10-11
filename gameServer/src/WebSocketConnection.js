@@ -626,13 +626,13 @@ export class WebSocketConnection {
 	/**
 	 * @param {number} scoreTiles The amount of tiles the player had captured when they died.
 	 * @param {number} scoreKills The amount of kills the player had, including possibly killing themselve.
-	 * @param {number} scoreRank The rank when the player died.
+	 * @param {number} highestRank The highest rank that was ever reached during this game.
 	 * @param {number} timeAliveSeconds How many seconds the player was alive.
 	 * @param {number} rankingFirstSeconds How many seconds the player was ranked as number one.
 	 * @param {import("./gameplay/Player.js").DeathType} deathType
 	 * @param {string} killedByName The other player that killed this player, or an empty string if death type is not "player".
 	 */
-	sendGameOver(scoreTiles, scoreKills, scoreRank, timeAliveSeconds, rankingFirstSeconds, deathType, killedByName) {
+	sendGameOver(scoreTiles, scoreKills, highestRank, timeAliveSeconds, rankingFirstSeconds, deathType, killedByName) {
 		const buffer = new ArrayBuffer(18);
 		const view = new DataView(buffer);
 		let cursor = 0;
@@ -646,7 +646,7 @@ export class WebSocketConnection {
 		view.setUint16(cursor, scoreKills, false);
 		cursor += 2;
 
-		view.setUint16(cursor, scoreRank, false);
+		view.setUint16(cursor, highestRank, false);
 		cursor += 2;
 
 		view.setUint32(cursor, timeAliveSeconds, false);

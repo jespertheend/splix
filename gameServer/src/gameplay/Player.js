@@ -133,6 +133,7 @@ export class Player {
 	#capturedTileCount = 0;
 	#killCount = 0;
 	#rank;
+	#highestRank;
 	#joinTime;
 	#isCurrentlyRankingFirst = false;
 	#rankingFirstStartTime = 0;
@@ -227,6 +228,7 @@ export class Player {
 
 		// We add one because at this point the current player hasn't been added to the game yet.
 		this.#rank = game.getPlayerCount() + 1;
+		this.#highestRank = this.#rank;
 		this.#sendMyRank();
 	}
 
@@ -799,7 +801,7 @@ export class Player {
 		this.connection.sendGameOver(
 			this.#capturedTileCount,
 			this.#killCount,
-			this.#rank,
+			this.#highestRank,
 			timeAliveSeconds,
 			rankingFirstSeconds,
 			this.#lastDeathState.type,
@@ -930,6 +932,7 @@ export class Player {
 	 */
 	setRank(rank) {
 		this.#rank = rank;
+		this.#highestRank = Math.min(this.#highestRank, rank);
 		this.#sendMyRank();
 
 		const isRankingFirst = this.#rank == 1;
