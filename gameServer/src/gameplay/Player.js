@@ -781,7 +781,7 @@ export class Player {
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
-		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
+		this.connection.sendGameOver(this.#capturedTileCount, this.#killCount, 0, 0, 0, this.#lastDeathState.type, "");
 	}
 
 	/**
