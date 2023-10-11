@@ -324,7 +324,7 @@ export class Player {
 			}
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
 			this.game.broadcastPlayerState(this);
-			this.#updateCurrentTile();
+			this.#updateCurrentTile(this.#currentPosition);
 			this.#currentPositionChanged();
 		}
 
@@ -547,6 +547,8 @@ export class Player {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
 			if (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
+
+				const previousPosition = this.#currentPosition.clone();
 				if (this.currentDirection == "left") {
 					this.#currentPosition.x -= 1;
 				} else if (this.currentDirection == "right") {
@@ -556,7 +558,8 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				this.#updateCurrentTile();
+				
+				this.#updateCurrentTile(previousPosition);
 				this.#currentPositionChanged();
 				this.#drainMovementQueue();
 			}
@@ -859,8 +862,9 @@ export class Player {
 	 * Checks if the type of the tile the player is currently on has changed.
 	 * This can happen either because the player moved to a new coordinate,
 	 * or because the current tile type got changed to that of another player.
+	 * @param {Vec2} previousPosition Used for the final vertex of a trail.
 	 */
-	#updateCurrentTile() {
+	#updateCurrentTile(previousPosition) {
 		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
 		if (this.#currentTileType != tileValue) {
 			// When the player moves out of their captured area, we will start a new trail.
@@ -873,7 +877,7 @@ export class Player {
 			// When the player comes back into their captured area, we add a final vertex to the trail,
 			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.isGeneratingTrail) {
-				this.#addTrailVertex(this.#currentPosition);
+				this.#addTrailVertex(previousPosition);
 				if (this.#allMyTilesCleared) {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
