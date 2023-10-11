@@ -132,11 +132,18 @@ export class Player {
 
 	#capturedTileCount = 0;
 	#killCount = 0;
+	#rank;
+	#highestRank;
+	#joinTime;
+	#isCurrentlyRankingFirst = false;
+	#rankingFirstStartTime = 0;
+	#rankingFirstSeconds = 0;
 
 	/**
 	 * @typedef DeathState
 	 * @property {number} dieTime
 	 * @property {DeathType} type
+	 * @property {string} killerName
 	 */
 
 	/** @type {DeathState?} */
@@ -217,6 +224,13 @@ export class Player {
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#capturedTileCount = capturedTileCount;
 		this.#sendMyScore();
+
+		this.#joinTime = performance.now();
+
+		// We add one because at this point the current player hasn't been added to the game yet.
+		this.#rank = game.getPlayerCount() + 1;
+		this.#highestRank = this.#rank;
+		this.#sendMyRank();
 	}
 
 	get id() {
@@ -749,7 +763,7 @@ export class Player {
 			type: "kill-player",
 			playerId: otherPlayer.id,
 		});
-		otherPlayer.#die(deathType);
+		otherPlayer.#die(deathType, this.name);
 		this.#killCount++;
 		this.#sendMyScore();
 		return true;
@@ -761,12 +775,14 @@ export class Player {
 	 * they moved away just in time before hitting them.
 	 *
 	 * @param {DeathType} deathType
+	 * @param {string} killerName
 	 */
-	#die(deathType) {
+	#die(deathType, killerName) {
 		if (this.#lastDeathState) return;
 		this.#lastDeathState = {
 			dieTime: performance.now(),
 			type: deathType,
+			killerName,
 		};
 		this.game.broadcastPlayerDeath(this);
 	}
@@ -784,7 +800,19 @@ export class Player {
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
-		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
+		const timeAliveMs = performance.now() - this.#joinTime;
+		const timeAliveSeconds = Math.round(timeAliveMs / 1000);
+		this.#incrementRankingFirstSeconds();
+		const rankingFirstSeconds = Math.round(this.#rankingFirstSeconds / 1000);
+		this.connection.sendGameOver(
+			this.#capturedTileCount,
+			this.#killCount,
+			this.#highestRank,
+			timeAliveSeconds,
+			rankingFirstSeconds,
+			this.#lastDeathState.type,
+			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
+		);
 	}
 
 	/**
@@ -904,6 +932,36 @@ export class Player {
 
 	#sendMyScore() {
 		this.#connection.sendMyScore(this.#capturedTileCount, this.#killCount);
+	}
+
+	/**
+	 * @param {number} rank
+	 */
+	setRank(rank) {
+		this.#rank = rank;
+		this.#highestRank = Math.min(this.#highestRank, rank);
+		this.#sendMyRank();
+
+		const isRankingFirst = this.#rank == 1;
+		if (isRankingFirst != this.#isCurrentlyRankingFirst) {
+			this.#isCurrentlyRankingFirst = isRankingFirst;
+			if (isRankingFirst) {
+				this.#rankingFirstStartTime = performance.now();
+			} else {
+				this.#incrementRankingFirstSeconds();
+			}
+		}
+	}
+
+	#incrementRankingFirstSeconds() {
+		if (this.#rankingFirstStartTime <= 0) return;
+		const duration = performance.now() - this.#rankingFirstStartTime;
+		this.#rankingFirstSeconds += duration;
+		this.#rankingFirstStartTime = 0;
+	}
+
+	#sendMyRank() {
+		this.#connection.sendMyRank(this.#rank);
 	}
 
 	getTotalScore() {
