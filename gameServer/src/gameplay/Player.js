@@ -134,6 +134,9 @@ export class Player {
 	#killCount = 0;
 	#rank;
 	#joinTime;
+	#isCurrentlyRankingFirst = false;
+	#rankingFirstStartTime = 0;
+	#rankingFirstSeconds = 0;
 
 	/**
 	 * @typedef DeathState
@@ -791,12 +794,14 @@ export class Player {
 		}
 		const timeAliveMs = performance.now() - this.#joinTime;
 		const timeAliveSeconds = Math.round(timeAliveMs / 1000);
+		this.#incrementRankingFirstSeconds();
+		const rankingFirstSeconds = Math.round(this.#rankingFirstSeconds / 1000);
 		this.connection.sendGameOver(
 			this.#capturedTileCount,
 			this.#killCount,
 			this.#rank,
 			timeAliveSeconds,
-			0,
+			rankingFirstSeconds,
 			this.#lastDeathState.type,
 			"",
 		);
@@ -926,6 +931,23 @@ export class Player {
 	setRank(rank) {
 		this.#rank = rank;
 		this.#sendMyRank();
+
+		const isRankingFirst = this.#rank == 1;
+		if (isRankingFirst != this.#isCurrentlyRankingFirst) {
+			this.#isCurrentlyRankingFirst = isRankingFirst;
+			if (isRankingFirst) {
+				this.#rankingFirstStartTime = performance.now();
+			} else {
+				this.#incrementRankingFirstSeconds();
+			}
+		}
+	}
+
+	#incrementRankingFirstSeconds() {
+		if (this.#rankingFirstStartTime <= 0) return;
+		const duration = performance.now() - this.#rankingFirstStartTime;
+		this.#rankingFirstSeconds += duration;
+		this.#rankingFirstStartTime = 0;
 	}
 
 	#sendMyRank() {
