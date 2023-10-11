@@ -693,6 +693,23 @@ export class WebSocketConnection {
 	}
 
 	/**
+	 * @param {number} rank
+	 */
+	sendMyRank(rank) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.MY_RANK);
+		cursor++;
+
+		view.setUint16(cursor, rank, false);
+		cursor += 2;
+
+		this.send(buffer);
+	}
+
+	/**
 	 * @param {[name: string, score: number][]} scores
 	 * @param {number} totalPlayers
 	 */

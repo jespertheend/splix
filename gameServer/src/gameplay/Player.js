@@ -132,6 +132,7 @@ export class Player {
 
 	#capturedTileCount = 0;
 	#killCount = 0;
+	#rank;
 
 	/**
 	 * @typedef DeathState
@@ -217,6 +218,10 @@ export class Player {
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#capturedTileCount = capturedTileCount;
 		this.#sendMyScore();
+
+		// We add one because at this point the current player hasn't been added to the game yet.
+		this.#rank = game.getPlayerCount() + 1;
+		this.#sendMyRank();
 	}
 
 	get id() {
@@ -781,7 +786,15 @@ export class Player {
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
-		this.connection.sendGameOver(this.#capturedTileCount, this.#killCount, 0, 0, 0, this.#lastDeathState.type, "");
+		this.connection.sendGameOver(
+			this.#capturedTileCount,
+			this.#killCount,
+			this.#rank,
+			0,
+			0,
+			this.#lastDeathState.type,
+			"",
+		);
 	}
 
 	/**
@@ -900,6 +913,18 @@ export class Player {
 
 	#sendMyScore() {
 		this.#connection.sendMyScore(this.#capturedTileCount, this.#killCount);
+	}
+
+	/**
+	 * @param {number} rank
+	 */
+	setRank(rank) {
+		this.#rank = rank;
+		this.#sendMyRank();
+	}
+
+	#sendMyRank() {
+		this.#connection.sendMyRank(this.#rank);
 	}
 
 	getTotalScore() {
