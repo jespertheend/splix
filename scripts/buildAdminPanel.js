@@ -63,7 +63,7 @@ for await (const entry of Deno.readDir(distDir)) {
 	}
 }
 
-const tarDestination = resolve("./out/dist.tar");
+const tarDestination = resolve("./out/adminPanel.tar");
 const writer = await Deno.open(tarDestination, { write: true, create: true });
 await streams.copy(tar.getReader(), writer);
 writer.close();
