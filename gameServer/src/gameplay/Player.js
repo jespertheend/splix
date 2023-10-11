@@ -558,7 +558,7 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				
+
 				this.#updateCurrentTile(previousPosition);
 				this.#currentPositionChanged();
 				this.#drainMovementQueue();
@@ -862,7 +862,7 @@ export class Player {
 	 * Checks if the type of the tile the player is currently on has changed.
 	 * This can happen either because the player moved to a new coordinate,
 	 * or because the current tile type got changed to that of another player.
-	 * @param {Vec2} previousPosition Used for the final vertex of a trail.
+	 * @param {Vec2} previousPosition Used for the final vertex when a trail ends.
 	 */
 	#updateCurrentTile(previousPosition) {
 		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
