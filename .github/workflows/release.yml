@@ -44,4 +44,4 @@ jobs:
           files: |
             gameServer/out/*
             serverManager/out/*
-            adminPanel/out/dist.tar
+            adminPanel/out/adminPanel.tar
