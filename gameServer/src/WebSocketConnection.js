@@ -633,8 +633,13 @@ export class WebSocketConnection {
 	 * @param {string} killedByName The other player that killed this player, or an empty string if death type is not "player".
 	 */
 	sendGameOver(scoreTiles, scoreKills, highestRank, timeAliveSeconds, rankingFirstSeconds, deathType, killedByName) {
-		const buffer = new ArrayBuffer(18);
+		const encoder = new TextEncoder();
+		const killedByNameBytes = encoder.encode(killedByName);
+
+		const buffer = new ArrayBuffer(18 + killedByNameBytes.byteLength);
 		const view = new DataView(buffer);
+		const intView = new Uint8Array(buffer);
+
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.GAME_OVER);
@@ -666,7 +671,8 @@ export class WebSocketConnection {
 		view.setUint8(cursor, deathTypeInt);
 		cursor++;
 
-		// TODO: Append killedByName to message
+		intView.set(killedByNameBytes, cursor);
+		cursor += killedByNameBytes.byteLength;
 
 		this.send(buffer);
 	}

@@ -143,6 +143,7 @@ export class Player {
 	 * @typedef DeathState
 	 * @property {number} dieTime
 	 * @property {DeathType} type
+	 * @property {string} killerName
 	 */
 
 	/** @type {DeathState?} */
@@ -759,7 +760,7 @@ export class Player {
 			type: "kill-player",
 			playerId: otherPlayer.id,
 		});
-		otherPlayer.#die(deathType);
+		otherPlayer.#die(deathType, this.name);
 		this.#killCount++;
 		this.#sendMyScore();
 		return true;
@@ -771,12 +772,14 @@ export class Player {
 	 * they moved away just in time before hitting them.
 	 *
 	 * @param {DeathType} deathType
+	 * @param {string} killerName
 	 */
-	#die(deathType) {
+	#die(deathType, killerName) {
 		if (this.#lastDeathState) return;
 		this.#lastDeathState = {
 			dieTime: performance.now(),
 			type: deathType,
+			killerName,
 		};
 		this.game.broadcastPlayerDeath(this);
 	}
@@ -805,7 +808,7 @@ export class Player {
 			timeAliveSeconds,
 			rankingFirstSeconds,
 			this.#lastDeathState.type,
-			"",
+			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
 		);
 	}
 
