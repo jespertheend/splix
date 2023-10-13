@@ -641,6 +641,7 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
+				if (player.dead) continue;
 
 				if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 					const success = this.#killPlayer(player, killedSelf ? "self" : "player");
