@@ -235,16 +235,6 @@ body{
 	z-index: 20;
 }
 
-#promobox{
-	top: 410px;
-}
-
-#promoboxFrame{
-	margin: 20px 0px;
-	overflow: hidden;
-	border: none;
-}
-
 .sideboxContent{
 	overflow-y: scroll;
 	max-height: 360px;
@@ -537,7 +527,7 @@ a:hover{
 }
 
 @media (max-width: 950px){
-	#adbox, #newsbox, #mopebox, #promobox{
+	#adbox, #newsbox {
 		display: none;
 	}
 }

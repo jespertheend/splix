@@ -588,29 +588,6 @@ function getServers() {
 			teamDoConnectAfterServersGet = false;
 			teamDoConnect();
 		}
-
-		//promo box
-		var promoUrl = randFromArray(serversJson.mobileAdData.promoBannerUrls);
-		if (window.location.hash.startsWith("#forcepromo=")) {
-			promoUrl = window.location.hash.substr(12);
-		}
-		if (promoUrl.indexOf("http://") == -1 && promoUrl.indexOf("https://") == -1) {
-			promoUrl = "https://splix.io/banners/" + promoUrl + "/index.html";
-		}
-		if ((testPatreonAdsAllowed() || serversJson.mobileAdData.showPromoForPatreonUsers) && promoUrl) {
-			var frame = document.getElementById("promoboxFrame");
-			frame.onload = function () {
-				window.addEventListener("message", function (message) {
-					if (message.data.promoHeight) {
-						console.log("get promoHeight", message.data.promoHeight);
-						document.getElementById("promobox").style.opacity = 1;
-						frame.height = Math.min(300, message.data.promoHeight);
-					}
-				});
-				frame.contentWindow.postMessage("requestHeight", "*");
-			};
-			frame.src = promoUrl;
-		}
 	});
 }
 
