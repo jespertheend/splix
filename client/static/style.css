@@ -85,7 +85,7 @@ body{
 
 #gamemodeSelect{
 	width: 160px;
-	background: #3bad48 url("/img/arrowD.svg") no-repeat right center;
+	background: #3bad48 url("./img/arrowD.svg") no-repeat right center;
 	color: white;
 	background-size: 30px;
 }
@@ -452,7 +452,7 @@ a:hover{
 
 .skinButtonRight{
 	right: 5px;
-	background-image: url("/img/arrowR.svg");
+	background-image: url("./img/arrowR.svg");
 }
 
 .skinButtonRight:active{
