@@ -155,7 +155,6 @@ var miniMapPlayer,
 	beginScreen,
 	notificationElem,
 	formElem,
-	appLinksElem,
 	nameInput,
 	lastNameValue = "",
 	lastTeamNameValue = "",
@@ -171,13 +170,11 @@ var transitionCanvas,
 	transitionText = "GAME OVER";
 var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = null, transitionReverseOnHalf = false;
 var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
-var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow, shareToUnlock;
-var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks, shareTw, shareFb;
+var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
+var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
 var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
-var socialOpacity = 0, socialOTarget = 0, socialElem;
-var socialIsReady = false, socialHovering = false;
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
 var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
 var servers = [], serversRequestDone = false, doConnectAfterServersGet = false;
@@ -1463,8 +1460,6 @@ window.onload = function () {
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
 	prerollElem = document.getElementById("preroll");
-	appLinksElem = document.getElementById("appLinks");
-	appLinksElem.style.opacity = 0;
 
 	nameInput = document.getElementById("nameInput");
 	if (localStorage.name) {
@@ -1589,16 +1584,6 @@ window.onload = function () {
 		// });
 		// googletag.cmd.push(function() { googletag.display('gpt-banner-1'); });
 	}
-
-	socialElem = document.getElementById("social");
-	socialElem.addEventListener("mouseenter", function () {
-		socialHovering = true;
-		testSocialTarget();
-	});
-	socialElem.addEventListener("mouseleave", function () {
-		socialHovering = false;
-		testSocialTarget();
-	});
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
@@ -2213,14 +2198,12 @@ function onMessage(evt) {
 			// resetAll();
 			if (skipDeathTransition) {
 				doTransition("", false, function () {
-					window.setTimeout(afterDeath, 700);
 					onClose();
 					resetAll();
 				});
 			} else {
 				// console.log("before doTransition",isTransitioning);
 				doTransition("GAME OVER", true, null, function () {
-					window.setTimeout(afterDeath, 250);
 					onClose();
 					resetAll();
 				}, true);
@@ -2434,25 +2417,6 @@ function initTutorial() {
 function initSkinScreen() {
 	skinButtonCanvas = document.getElementById("skinButton");
 	skinButtonShadow = document.getElementById("skinButtonShadow");
-	shareTw = document.getElementById("shareTw");
-	shareFb = document.getElementById("shareFb");
-	shareTw.onclick = function () {
-		popUp(
-			"https://twitter.com/intent/tweet?text=Check%20out%20this%20game%20I%27ve%20just%20found&amp;url=http://splix.io&amp;hashtags=splixio&amp;related=splixio%3AOfficial%20Twitter%20account,jespertheend%3ADeveloper,",
-			500,
-			300,
-		);
-		share();
-	};
-	shareFb.onclick = function () {
-		popUp(
-			"https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.facebook.com%2Fsplix.io%2F&display=popup&ref=plugin&src=like&app_id=840486436000126",
-			500,
-			300,
-		);
-		share();
-	};
-	shareToUnlock = document.getElementById("shareToUnlock");
 	skinButtonCtx = skinButtonCanvas.getContext("2d");
 	skinButtonCanvas.onclick = function () {
 		if (!ws && !isTransitioning && !playingAndReady) {
@@ -2511,7 +2475,6 @@ function initSkinScreen() {
 		}
 		skinButtonBlocks[0].setBlockId(parseInt(currentColor) + 1, false);
 	};
-	checkShared();
 }
 
 //initiate title players
@@ -3133,7 +3096,6 @@ function onAdLoaded(evt) {
 	prerollIsVisible = true;
 	// ga("send","event","ads","ad_loaded");
 	// _paq.push(['trackEvent', 'Ads', 'ad_loaded']);
-	document.getElementById("shareText").className = shareToUnlock.className = appLinksElem.className = "adRunning";
 	hideBanners();
 	destroyBanners();
 	// prerollElem.style.opacity = 100;
@@ -3163,7 +3125,6 @@ function onAdFinish() {
 	lsSet("lastAdTime", Date.now());
 	formElem.style.display = null;
 	prerollElem.style.display = "none";
-	document.getElementById("shareText").className = shareToUnlock.className = null;
 	isConnectingWithTransition = false;
 	isWaitingForAd = false;
 	connectWithTransition(true);
@@ -3393,243 +3354,6 @@ function showCursor() {
 	document.body.style.cursor = null;
 }
 
-//enables the social box and load social widgets
-var afterDeathCounter = 0;
-function afterDeath() {
-	afterDeathCounter++;
-	switch (afterDeathCounter) {
-		case 1:
-			//twitter
-			window.twttr = function (d, s, id) {
-				var js, fjs = d.getElementsByTagName(s)[0], t = window.twttr || {};
-				if (d.getElementById(id)) return t;
-				js = d.createElement(s);
-				js.id = id;
-				js.src = "https://platform.twitter.com/widgets.js";
-				fjs.parentNode.insertBefore(js, fjs);
-				t._e = [];
-				t.ready = function (f) {
-					t._e.push(f);
-				};
-				return t;
-			}(document, "script", "twitter-wjs");
-			twttr.ready(function (twttr) {
-				twttr.events.bind("rendered", function () {
-					twttrIsInit = true;
-					testSocialReady();
-				});
-				twttr.events.bind("tweet", function () {
-					share();
-				});
-			});
-
-			//facebook
-			window.fbAsyncInit = function () {
-				FB.Event.subscribe("xfbml.render", function () {
-					fbIsInit = true;
-					testSocialReady();
-				});
-				FB.init({
-					appId: "1812921762327343",
-					autoLogAppEvents: true,
-					xfbml: true,
-					version: "v3.1",
-				});
-				// FB.Event.subscribe(
-				// 	'ad.loaded',
-				// 	function(placementId) {
-				// 		console.log('Audience Network ad loaded');
-				// 	}
-				// );
-				// FB.Event.subscribe(
-				// 	'ad.error',
-				// 	function(errorCode, errorMessage) {
-				// 		console.log('Audience Network error (' + errorCode + ') ' + errorMessage);
-				// 	}
-				// );
-			};
-
-			(function (d, s, id) {
-				var js, fjs = d.getElementsByTagName(s)[0];
-				if (d.getElementById(id)) return;
-				js = d.createElement(s);
-				js.id = id;
-				js.src = "https://connect.facebook.net/en_US/sdk.js";
-				fjs.parentNode.insertBefore(js, fjs);
-			})(document, "script", "facebook-jssdk");
-
-			var head = document.getElementsByTagName("head")[0];
-
-			//youtube
-			var s2 = document.createElement("script");
-			s2.type = "text/javascript";
-			s2.src = "https://apis.google.com/js/platform.js";
-			s2.onload = function () {
-				ytIsInit = true;
-			};
-			head.appendChild(s2);
-
-			//discord
-			var discordImg = document.createElement("img");
-			discordImg.id = "discord";
-			discordImg.className = "socialHover";
-			discordImg.draggable = false;
-			discordImg.title = "splix.io discord group";
-			discordImg.onload = function () {
-				discordIsInit = true;
-				testSocialReady();
-			};
-			discordImg.src = "/img/discord.svg";
-			document.getElementById("discordA").appendChild(discordImg);
-
-			//reddit
-			var redditImg = document.createElement("img");
-			redditImg.id = "reddit";
-			redditImg.className = "socialHover";
-			redditImg.draggable = false;
-			redditImg.title = "splix.io on reddit";
-			redditImg.onload = function () {
-				redditIsInit = true;
-				testSocialReady();
-			};
-			redditImg.src = "/img/reddit.svg";
-			document.getElementById("redditA").appendChild(redditImg);
-
-			//patreon cornerbutton
-			var patreonButton = document.createElement("img");
-			patreonButton.id = "patreonCornerButton";
-			patreonButton.className = "socialHover";
-			patreonButton.draggable = false;
-			patreonButton.title = "Become a patreon of splix.io";
-			patreonButton.onload = function () {
-				patreonCornerButtonIsInit = true;
-				testSocialReady();
-			};
-			patreonButton.src = "/img/patreon.png";
-			var patreonA = document.getElementById("patreonA");
-			patreonA.appendChild(patreonButton);
-			patreonA.appendChild(document.createElement("br"));
-
-			//appLinks
-			var androidAppStoreImg = document.createElement("img");
-			androidAppStoreImg.alt = "Get it on Google Play";
-			androidAppStoreImg.style.width = "250px";
-			androidAppStoreImg.style.display = "block";
-			androidAppStoreImg.onload = function () {
-				androidImgIsInit = true;
-				testAppLinksReady();
-			};
-			androidAppStoreImg.src =
-				"https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png";
-
-			var androidAppStoreA = document.createElement("a");
-			androidAppStoreA.href = "https://play.google.com/store/apps/details?id=com.Jespertheend.splix";
-			androidAppStoreA.target = "_blank";
-			androidAppStoreA.appendChild(androidAppStoreImg);
-			appLinksElem.appendChild(androidAppStoreA);
-
-			var appleAppStoreImg = document.createElement("img");
-			appleAppStoreImg.alt = "Download on the App Store";
-			appleAppStoreImg.style.width = "220px";
-			appleAppStoreImg.style.marginBottom = "15px";
-			appleAppStoreImg.onload = function () {
-				appleImgIsInit = true;
-				testAppLinksReady();
-			};
-			appleAppStoreImg.src = "https://linkmaker.itunes.apple.com/images/badges/en-us/badge_appstore-lrg.svg";
-
-			var appleAppStoreA = document.createElement("a");
-			appleAppStoreA.href = "https://itunes.apple.com/app/id1150901618";
-			appleAppStoreA.target = "_blank";
-			appleAppStoreA.appendChild(appleAppStoreImg);
-			appLinksElem.appendChild(appleAppStoreA);
-
-			//break out of iframe
-			var bannedDomains = "splixio.org;splix-io.net;splixio.net;splixio.org".split(";");
-			if (this.top.location !== this.location) {
-				for (var i = 0; i < bannedDomains.length; i++) {
-					var domain = bannedDomains[i];
-					if (document.referrer.indexOf(domain) != -1) {
-						this.top.location = this.location;
-					}
-				}
-			}
-
-			//adsoptimal.com
-			// (function() {
-			// 	var d=document,h=d.getElementsByTagName('head')[0],j=d.createElement('script'),k=d.createElement('script');
-			// 	j.setAttribute('src','//cdn.adsoptimal.com/advertisement/settings/36121.js');
-			// 	k.setAttribute('src','//cdn.adsoptimal.com/advertisement/manual.js');
-			// 	h.appendChild(j); h.appendChild(k);
-			// })();
-			// document.getElementById("adsoptimalBanner1").style.display = null;
-
-			requestCanRunAds();
-
-			//ads
-			// if(window.location.href.endsWith("videoAdPreview")){
-			// 	initAds();
-			// }
-
-			initVideoAdsScript();
-			break;
-			// case 10:
-			// 	if(this.top.location !== this.location){
-			// 		this.top.location = this.location;
-			// 	}
-			// 	break;
-	}
-}
-
-var doneAppLinksReady = false;
-var animateAppLinks = false;
-var appLinksTimer = -3;
-var androidImgIsInit = false;
-var appleImgIsInit = false;
-function testAppLinksReady() {
-	if (androidImgIsInit && appleImgIsInit && !doneAppLinksReady) {
-		doneAppLinksReady = true;
-		onAppLinksReady();
-	}
-}
-
-function onAppLinksReady() {
-	animateAppLinks = true;
-}
-
-var doneOnSocialReady = false;
-var twttrIsInit = false,
-	fbIsInit = false,
-	ytIsInit = false,
-	discordIsInit = false,
-	redditIsInit = false,
-	patreonCornerButtonIsInit = false;
-function testSocialReady() {
-	if (
-		twttrIsInit && fbIsInit && ytIsInit && discordIsInit && redditIsInit && patreonCornerButtonIsInit &&
-		!doneOnSocialReady
-	) {
-		doneOnSocialReady = true;
-		onSocialReady();
-	}
-}
-
-function onSocialReady() {
-	socialIsReady = true;
-	socialElem.style.display = null;
-	window.setTimeout(function () {
-		testSocialTarget();
-	}, 500);
-}
-
-function testSocialTarget() {
-	if (!socialIsReady) {
-		socialOTarget = 0;
-	} else {
-		socialOTarget = socialHovering ? 1 : 0.2;
-	}
-}
-
 function updateCmpPersistentLinkVisibility() {
 	const el = document.querySelector(".qc-cmp2-persistent-link");
 	if (el) {
@@ -3646,25 +3370,6 @@ function popUp(url, w, h) {
 		"toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=" +
 			w + ", height=" + h + ", top=" + top + ", left=" + left,
 	);
-}
-
-function share(timeout) {
-	if (timeout === undefined) {
-		timeout = 3000;
-	}
-	lsSet("s", 1);
-	window.setTimeout(function () {
-		checkShared();
-	}, timeout);
-}
-
-function checkShared() {
-	var s = !!localStorage.s;
-	var a = s ? null : "none";
-	var b = s ? "none" : null;
-	skinButtonCanvas.style.display = a;
-	skinButtonShadow.style.display = a;
-	shareToUnlock.style.display = b;
 }
 
 //sets the right color for UI
@@ -4998,7 +4703,6 @@ function doSkipDeathTransition() {
 			deathTransitionTimeout = null;
 			onClose();
 			doTransition("", false, function () {
-				window.setTimeout(afterDeath, 700);
 				resetAll();
 			});
 		}
@@ -6302,21 +6006,6 @@ function loop(timeStamp) {
 
 			drawBlocks(skinCtx, skinScreenBlocks);
 			skinCtx.restore();
-		}
-
-		if (beginScreenVisible) {
-			//social
-			socialOpacity = lerpt(socialOpacity, socialOTarget, 0.1);
-			socialElem.style.opacity = Math.min(1, socialOpacity);
-
-			//appLinks
-			if (animateAppLinks) {
-				appLinksTimer += deltaTime * 0.003;
-				appLinksElem.style.opacity = Math.min(1, Math.max(0, appLinksTimer));
-				if (appLinksTimer > 1) {
-					animateAppLinks = false;
-				}
-			}
 		}
 
 		//lastStats
