@@ -988,7 +988,7 @@ function getPlayer(id, array) {
 			this.honkMaxTime = time;
 			if (this.name.toLowerCase() == "joris") {
 				if (honkSfx == null) {
-					honkSfx = new Audio("/honk.mp3");
+					honkSfx = new Audio("./static/honk.mp3");
 				}
 				honkSfx.play();
 			}
