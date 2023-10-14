@@ -515,21 +515,28 @@ export class Player {
 	 * @param {Player} otherPlayer The player that the message will be sent to.
 	 */
 	skinColorIdForPlayer(otherPlayer) {
-		if (this.#skinColorId != otherPlayer.skinColorId || otherPlayer == this) {
+		if (this.#skinColorId != otherPlayer.#skinColorId || otherPlayer == this) {
 			return this.#skinColorId;
 		} else {
 			// At this point, the color of this player is the same as my color, we'll generate a random color (that is not mine)
 			// The color is not strictly random, but instead we use the id of the player as 'seed',
 			// that way the colorId stays consistent when this is called multiple times.
 
-			// This modulo operator maps 0 to 0, 1 to 1 etc. until (FREE_SKINS_COUNT - 1) is reached, which is mapped to 0 again.
-			let fakeSkinId = this.id % (FREE_SKINS_COUNT - 1);
-			// So now fakeSkinId could range anywhere from 0 to (FREE_SKINS_COUNT - 2).
+			// The amount of possible colors to choose from.
+			// If we are using a free skin then this one cannot be generated, subtract one to exclude it.
+			let possibleSkinsCount = FREE_SKINS_COUNT;
+			if (this.#skinColorId <= possibleSkinsCount) {
+				possibleSkinsCount--;
+			}
+
+			// This modulo operator maps 0 to 0, 1 to 1 etc. until possibleSkinsCount is reached, which is mapped to 0 again.
+			let fakeSkinId = this.id % possibleSkinsCount;
+			// So now fakeSkinId could range anywhere from 0 to (possibleSkinsCount - 1).
 
 			// But we want to exclude 0 from this range, since that colorId represents grey.
 			// We 'shift' the range to the right by incrementing it.
 			fakeSkinId++;
-			// Now fakeSkinId could range anywhere from 1 to (FREE_SKINS_COUNT - 1).
+			// Now fakeSkinId could range anywhere from 1 to possibleSkinsCount.
 
 			// But what we want is to generate any color except the one from the other player.
 			// Otherwise we still might end up displaying this player with the same color as that of the client we are sending it to.
@@ -537,7 +544,7 @@ export class Player {
 
 			// We 'cut' the range in half by shifting only one portion to the right.
 			// Only if the the current value is higher than or equal to the color of the other player, will we increment it.
-			if (fakeSkinId >= otherPlayer.skinColorId) {
+			if (fakeSkinId >= otherPlayer.#skinColorId) {
 				fakeSkinId++;
 			}
 			// Now fakeSkinId could range anywhere from 1 to (otherPlayer.skinId - 1)
