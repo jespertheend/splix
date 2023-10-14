@@ -641,16 +641,25 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
-				const success = this.#killPlayer(player, killedSelf ? "self" : "player");
-				if (success) {
-					this.game.broadcastHitLineAnimation(player, this);
+				if (player.dead) continue;
+
+				if (player.isGeneratingTrail || player.#currentDirection == "paused") {
+					const success = this.#killPlayer(player, killedSelf ? "self" : "player");
+					if (success) {
+						this.game.broadcastHitLineAnimation(player, this);
+					}
 				}
+
 				if (
 					!killedSelf &&
 					player.#currentPosition.x == this.#currentPosition.x &&
-					player.#currentPosition.y == this.#currentPosition.y
+					player.#currentPosition.y == this.#currentPosition.y &&
+					this.isGeneratingTrail && player.isGeneratingTrail
 				) {
-					player.#killPlayer(this, "player");
+					const success = player.#killPlayer(this, "player");
+					if (success) {
+						this.game.broadcastHitLineAnimation(this, player);
+					}
 				}
 			}
 		}
