@@ -81,7 +81,8 @@ if (!Deno.args.includes("--no-init")) {
 						<h1>Local Splix server</h1>
 						<p>Available endpoints:
 							<ul>
-								<li><a href="/client/">/client/</a> - Admin panel for server management.</li>
+								<li><a href="/client/">/client/</a> - The splix client.</li>
+								<li><a href="/client/flags.html">/client/flags.html</a> - Client flags for debugging etc.</li>
 								<li>/gameserver - The gameserver, <a href="/client/#ip=ws://localhost:8080/gameserver">click here to connect to it using a client</a></li>
 								<li><a href="/adminpanel/">/adminpanel/</a> - Admin panel for server management.</li>
 								<li>/servermanager/ - Hosts several endpoints for servermanagement.</li>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>splix.io - flags</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <link rel="canonical" href="http://splix.io/flags"/>
+    <style type="text/css">
+      html{
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .st{
+        font-size: 9pt;
+        color: #9c9c9c;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <label>Display ping
+    <input id="drawdebug" type="checkbox" /></label>
+    <div class="st">Displays a tiny red number in the bottom right corner while playing.<br>This is your ping (amount of ms delay with the server)<br>Anything below 100 should be good.</div>
+
+    <label>Dont cap fps
+    <input id="dontCapFps" type="checkbox" /></label>
+    <div class="st">To keep the frame rate stable, it is automatically locked to 144, 60, 30, 20 or 10 fps,<br>depending on how fast your computer is. If you check this box it doesn't lock the framerate.<br>This causes a higher framerate but it feels more like the game is stuttering.</div>
+
+    <label>Show actual player pos
+    <input id="drawActualPlayerPos" type="checkbox" /></label>
+    <div class="st">To make the game feel less laggy, the place where your player is drawn is not its actual position.<br>If you check this checkbox the game will draw a second dot on the position where the server thinks you actually are.</div>
+
+    <label>Draw a white dot on my player
+    <input id="drawWhiteDot" type="checkbox" /></label>
+    <div class="st">Useful for tracking the player position when making youtube videos.</div>
+
+    <label>Don't slow down the player with high ping
+    <input id="dontSlowPlayersDown" type="checkbox" /></label>
+    <div class="st">When you're running too far ahead according to the server, it starts<br>slowing you down to make up for it. This makes sure that your land<br>gets filled once you reach it, instead of a couple of blocks later.<br>The downside is that your player is slower compared to the other players.<br>To prevent this, check this box. But be warned: Your blocks will be filled<br>with a short delay and players are able to kill you in that short time.</div>
+
+    <label>Hide player names
+    <input id="hidePlayerNames" type="checkbox" /></label>
+    <div class="st">Hides the name above players.</div>
+
+    <label>Ugly mode
+    <input id="uglyMode" type="checkbox" /></label>
+    <div class="st">In case your fps is too low. Warning! Makes the game ugly. (This is subjective)</div>
+
+    <!-- <label>Enable experimental features (beta)
+    <input id="beta" type="checkbox" /></label>
+    <div class="st">Teams! Teams! Teams! Teams!</div> -->
+
+    <label>Simulate latency
+    <input id="latency" type="number" min="0" style="width: 50px;" /></label>
+    <div class="st">This increases the lag,<br>there's absolutely no reason why you would<br>want to enable this unless you're debugging stuff.<br>This is also makes things very unstable so you might want to avoid using it.<br>Set this to 0 to disable it.</div>
+
+    <label>Use adinplay banner ads
+    <input id="adinplayBanners" type="checkbox" /></label>
+
+    <script>
+      var ddEl = document.getElementById("drawdebug");
+      ddEl.addEventListener("change",function(){
+        localStorage.drawDebug = this.checked;
+      });
+      ddEl.checked = (localStorage.drawDebug == "true");
+
+      var dcfEl = document.getElementById("dontCapFps");
+      dcfEl.addEventListener("change",function(){
+        localStorage.dontCapFps = this.checked;
+      });
+      dcfEl.checked = (localStorage.dontCapFps == "true");
+
+      var sappEl = document.getElementById("drawActualPlayerPos");
+      sappEl.addEventListener("change",function(){
+        localStorage.drawActualPlayerPos = this.checked;
+      });
+      sappEl.checked = (localStorage.drawActualPlayerPos == "true");
+
+      var drawWhiteDotEl = document.getElementById("drawWhiteDot");
+      drawWhiteDotEl.addEventListener("change",function(){
+        localStorage.drawWhiteDot = this.checked;
+      });
+      drawWhiteDotEl.checked = (localStorage.drawWhiteDot == "true");
+
+      var dspdEl = document.getElementById("dontSlowPlayersDown");
+      dspdEl.addEventListener("change",function(){
+        localStorage.dontSlowPlayersDown = this.checked;
+      });
+      dspdEl.checked = (localStorage.dontSlowPlayersDown == "true");
+
+      var hpnEl = document.getElementById("hidePlayerNames");
+      hpnEl.addEventListener("change",function(){
+        localStorage.hidePlayerNames = this.checked;
+      });
+      hpnEl.checked = (localStorage.hidePlayerNames == "true");
+
+      var uglyEl = document.getElementById("uglyMode");
+      uglyEl.addEventListener("change",function(){
+        localStorage.uglyMode = this.checked;
+      });
+      uglyEl.checked = (localStorage.uglyMode == "true");
+
+      // var betaEl = document.getElementById("beta");
+      // betaEl.addEventListener("change",function(){
+      //   localStorage.beta = this.checked;
+      // });
+      // betaEl.checked = (localStorage.beta == "true");
+
+      var latencyEl = document.getElementById("latency");
+      latencyEl.addEventListener("change",function(){
+        localStorage.simulatedLatency = this.value;
+      });
+      latencyEl.value = localStorage.simulatedLatency === undefined ? 0 : localStorage.simulatedLatency;
+
+      var adinplayBannersEl = document.getElementById("adinplayBanners");
+      adinplayBannersEl.addEventListener("change",function(){
+        localStorage.bannerAdsUseCurse = !this.checked;
+      });
+      adinplayBannersEl.checked = (localStorage.bannerAdsUseCurse == "false");
+    </script>
+  </body>
+</html>
