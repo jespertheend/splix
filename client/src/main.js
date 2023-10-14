@@ -6411,7 +6411,7 @@ function htmlEscape(str) {
 }
 
 var swearArr = [];
-simpleRequest("swearList.txt", function (result) {
+simpleRequest("./static/swearList.txt", function (result) {
 	swearArr = result.split("\n").filter(function (n) {
 		return n;
 	});
