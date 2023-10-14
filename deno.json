@@ -5,6 +5,7 @@
 		"install-types": "deno run -A scripts/dev.js --no-init",
 		"check": "deno run --allow-env --allow-read npm:typescript@5.2.2/tsc --noEmit -p ./jsconfig.json",
 		"build-gameserver": "deno run -A scripts/buildGameServer.js",
+		"build-client": "deno run -A scripts/buildClient.js",
 		"build-servermanager": "deno run -A scripts/buildServerManager.js",
 		"build-adminpanel": "deno run -A scripts/buildAdminPanel.js",
 		"fmt": "deno fmt"

@@ -1,5 +1,6 @@
 deno.lock
 gameServer/out
+client/out
 serverManager/out
 .env
 deps
