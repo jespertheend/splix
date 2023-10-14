@@ -1,0 +1,45 @@
+{
+	"retentionSamples": [],
+	"teamServers": [],
+	"mobileAdData": {
+		"videoInterstitialRate": -1.0,
+		"limitFrequencySeconds": 300,
+		"disabledNetworks": "",
+		"promoBannerUrls": [
+			"ducklings",
+			"doubledodgers",
+			"eixoduro"
+		],
+		"doBanner": true,
+		"promoBannerUrl": "https://splix.io/banners/ducklings/index.html",
+		"showPromoForPatreonUsers": true
+	},
+	"locations": [
+		{
+			"pingIpv4": "p146-185-140-77.splix.io",
+			"loc": "ams",
+			"gamemodes": [
+				{
+					"gm": "default",
+					"versions": [
+						{
+							"lobbies": [
+								{
+									"securePort": 9050,
+									"ipv6": "2604:a880:400:d0::21a4:2001",
+									"port": 8050,
+									"hash": "fish",
+									"ipv4": "157.245.137.243"
+								}
+							],
+							"ver": 1
+						}
+					]
+				}
+			],
+			"locId": 3,
+			"pingIpv6": "p2a03-b0c0-0000-1010-0000-0000-08f0-9001.splix.io"
+		}
+	],
+	"requiredMobileVersion": 11
+}
