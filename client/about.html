@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>splix.io - about</title>
+    <link rel="icon" type="image/png" href="/img/favicon-196x196.png" sizes="196x196" />
+    <link rel="icon" type="image/png" href="/img/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/png" href="/img/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/img/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="/img/favicon-128.png" sizes="128x128" />
+    <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      body{
+        background-color: #3a342f;
+        font-family: Arial, Helvetica, sans-serif;
+        color: white;
+      }
+      #content{
+        max-width: 600px;
+        margin: auto;
+      }
+      #db{
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        pointer-events: none;
+        background-image: url(/img/db.svg);
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: none;
+      }
+      a{
+        color: white;
+      }
+    </style>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-36765112-8', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+    <div id="db"></div>
+    <div id="content">
+      <h2>What is splix.io?</h2>
+      <p><a href="http://splix.io">Splix.io</a> is an online multplayer game where you have to conquer as much land as possible and become the biggest of them all. You can move your player around using the arrow keys or wasd. If you're in your own area, you're safe, <span class="dbHover">but</span> once you leave your area you'll leave a trail behind, once anyone (including yourself) hits that trail, you die. When you get back to your area, the blocks that you have surrounded will be yours. <span class="dbHover">But</span> watch out, because anyone can steal back those blocks at any time. If you surround a couple of blocks while there is another player inside, the land won't get filled with your blocks.</p>
+      <p><a href="http://splix.io">Splix.io</a> was inspired by single player games such as <a href="http://www.freewebarcade.com/game/qix/" target="_blank">qix</a>, <a href="http://html5xonix.appspot.com/" target="_blank">xonix</a>, <a href="http://www.pacxon.net/" target="_blank">pac-xon</a> and whatever <a href="http://lioflash.com/view/89/marvin-the-martian-land-grab" target="_blank">this</a> is.</p>
+
+      <h2>Play with friends</h2>
+      <p>If you want to play on the same server as a friend, or you just really prefer one specific server, you can choose which server you want to join. Type the hash character (#) after the splix.io url, then press the join <span class="dbHover">butt</span>on. You will see the url change into a url with the name of an animal next to it. For example <a href="http://splix.io/#animal">splix.io/#animal</a>. Share this url with your friends, this will make sure they join the same server as the one you're on.</p>
+      <p>For a tutorial on how to do this, <a href="https://www.youtube.com/watch?v=_06iElis-uU" target="_blank">click here</a> to watch a video.</p>
+
+      <h2>What technology do you use?</h2>
+      <p>Server side I use C# with the <a href="https://github.com/statianzo/Fleck/" target="_blank">Fleck library</a>. I used to use python with <a href="http://www.tornadoweb.org/en/stable/" target="_blank">tornado</a>, <span class="dbHover">but</span> I upgraded to C# for better performance. Client side, is all javascript, websockets and the html5 canvas. Servers are hosted on <a href="https://m.do.co/c/feaae91f018d" target="_blank">digitalocean</a>.</p>
+
+      <h2>Special thanks</h2>
+      <p>I would like to thank <a href="https://twitter.com/jespertheend" target="_blank">my twitter followers</a>, <a href="https://www.digitalocean.com/" target="_blank">digitalocean</a>, <a href="https://www.reddit.com/r/playmygame" target="_blank">/r/playmygame</a>, <a href="https://www.reddit.com/r/webgames/" target="_blank">/r/WebGames</a> and <a href="http://iogames.space/" target="_blank">iogames.space</a> and Thomas.</p>
+
+      <p>Digital assets from the game can be downloaded here: <a href="splix_presskit.zip">presskit</a></p>
+    </div>
+    <script>
+      let dbEl = document.getElementById("db");
+      let els = document.getElementsByClassName("dbHover");
+      let frameCounter = 3;
+      let didShowDb = false;
+      for(let el of els){
+        el.addEventListener("mouseover", () => {
+          if(!didShowDb){
+            dbEl.style.display = "inherit";
+            didShowDb = true;
+            loop();
+          }
+        });
+      }
+
+      function loop(){
+        frameCounter--;
+        if(frameCounter == 0){
+          dbEl.style.display = null;
+        }
+        window.requestAnimationFrame(loop);
+      }
+    </script>
+  </body>
+</html>
