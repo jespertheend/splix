@@ -624,35 +624,40 @@ export class WebSocketConnection {
 	}
 
 	/**
-	 * @param {number} scoreBlocks
-	 * @param {number} scoreKills
-	 * @param {number} scoreRank
-	 * @param {number} timeAlive
-	 * @param {number} timeNo1
+	 * @param {number} scoreTiles The amount of tiles the player had captured when they died.
+	 * @param {number} scoreKills The amount of kills the player had, including possibly killing themselve.
+	 * @param {number} highestRank The highest rank that was ever reached during this game.
+	 * @param {number} timeAliveSeconds How many seconds the player was alive.
+	 * @param {number} rankingFirstSeconds How many seconds the player was ranked as number one.
 	 * @param {import("./gameplay/Player.js").DeathType} deathType
-	 * @param {string} killedByName
+	 * @param {string} killedByName The other player that killed this player, or an empty string if death type is not "player".
 	 */
-	sendGameOver(scoreBlocks, scoreKills, scoreRank, timeAlive, timeNo1, deathType, killedByName) {
-		const buffer = new ArrayBuffer(18);
+	sendGameOver(scoreTiles, scoreKills, highestRank, timeAliveSeconds, rankingFirstSeconds, deathType, killedByName) {
+		const encoder = new TextEncoder();
+		const killedByNameBytes = encoder.encode(killedByName);
+
+		const buffer = new ArrayBuffer(18 + killedByNameBytes.byteLength);
 		const view = new DataView(buffer);
+		const intView = new Uint8Array(buffer);
+
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.GAME_OVER);
 		cursor++;
 
-		view.setUint32(cursor, scoreBlocks, false);
+		view.setUint32(cursor, scoreTiles, false);
 		cursor += 4;
 
 		view.setUint16(cursor, scoreKills, false);
 		cursor += 2;
 
-		view.setUint16(cursor, scoreRank, false);
+		view.setUint16(cursor, highestRank, false);
 		cursor += 2;
 
-		view.setUint32(cursor, timeAlive, false);
+		view.setUint32(cursor, timeAliveSeconds, false);
 		cursor += 4;
 
-		view.setUint32(cursor, timeNo1, false);
+		view.setUint32(cursor, rankingFirstSeconds, false);
 		cursor += 4;
 
 		let deathTypeInt = 0;
@@ -666,7 +671,8 @@ export class WebSocketConnection {
 		view.setUint8(cursor, deathTypeInt);
 		cursor++;
 
-		// TODO: Append killedByName to message
+		intView.set(killedByNameBytes, cursor);
+		cursor += killedByNameBytes.byteLength;
 
 		this.send(buffer);
 	}
@@ -687,6 +693,23 @@ export class WebSocketConnection {
 		cursor += 4;
 
 		view.setUint16(cursor, kills, false);
+		cursor += 2;
+
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} rank
+	 */
+	sendMyRank(rank) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.MY_RANK);
+		cursor++;
+
+		view.setUint16(cursor, rank, false);
 		cursor += 2;
 
 		this.send(buffer);

@@ -24,6 +24,9 @@ jobs:
         with:
           deno-version: v1.37.0
 
+      - name: Install Dependencies
+        run: deno task install-deps
+
       - name: Build gameserver
         run: deno task build-gameserver --archive
 
@@ -44,5 +47,5 @@ jobs:
           files: |
             gameServer/out/*
             serverManager/out/*
-            adminPanel/out/dist.tar
-            client/out/dist.tar
+            adminPanel/out/adminPanel.tar
+            client/out/client.tar

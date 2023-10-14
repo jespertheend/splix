@@ -242,6 +242,12 @@ export class Game {
 
 		playerScores.sort((a, b) => b[1] - a[1]);
 
+		let i = 1;
+		for (const [player] of playerScores) {
+			player.setRank(i);
+			i++;
+		}
+
 		/** @type {[name: string, score: number][]} */
 		const scores = playerScores.slice(0, 10).map((scoreData) => {
 			const [player, score] = scoreData;
@@ -254,6 +260,10 @@ export class Game {
 		for (const player of this.#players.values()) {
 			player.connection.send(message);
 		}
+	}
+
+	getPlayerCount() {
+		return this.#players.size;
 	}
 
 	/**

@@ -132,11 +132,18 @@ export class Player {
 
 	#capturedTileCount = 0;
 	#killCount = 0;
+	#rank;
+	#highestRank;
+	#joinTime;
+	#isCurrentlyRankingFirst = false;
+	#rankingFirstStartTime = 0;
+	#rankingFirstSeconds = 0;
 
 	/**
 	 * @typedef DeathState
 	 * @property {number} dieTime
 	 * @property {DeathType} type
+	 * @property {string} killerName
 	 */
 
 	/** @type {DeathState?} */
@@ -217,6 +224,13 @@ export class Player {
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#capturedTileCount = capturedTileCount;
 		this.#sendMyScore();
+
+		this.#joinTime = performance.now();
+
+		// We add one because at this point the current player hasn't been added to the game yet.
+		this.#rank = game.getPlayerCount() + 1;
+		this.#highestRank = this.#rank;
+		this.#sendMyRank();
 	}
 
 	get id() {
@@ -322,10 +336,10 @@ export class Player {
 			if (firstItem.direction != "paused") {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
-			this.game.broadcastPlayerState(this);
 			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
+			this.game.broadcastPlayerState(this);
+			this.#updateCurrentTile(this.#currentPosition);
 			this.#currentPositionChanged();
-			this.#updateCurrentTile();
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -453,34 +467,29 @@ export class Player {
 
 		// We'll make sure the desiredPosition is aligned with the current direction of movement
 		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
-			if (desiredPosition.y != this.#currentPosition.y) return "invalid";
+			if (desiredPosition.y != this.#currentPosition.y) return "valid-direction";
 		}
 		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
-			if (desiredPosition.x != this.#currentPosition.x) return "invalid";
+			if (desiredPosition.x != this.#currentPosition.x) return "valid-direction";
+		}
+
+		// If the player is currently paused, the client will always send the current position.
+		if (this.#currentDirection == "paused") {
+			if (desiredPosition.x != this.#currentPosition.x || desiredPosition.y != this.#currentPosition.y) {
+				return "valid-direction";
+			}
 		}
 
 		// Make sure the client isn't trying to move further back than the last location where it changed direction.
-		if (this.#currentDirection == "paused") {
-			// If the player is currently paused, the client will basically always send the current position,
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x > this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x < this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y > this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y < this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
-		} else {
-			// but if the player is moving, we won't allow the client to send something equal to the lastCertainClientPosition.
-			// Otherwise we would allow players to go so far back that it never made a move in the first place.
-			if (
-				(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
-				(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
-				(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
-			) {
-				return "invalid";
-			}
+		// We won't allow the client to send something equal to the lastCertainClientPosition,
+		// otherwise we would allow players to go so far back that it never made a move in the first place.
+		if (
+			(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
+			(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
+		) {
+			return "valid-direction";
 		}
 
 		// Make sure players don't move back too far
@@ -550,8 +559,10 @@ export class Player {
 	loop(now, dt) {
 		if (this.currentDirection != "paused" && !this.dead) {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
-			while (this.#nextTileProgress > 1) {
+			if (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
+
+				const previousPosition = this.#currentPosition.clone();
 				if (this.currentDirection == "left") {
 					this.#currentPosition.x -= 1;
 				} else if (this.currentDirection == "right") {
@@ -561,9 +572,10 @@ export class Player {
 				} else if (this.currentDirection == "down") {
 					this.#currentPosition.y += 1;
 				}
-				this.#drainMovementQueue();
+
+				this.#updateCurrentTile(previousPosition);
 				this.#currentPositionChanged();
-				this.#updateCurrentTile();
+				this.#drainMovementQueue();
 			}
 		}
 
@@ -608,11 +620,9 @@ export class Player {
 			leftPlayers = new Set([...this.#inOtherPlayerViewports]);
 			for (const player of this.game.getOverlappingViewportPlayersForRect(this.getTrailBounds())) {
 				leftPlayers.delete(player);
-				this.#inOtherPlayerViewports.add(player);
 				player.#playerAddedToViewport(this);
 			}
 			for (const player of leftPlayers) {
-				this.#inOtherPlayerViewports.delete(player);
 				player.#playerRemovedFromViewport(this);
 			}
 		}
@@ -631,16 +641,25 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
-				const success = this.#killPlayer(player, killedSelf ? "self" : "player");
-				if (success) {
-					this.game.broadcastHitLineAnimation(player, this);
+				if (player.dead) continue;
+
+				if (player.isGeneratingTrail || player.#currentDirection == "paused") {
+					const success = this.#killPlayer(player, killedSelf ? "self" : "player");
+					if (success) {
+						this.game.broadcastHitLineAnimation(player, this);
+					}
 				}
+
 				if (
 					!killedSelf &&
 					player.#currentPosition.x == this.#currentPosition.x &&
-					player.#currentPosition.y == this.#currentPosition.y
+					player.#currentPosition.y == this.#currentPosition.y &&
+					this.isGeneratingTrail && player.isGeneratingTrail
 				) {
-					player.#killPlayer(this, "player");
+					const success = player.#killPlayer(this, "player");
+					if (success) {
+						this.game.broadcastHitLineAnimation(this, player);
+					}
 				}
 			}
 		}
@@ -657,6 +676,7 @@ export class Player {
 	#playerAddedToViewport(player) {
 		if (this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.add(player);
+		player.#inOtherPlayerViewports.add(this);
 		player.sendPlayerStateToPlayer(this);
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
@@ -674,6 +694,7 @@ export class Player {
 		if (this.#removedFromGame) return;
 		if (!this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.delete(player);
+		player.#inOtherPlayerViewports.delete(this);
 		this.#connection.sendRemovePlayer(player.id);
 	}
 
@@ -751,7 +772,7 @@ export class Player {
 			type: "kill-player",
 			playerId: otherPlayer.id,
 		});
-		otherPlayer.#die(deathType);
+		otherPlayer.#die(deathType, this.name);
 		this.#killCount++;
 		this.#sendMyScore();
 		return true;
@@ -763,12 +784,14 @@ export class Player {
 	 * they moved away just in time before hitting them.
 	 *
 	 * @param {DeathType} deathType
+	 * @param {string} killerName
 	 */
-	#die(deathType) {
+	#die(deathType, killerName) {
 		if (this.#lastDeathState) return;
 		this.#lastDeathState = {
 			dieTime: performance.now(),
 			type: deathType,
+			killerName,
 		};
 		this.game.broadcastPlayerDeath(this);
 	}
@@ -786,7 +809,19 @@ export class Player {
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
-		this.connection.sendGameOver(0, 0, 0, 0, 0, this.#lastDeathState.type, "");
+		const timeAliveMs = performance.now() - this.#joinTime;
+		const timeAliveSeconds = Math.round(timeAliveMs / 1000);
+		this.#incrementRankingFirstSeconds();
+		const rankingFirstSeconds = Math.round(this.#rankingFirstSeconds / 1000);
+		this.connection.sendGameOver(
+			this.#capturedTileCount,
+			this.#killCount,
+			this.#highestRank,
+			timeAliveSeconds,
+			rankingFirstSeconds,
+			this.#lastDeathState.type,
+			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
+		);
 	}
 
 	/**
@@ -864,8 +899,9 @@ export class Player {
 	 * Checks if the type of the tile the player is currently on has changed.
 	 * This can happen either because the player moved to a new coordinate,
 	 * or because the current tile type got changed to that of another player.
+	 * @param {Vec2} previousPosition Used for the final vertex when a trail ends.
 	 */
-	#updateCurrentTile() {
+	#updateCurrentTile(previousPosition) {
 		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
 		if (this.#currentTileType != tileValue) {
 			// When the player moves out of their captured area, we will start a new trail.
@@ -878,7 +914,7 @@ export class Player {
 			// When the player comes back into their captured area, we add a final vertex to the trail,
 			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.isGeneratingTrail) {
-				this.#addTrailVertex(this.#currentPosition);
+				this.#addTrailVertex(previousPosition);
 				if (this.#allMyTilesCleared) {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
@@ -905,6 +941,36 @@ export class Player {
 
 	#sendMyScore() {
 		this.#connection.sendMyScore(this.#capturedTileCount, this.#killCount);
+	}
+
+	/**
+	 * @param {number} rank
+	 */
+	setRank(rank) {
+		this.#rank = rank;
+		this.#highestRank = Math.min(this.#highestRank, rank);
+		this.#sendMyRank();
+
+		const isRankingFirst = this.#rank == 1;
+		if (isRankingFirst != this.#isCurrentlyRankingFirst) {
+			this.#isCurrentlyRankingFirst = isRankingFirst;
+			if (isRankingFirst) {
+				this.#rankingFirstStartTime = performance.now();
+			} else {
+				this.#incrementRankingFirstSeconds();
+			}
+		}
+	}
+
+	#incrementRankingFirstSeconds() {
+		if (this.#rankingFirstStartTime <= 0) return;
+		const duration = performance.now() - this.#rankingFirstStartTime;
+		this.#rankingFirstSeconds += duration;
+		this.#rankingFirstStartTime = 0;
+	}
+
+	#sendMyRank() {
+		this.#connection.sendMyRank(this.#rank);
 	}
 
 	getTotalScore() {

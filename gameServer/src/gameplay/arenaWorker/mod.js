@@ -52,6 +52,13 @@ const arenaWorkerHandlers = {
 	 */
 	fillPlayerTrail(vertices, playerId) {
 		const verticesVec2 = vertices.map((v) => new Vec2(v[0], v[1]));
+		if (verticesVec2.length === 1) {
+			const vertex = verticesVec2[0];
+			fillTilesRect({
+				min: vertex,
+				max: vertex.clone().addScalar(1),
+			}, playerId);
+		}
 		for (let i = 0; i < verticesVec2.length - 1; i++) {
 			const vertexA = verticesVec2[i];
 			const vertexB = verticesVec2[i + 1];
