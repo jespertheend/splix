@@ -334,7 +334,7 @@ export class Game {
 	 */
 	*getUnfillableLocations(excludePlayer) {
 		for (const player of this.#players.values()) {
-			if (player == excludePlayer) {
+			if (player == excludePlayer || player.permanentlyDead) {
 				continue;
 			}
 

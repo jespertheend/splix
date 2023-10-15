@@ -154,6 +154,9 @@ export class Player {
 
 	#permanentlyDead = false;
 	#permanentlyDieTime = 0;
+	get permanentlyDead() {
+		return this.#permanentlyDead;
+	}
 
 	#skinColorId = 0;
 	#skinPatternId = 0;
