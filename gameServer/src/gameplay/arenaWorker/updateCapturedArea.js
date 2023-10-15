@@ -30,9 +30,9 @@ export function initializeMask(width, height) {
  * @param {number[][]} arenaTiles
  * @param {number} playerId
  * @param {import("../../util/util.js").Rect} bounds
- * @param {[x: number, y: number][]} otherPlayerLocations
+ * @param {[x: number, y: number][]} unfillableLocations
  */
-export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLocations) {
+export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocations) {
 	// We'll want to add padding of 1 tile to each edge of the bounds.
 	// The reason for this is that we want to seed the flood fill algorithm at the top left corner of the bounds.
 	// We need to have at least one tile around the area that is not owned by the player that we try to fill for.
@@ -75,7 +75,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
-	for (const location of otherPlayerLocations) {
+	for (const location of unfillableLocations) {
 		const pos = new Vec2(location);
 		nodes.push(
 			pos.clone().add(0, 1),
@@ -87,7 +87,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 		// There are actually good reasons why player positions might not be valid nodes.
 		// They could lie outside the bounds for instance, or maybe this player is currently inside the
 		// captured area of the other player.
-		// `otherPlayerLocations` will also contain the location of the player that is currently filling this area itself,
+		// `unfillableLocations` will also contain the location of the player that is currently filling this area itself,
 		// so this check should exclude the players own location as well.
 	}
 

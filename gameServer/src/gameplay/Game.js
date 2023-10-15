@@ -326,9 +326,12 @@ export class Game {
 		});
 	}
 
-	*getPlayerPositions() {
+	*getUnfillableLocations() {
 		for (const player of this.#players.values()) {
 			yield player.getPosition();
+			if (player.isGeneratingTrail) {
+				yield Array.from(player.getTrailVertices())[0];
+			}
 		}
 	}
 
