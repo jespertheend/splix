@@ -36,6 +36,9 @@ jobs:
       - name: Build adminpanel
         run: deno task build-adminpanel
 
+      - name: Build client
+        run: deno task build-client
+
       - name: Release
         uses: softprops/action-gh-release@v0.1.15
         with:
@@ -45,3 +48,4 @@ jobs:
             gameServer/out/*
             serverManager/out/*
             adminPanel/out/adminPanel.tar
+            client/out/client.tar
