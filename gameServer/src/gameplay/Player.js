@@ -938,7 +938,7 @@ export class Player {
 	async #updateCapturedArea() {
 		const totalFilledTileCount = await this.game.arena.updateCapturedArea(
 			this.id,
-			Array.from(this.game.getUnfillableLocations()),
+			Array.from(this.game.getUnfillableLocations(this)),
 		);
 		if (this.#capturedTileCount != totalFilledTileCount) {
 			this.#capturedTileCount = totalFilledTileCount;

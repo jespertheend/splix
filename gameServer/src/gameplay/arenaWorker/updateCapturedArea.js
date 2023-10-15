@@ -87,8 +87,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		// There are actually good reasons why player positions might not be valid nodes.
 		// They could lie outside the bounds for instance, or maybe this player is currently inside the
 		// captured area of the other player.
-		// `unfillableLocations` will also contain the location of the player that is currently filling this area itself,
-		// so this check should exclude the players own location as well.
 	}
 
 	while (true) {
