@@ -77,7 +77,12 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, otherPlayerLoca
 	// Since we don't want players to just fill a large area around another player.
 	for (const location of otherPlayerLocations) {
 		const pos = new Vec2(location);
-		nodes.push(pos);
+		nodes.push(
+			pos.clone().add(0, 1),
+			pos.clone().add(0, -1),
+			pos.clone().add(1, 0),
+			pos.clone().add(-1, 0),
+		);
 		// We don't need to do a `testFillNode` assertion for these seeds.
 		// There are actually good reasons why player positions might not be valid nodes.
 		// They could lie outside the bounds for instance, or maybe this player is currently inside the
