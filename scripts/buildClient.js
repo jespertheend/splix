@@ -1,6 +1,5 @@
 import { rollup } from "$rollup";
 import { terser } from "../shared/rollup-terser-plugin.js";
-import alias from "$rollup-plugin-alias";
 import { resolve } from "$std/path/mod.ts";
 import { copy, ensureDir } from "$std/fs/mod.ts";
 import * as streams from "$std/streams/mod.ts";
@@ -8,7 +7,7 @@ import { Tar } from "$std/archive/tar.ts";
 import { setCwd } from "chdir-anywhere";
 setCwd();
 
-Deno.chdir("../adminPanel");
+Deno.chdir("../client");
 
 const outDir = resolve("./out");
 const distDir = resolve(outDir, "./dist");
@@ -26,17 +25,6 @@ const bundle = await rollup({
 		if (message.code == "CIRCULAR_DEPENDENCY") return;
 		console.error(message.message);
 	},
-	plugins: [
-		alias({
-			entries: [
-				{
-					find: "renda",
-					replacement:
-						"../deps/raw.githubusercontent.com/rendajs/Renda/705c5a01bc4d3ca4a282fff1a7a8567d1be7ce04/mod.js",
-				},
-			],
-		}),
-	],
 });
 await bundle.write({
 	file: resolve(distDir, "main.js"),
@@ -49,7 +37,11 @@ await bundle.write({
 let indexContent = await Deno.readTextFile("index.html");
 indexContent = indexContent.replace("src/main.js", "main.js");
 await Deno.writeTextFile(resolve(distDir, "index.html"), indexContent);
-await copy("style.css", resolve(distDir, "style.css"));
+await copy("about.html", resolve(distDir, "about.html"));
+await copy("flags.html", resolve(distDir, "flags.html"));
+await copy("privacy.html", resolve(distDir, "privacy.html"));
+await copy("static", resolve(distDir, "static"));
+await copy("json", resolve(distDir, "json")); // Legacy
 
 // Archive all files
 
@@ -62,7 +54,7 @@ for await (const entry of Deno.readDir(distDir)) {
 	}
 }
 
-const tarDestination = resolve("./out/adminPanel.tar");
+const tarDestination = resolve("./out/client.tar");
 const writer = await Deno.open(tarDestination, { write: true, create: true });
 await streams.copy(tar.getReader(), writer);
 writer.close();

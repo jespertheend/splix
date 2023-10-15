@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>splix.io - about</title>
+    <link rel="icon" type="image/png" href="./static/img/favicon-196x196.png" sizes="196x196" />
+    <link rel="icon" type="image/png" href="./static/img/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/png" href="./static/img/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="./static/img/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="./static/img/favicon-128.png" sizes="128x128" />
+    <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      body{
+        background-color: #3a342f;
+        font-family: Arial, Helvetica, sans-serif;
+        color: white;
+      }
+      #content{
+        max-width: 600px;
+        margin: auto;
+      }
+      #db{
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        pointer-events: none;
+        background-image: url(./static/img/db.svg);
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0;
+      }
+      a{
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="db"></div>
+    <div id="content">
+      <h2>What is splix.io?</h2>
+      <p><a href="http://splix.io">Splix.io</a> is an online multplayer game where you have to conquer as much land as possible and become the biggest of them all. You can move your player around using the arrow keys or wasd. If you're in your own area, you're safe, <span class="dbHover">but</span> once you leave your area you'll leave a trail behind, once anyone (including yourself) hits that trail, you die. When you get back to your area, the blocks that you have surrounded will be yours. <span class="dbHover">But</span> watch out, because anyone can steal back those blocks at any time. If you surround a couple of blocks while there is another player inside, the land won't get filled with your blocks.</p>
+      <p><a href="http://splix.io">Splix.io</a> was inspired by single player games such as <a href="http://www.freewebarcade.com/game/qix/" target="_blank">qix</a>, <a href="http://html5xonix.appspot.com/" target="_blank">xonix</a>, <a href="http://www.pacxon.net/" target="_blank">pac-xon</a> and whatever <a href="http://lioflash.com/view/89/marvin-the-martian-land-grab" target="_blank">this</a> is.</p>
+
+      <h2>What technology do you use?</h2>
+      <p>Most of the Splix code <a href="https://github.com/jespertheend/splix">is available on GitHub</a>. The backend runs on <a href="https://deno.land/">Deno</a>. The client is mostly plain old JavaScript. The official servers are hosted on <a href="https://m.do.co/c/feaae91f018d" target="_blank">DigitalOcean</a>.</p>
+      <p>In the past, servers used to run on C# with mono and the <a href="https://github.com/statianzo/Fleck/" target="_blank">Fleck library</a>, <span class="dbHover">but</span> this changed when Splix was made open source.</p>
+
+      <h2>Thanks</h2>
+      <p>Thank you all for playing over the years! And I'd also like to thank everyone who <a href="https://github.com/jespertheend/splix/graphs/contributors">contributed code</a> or reported issues. Special thanks to Joris for coming up with the name.</p>
+    </div>
+    <script>
+      let dbEl = document.getElementById("db");
+      let els = document.getElementsByClassName("dbHover");
+      let didShowDb = false;
+      for(let el of els){
+        el.addEventListener("mouseover", () => {
+          if(!didShowDb){
+            didShowDb = true;
+            requestAnimationFrame(() => {
+              dbEl.style.opacity = "1";
+              setTimeout(() => {
+                dbEl.style.opacity = "0";
+              }, 20)
+            })
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
