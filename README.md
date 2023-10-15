@@ -1,7 +1,6 @@
 # Splix
 
-This monorepo currently only contains the code for hosting a gameserver.
-But in the future it might contain client code as well.
+This monorepo contains the Splix client code, server code, as well as code related to server management.
 
 # Running locally
 
