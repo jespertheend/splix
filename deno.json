@@ -15,7 +15,8 @@
 		"files": {
 			"exclude": [
 				".denoTypes",
-				"deps"
+				"deps",
+				"client/out"
 			]
 		},
 		"options": {

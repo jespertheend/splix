@@ -37,7 +37,7 @@ jobs:
         run: deno task build-adminpanel
 
       - name: Build client
-        run: deno task build-client
+        run: deno task build-client ${{ inputs.version }}
 
       - name: Release
         uses: softprops/action-gh-release@v0.1.15

@@ -6,25 +6,9 @@ var BLOCKS_ON_SCREEN = 1100;
 // var BLOCKS_ON_SCREEN = 20000;
 var WAIT_FOR_DISCONNECTED_MS = 1000;
 var USERNAME_SIZE = 6;
-var COMPATIBLE_CLIENT_VERSION = 1;
-var CLIENT_VERSION = 28;
-var JS_VERSION = 80, IS_DEV_BUILD = false;
-(function () {
-	var ver = "x";
-	var scripts = document.getElementsByTagName("script");
-	for (var i = 0; i < scripts.length; i++) {
-		var src = scripts[i].src;
-		if (src.indexOf("//splix.io/js/") > 0) {
-			ver = src.substring(src.indexOf("splix.io/js/") + 12, src.length - 3);
-		}
-	}
-	ver = parseInt(ver);
-	if (isNaN(ver)) {
-		IS_DEV_BUILD = true;
-	} else {
-		JS_VERSION = ver;
-	}
-})();
+var IS_DEV_BUILD = true;
+var CLIENT_VERSION = 0;
+
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
 	var ctx = document.createElement("canvas").getContext("2d"),
@@ -714,33 +698,6 @@ function startPingServers() {
 	}
 }
 
-//returns object {locId: <int>, ping: <int>, ip:<str>, ip4:<str>, ip6:<str>}
-function getServer(forceLocation, checkHash) {
-	console.log("searching for best server");
-	var thisGroup, thisLobby, i, j, thisGamemodeGroup, thisVersionGroup;
-	if (forceLocation === undefined) {
-		forceLocation = -1;
-	}
-	if (checkHash === undefined) {
-		checkHash = true;
-	}
-
-	var foundLobby = null, foundLocation = null;
-	if (checkHash && location.hash) {
-		if (location.hash.indexOf("#ip=") === 0) {
-			console.log("ip provided in url, using " + location.hash);
-			return {
-				ip: location.hash.substring(4),
-				ping: 30,
-			};
-		}
-	}
-	return {
-		ip: "wss://ws.splix.io/ws",
-		ping: 30,
-	};
-}
-
 //gets a block from the specified array,
 //creates it if it doesn't exist yet
 //if array is not specified it will default to the blocks[] array
@@ -973,11 +930,11 @@ function nameInputOnChange() {
 	lsSet("name", nameInput.value);
 }
 
-//sends version data
-function sendVersion() {
+//sends a legacy message which is required for older servers
+function sendLegacyVersion() {
 	wsSendMsg(sendAction.VERSION, {
 		type: 0,
-		ver: CLIENT_VERSION,
+		ver: 28,
 	});
 }
 
@@ -1463,7 +1420,7 @@ window.onload = function () {
 
 	var devString = IS_DEV_BUILD ? " (dev build)" : "";
 	console.log(
-		"%c splix.io %c\n\n\nversion " + JS_VERSION + " loaded" + devString,
+		"%c splix.io %c\n\n\nversion " + CLIENT_VERSION + " loaded" + devString,
 		"color: #a22929; font-size: 50px; font-family: arial; text-shadow: 1px 1px #7b1e1e, 2px 2px #7b1e1e;",
 		"",
 	);
@@ -1472,7 +1429,7 @@ window.onload = function () {
 //when WebSocket connection is established
 function onOpen() {
 	isConnecting = false;
-	sendVersion();
+	sendLegacyVersion();
 	sendPatreonCode();
 	sendName();
 	sendSkin();
@@ -1653,7 +1610,7 @@ function doConnect(dontDoAds) {
 			onClose();
 			return false;
 		}
-		thisServerAvgPing = thisServerLastPing = server.ping;
+		thisServerAvgPing = thisServerLastPing = 0;
 		console.log("connecting to " + server.ip + "...");
 		ws = new WebSocket(server.ip);
 		ws.binaryType = "arraybuffer";
@@ -2340,16 +2297,6 @@ function initTitle() {
 	}
 	titCanvas = document.getElementById("logoCanvas");
 	titCtx = titCanvas.getContext("2d");
-}
-
-function setJoinButton() {
-	joinButton.disabled = false;
-	joinButton.title = "";
-	joinButton.value = "Join";
-}
-
-function removeHash() {
-	history.pushState("", document.title, location.pathname + location.search);
 }
 
 function testHashForMobile() {

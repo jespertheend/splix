@@ -80,11 +80,7 @@ body{
 	width: 210px;
 }
 
-#teamNameInput{
-	width: 210px;
-}
-
-#gamemodeSelect{
+#serverSelect{
 	width: 160px;
 	background: #3bad48 url("./img/arrowD.svg") no-repeat right center;
 	color: white;
@@ -126,57 +122,6 @@ body{
 	color: #6dd278;
 	background-color: #3bad48;
 	cursor: default;
-}
-
-#teamBox{
-	margin-top: 50px;
-}
-
-#teamShareLink{
-	margin-right: 0;
-	border-radius: 3px 0px 0px 3px;
-	vertical-align: bottom;
-
-	display: inline-block;
-	-webkit-touch-callout: initial;
-	-webkit-user-select: initial;
-	-khtml-user-select: initial;
-	-moz-user-select: initial;
-	-ms-user-select: initial;
-	user-select: initial;
-	-webkit-touch-callout: initial;
-}
-
-.teamShareLinkHidden{
-	position: absolute;
-	width: 0.1px;
-	height: 0.1px;
-	overflow: hidden;
-}
-
-#teamShareCopyBtn{
-	margin-left: -5px;
-	border-radius: 0px 3px 3px 0px;
-	vertical-align: bottom;
-}
-
-#teamPlayersList{
-	list-style: none;
-	padding-left: 0;
-	color: white;
-	margin: 0px -30px;
-}
-
-#teamPlayersList li{
-	padding: 5px 0px;
-}
-
-#teamPlayersList li:hover{
-	background-color: #1b6924;
-}
-
-#teamPlayersContainer{
-	margin-top: 30px;
 }
 
 #scoreBlock{
