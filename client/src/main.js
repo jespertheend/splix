@@ -1580,6 +1580,64 @@ function connectWithTransition(dontDoAds) {
 	}
 }
 
+const serverSelectEl = document.getElementById("serverSelect");
+async function getServers() {
+	let endPoint;
+	if (!IS_DEV_BUILD) {
+		endPoint = "https://servermanager.splix.io/gameservers";
+	} else {
+		const url = new URL(location.href);
+		url.pathname = "/servermanager/gameservers";
+		endPoint = url.href;
+	}
+
+	const response = await fetch(endPoint);
+	/** @type {import("../../serverManager/src/ServerManager.js").ServersJson} */
+	const servers = await response.json();
+
+	while (serverSelectEl.firstChild) {
+		serverSelectEl.firstChild.remove();
+	}
+
+	const officialGroup = document.createElement("optgroup");
+	officialGroup.label = "Official";
+	const unofficialGroup = document.createElement("optgroup");
+	unofficialGroup.label = "Unofficial";
+
+	// TODO, select recommended
+
+	if (location.hash.indexOf("#ip=") == 0) {
+		const optionEl = document.createElement("option");
+		optionEl.value = location.hash.substring(4);
+		optionEl.textContent = "From url";
+		unofficialGroup.appendChild(optionEl);
+		// TODO: select the created entry
+	}
+
+	for (const server of servers.servers) {
+		const optionEl = document.createElement("option");
+		optionEl.value = server.endpoint;
+		let textContent = server.displayName;
+		if (server.playerCount > 0) {
+			textContent += ` - ${server.playerCount} players`;
+		}
+		optionEl.textContent = textContent;
+
+		if (server.official) {
+			officialGroup.appendChild(optionEl);
+		} else {
+			unofficialGroup.appendChild(optionEl);
+		}
+	}
+
+	if (officialGroup.childElementCount > 0) serverSelectEl.appendChild(officialGroup);
+	if (unofficialGroup.childElementCount > 0) serverSelectEl.appendChild(unofficialGroup);
+
+	serverSelectEl.disabled = false;
+	joinButton.disabled = false;
+}
+const getServersPromise = getServers();
+
 //starts websocket connection
 //return true if it should start the transition on submit
 var isConnecting = false;
@@ -1605,14 +1663,13 @@ function doConnect(dontDoAds) {
 		// 	doConnectAfterServersGet = true;
 		// 	return true;
 		// }
-		var server = getServer();
+		var server = serverSelectEl.value;
 		if (!server) {
 			onClose();
 			return false;
 		}
 		thisServerAvgPing = thisServerLastPing = 0;
-		console.log("connecting to " + server.ip + "...");
-		ws = new WebSocket(server.ip);
+		ws = new WebSocket(server);
 		ws.binaryType = "arraybuffer";
 		ws.onmessage = function (evt) {
 			if (ws == this) {
