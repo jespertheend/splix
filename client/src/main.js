@@ -157,7 +157,6 @@ var miniMapPlayer,
 	formElem,
 	nameInput,
 	lastNameValue = "",
-	lastTeamNameValue = "",
 	lastNameChangeCheck = 0;
 var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
 var linesCanvas, linesCtx, tempCanvas, tempCtx;
@@ -177,13 +176,11 @@ var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
 var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
-var servers = [], serversRequestDone = false, doConnectAfterServersGet = false;
 var thisServerAvgPing = 0,
 	thisServerDiffPing = 0,
 	thisServerLastPing = 0,
 	lastPingTime = 0,
-	waitingForPing = false,
-	serversJsonGetTime = 0;
+	waitingForPing = false;
 var closeNotification = null, connectionLostNotification = null;
 var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
@@ -202,14 +199,7 @@ var bestStatBlocks = 0, bestStatKills = 0, bestStatLbRank = 0, bestStatAlive = 0
 var lastStatTimer = 0, lastStatCounter = 0, lastStatValueElem, bestStatValueElem;
 var lastMousePos = [0, 0], mouseHidePos = [0, 0];
 var joinButton,
-	teamBox,
-	teamBoxLoading,
-	teamBoxLoaded,
-	teamShareCopyBtn,
-	gamemodeDropDownEl,
-	teamPlayersList,
-	preventTeamServerConnection = false;
-var teamNameH, teamNameInput;
+	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
 
 //banner ads
@@ -267,26 +257,6 @@ var sendAction = {
 	SET_TEAM_USERNAME: 10,
 	VERSION: 11,
 	PATREON_CODE: 12,
-};
-
-var teamSendAction = {
-	REQUEST_TEAM_ID: 1,
-	MY_USERNAME: 2,
-	START_GAME: 3,
-	PING_DATA: 4,
-	SEND_IPS: 5,
-	SET_TEAM_USERNAME: 6,
-};
-
-var teamReceiveAction = {
-	URL: 1,
-	BECOME_HOST: 2,
-	ADD_PLAYER: 3,
-	REMOVE_PLAYER: 4,
-	REQUEST_IPS: 5,
-	GAME_START: 6,
-	TEAM_IS_FULL: 7,
-	SET_TEAM_USERNAME: 8,
 };
 
 var colors = {
@@ -558,39 +528,6 @@ function countPlayGame() {
 	lsSet("totalGamesPlayed", old);
 }
 
-function getServers() {
-	simpleRequest("/json/servers.2.json", function (response) {
-		serversJsonGetTime = Date.now();
-		var serversJson = JSON.parse(response);
-		var locations = serversJson.locations;
-		servers = [];
-		for (var loc in locations) {
-			var thisLocation = locations[loc];
-			var newThisLocation = generateServerLocation(thisLocation);
-			servers.push(newThisLocation);
-			serversRequestDone = true;
-		}
-
-		teamServers = serversJson.teamServers;
-		for (var i = 0; i < teamServers.length; i++) {
-			if (teamServers[i].active) {
-				activeTeamServers.push(teamServers[i]);
-			}
-		}
-
-		retentionSamples = serversJson.retentionSamples;
-
-		if (doConnectAfterServersGet) {
-			doConnectAfterServersGet = false;
-			doConnect();
-		}
-		if (teamDoConnectAfterServersGet) {
-			teamDoConnectAfterServersGet = false;
-			teamDoConnect();
-		}
-	});
-}
-
 function generateServerLocation(originalLocationObj) {
 	var port = IS_SECURE ? "7998" : "7999";
 	return {
@@ -788,18 +725,6 @@ function getServer(forceLocation, checkHash) {
 		checkHash = true;
 	}
 
-	//use this for local team server
-
-	// if(selectedGamemode == "Teams" && IS_DEV_BUILD){
-	// 	console.log("using static teams ip because IS_DEV_BUILD");
-	// 	return {
-	// 		ip: "ws://192.168.2.1:8050/splix",
-	// 		ip4: "192.168.2.1:8050",
-	// 		ip6: "192.168.2.1:8050",
-	// 		ping: 30
-	// 	};
-	// }
-
 	var foundLobby = null, foundLocation = null;
 	if (checkHash && location.hash) {
 		if (location.hash.indexOf("#ip=") === 0) {
@@ -815,8 +740,6 @@ function getServer(forceLocation, checkHash) {
 		ping: 30,
 	};
 }
-
-getServers();
 
 //gets a block from the specified array,
 //creates it if it doesn't exist yet
@@ -1048,17 +971,6 @@ function sendName() {
 
 function nameInputOnChange() {
 	lsSet("name", nameInput.value);
-	teamSendPlayerName();
-}
-
-//sends team name to websocket
-function sendTeamName() {
-	if (selectedGamemode == "Teams" && teamBeginUIIsHost) {
-		var n = teamNameInput.value;
-		if (n !== undefined && n !== null && n !== "" && n.trim() !== "") {
-			wsSendMsg(sendAction.SET_TEAM_USERNAME, n);
-		}
-	}
 }
 
 //sends version data
@@ -1083,12 +995,6 @@ function sendSkin() {
 		blockColor: blockColor,
 		pattern: pattern,
 	});
-}
-
-function sendTeamUrl() {
-	if (selectedGamemode == "Teams") {
-		wsSendMsg(sendAction.MY_TEAM_URL, teamShareUrl);
-	}
 }
 
 function sendPatreonCode() {
@@ -1361,16 +1267,8 @@ window.onload = function () {
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
-	teamBox = document.getElementById("teamBox");
-	teamBoxLoading = document.getElementById("teamBoxLoading");
-	teamBoxLoaded = document.getElementById("teamBoxLoaded");
-	teamShareLink = document.getElementById("teamShareLink");
-	teamShareCopyBtn = document.getElementById("teamShareCopyBtn");
 	qualityText = document.getElementById("qualityText");
 	uglyText = document.getElementById("uglyText");
-	teamPlayersList = document.getElementById("teamPlayersList");
-	teamNameH = document.getElementById("teamNameH");
-	teamNameInput = document.getElementById("teamNameInput");
 	lifeBox = document.getElementById("lifeBox");
 	adBox = document.getElementById("adbox");
 	adBox2 = document.getElementById("adbox2");
@@ -1442,26 +1340,19 @@ window.onload = function () {
 	if (localStorage.name) {
 		nameInput.value = localStorage.name;
 	}
-	if (localStorage.teamName) {
-		teamNameInput.value = localStorage.teamName;
-	}
 	nameInput.focus();
 	if (localStorage.autoConnect) {
 		doConnect();
 	}
 	formElem = document.getElementById("nameForm");
 	formElem.onsubmit = function () {
-		if (selectedGamemode == "Teams") {
-			teamWsSendMsg(teamSendAction.START_GAME);
-		} else {
-			try {
-				connectWithTransition();
-			} catch (e) {
-				console.log("Error", e.stack);
-				console.log("Error", e.name);
-				console.log("Error", e.message);
-				setNotification("An error occurred :/");
-			}
+		try {
+			connectWithTransition();
+		} catch (e) {
+			console.log("Error", e.stack);
+			console.log("Error", e.name);
+			console.log("Error", e.message);
+			setNotification("An error occurred :/");
 		}
 		return false;
 	};
@@ -1487,7 +1378,6 @@ window.onload = function () {
 	initTutorial();
 	initSkinScreen();
 	initTitle();
-	initGameModeUI();
 	setLeaderboardVisibility();
 
 	//pledged
@@ -1586,8 +1476,6 @@ function onOpen() {
 	sendPatreonCode();
 	sendName();
 	sendSkin();
-	sendTeamUrl();
-	sendTeamName();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
 		onConnectOrMiddleOfTransition();
@@ -1604,8 +1492,6 @@ function onConnectOrMiddleOfTransition() {
 	hideSkinScreen();
 	hideBeginShowMain();
 	destroyBanners();
-	skipChangeToNormalOnce = true;
-	teamWsClose();
 }
 
 //hides beginScreen and shows the main canvas and ui
@@ -1700,24 +1586,12 @@ function onClose() {
 	}
 	ws = null;
 	isConnecting = false;
-	if (selectedGamemode == "Teams" && !testTeamWsConnection()) {
-		teamDoConnect();
-	}
 }
 
 //if trying to establish a connection but failed
 //returns true if it actually couldn't connect,
 //false if it will try again
 function couldntConnect() {
-	var seversExistTime = Date.now() - serversJsonGetTime;
-	resetAll();
-	seversExistTime /= 1000;
-	if (seversExistTime > 5) {
-		doConnectAfterServersGet = true;
-		console.log("requesting server list again");
-		getServers();
-		return false;
-	}
 	setNotification("Couldn't connect to the server :/");
 	var err = new Error("couldntConnectError");
 	console.log(err.stack);
@@ -2163,8 +2037,6 @@ function onMessage(evt) {
 					break;
 			}
 		}
-		lsSet("lastTeamShareUrl", "");
-		lsSet("lastTeamIp", "");
 		closedBecauseOfDeath = true;
 		allowSkipDeathTransition = true;
 		hideBanners();
@@ -2470,272 +2342,10 @@ function initTitle() {
 	titCtx = titCanvas.getContext("2d");
 }
 
-//init gamemode UI
-var selectedGamemode = "Normal";
-function initGameModeUI() {
-	gamemodeDropDownEl = document.getElementById("gamemodeSelect");
-	gamemodeDropDownEl.value = "Normal";
-	gamemodeDropDownEl.onchange = function () {
-		selectedGamemode = gamemodeDropDownEl.options[gamemodeDropDownEl.selectedIndex].value;
-		setJoinButton();
-		var isTeamMode = selectedGamemode == "Teams";
-		teamBox.style.display = isTeamMode ? null : "none";
-		if (isTeamMode) {
-			teamDoConnect();
-		} else {
-			changeTeamModeToNormalMode();
-		}
-	};
-	initTeamUI();
-}
-
 function setJoinButton() {
 	joinButton.disabled = false;
 	joinButton.title = "";
-	if (selectedGamemode == "Normal") {
-		joinButton.value = "Join";
-	} else if (selectedGamemode == "Teams") {
-		joinButton.value = "Start";
-		if (!testTeamWsConnection()) {
-			joinButton.disabled = true;
-			joinButton.title = "Not connected to the team server";
-		} else {
-			if (!teamBeginUIIsHost) {
-				joinButton.disabled = true;
-				joinButton.title = "Only the team host can start a game";
-			}
-			if (teamPlayersList.childNodes.length <= 1) {
-				joinButton.disabled = true;
-				joinButton.title = "Not enough players";
-			}
-		}
-
-		//teams ui
-		var multiple = teamPlayersList.childNodes.length > 1;
-		document.getElementById("teamShareLinkDesc").innerHTML = multiple
-			? (teamBeginUIIsHost ? "Click Start to start the game." : "Waiting for host to start the game.")
-			: "Share this url with your<br>friends to create a team.";
-		document.getElementById("teamPlayersContainer").style.display = multiple ? null : "none";
-	}
-}
-
-//teams stuff
-var teamBeginUIIsHost = false, teamWs4 = null, teamWs6 = null, teamWs = null;
-var teamWs4Failed = false, teamWs6Failed = false;
-var teamWsCloseWasIntended = false, teamWsWasConnected = false;
-var teamShareUrl = "";
-var teamServers = [], activeTeamServers = [];
-
-function initTeamUI() {
-	teamShareLink.ondblclick = function () {
-		if (window.getSelection) {
-			selectTeamShareLink();
-		}
-	};
-	document.addEventListener("mouseup", function () {
-		var sel = window.getSelection();
-		if (sel.rangeCount > 0) {
-			var range = sel.getRangeAt(0);
-			if (range.startContainer.parentElement == teamShareLink && range.startOffset === 0) {
-				sel.removeAllRanges();
-				var newRange = document.createRange();
-				newRange.selectNodeContents(teamShareLink);
-				newRange.setEnd(range.endContainer, range.endOffset);
-				sel.addRange(newRange);
-			}
-		}
-	});
-	teamShareCopyBtn.onclick = function () {
-		var sel = selectTeamShareLink();
-		document.execCommand("copy");
-		sel.removeAllRanges();
-	};
-
-	// console.log("didConfirmOpenInApp: "+didConfirmOpenInApp);
-	if (location.hash.indexOf("#team-") === 0 && !didConfirmOpenInApp) {
-		teamShareUrl = location.hash.substring(6);
-		var hashTeamIsValid = testExistingTeamHash();
-		if (hashTeamIsValid) {
-			preventTeamServerConnection = true;
-		}
-		gamemodeDropDownEl.value = "Teams";
-		gamemodeDropDownEl.onchange();
-		if (hashTeamIsValid) {
-			connectWithTransition(true);
-		}
-	}
-
-	nameInput.addEventListener("change", nameInputOnChange);
-	teamNameInput.addEventListener("change", teamNameInputOnChange);
-}
-
-function testExistingTeamHash() {
-	var msAgo = Date.now() - parseInt(localStorage.lastTeamJoinTime);
-	var lastUrl = localStorage.lastTeamShareUrl;
-	var currentUrl = location.hash.substring(6);
-	return (msAgo < 3600000) && (lastUrl == currentUrl);
-}
-
-function selectTeamShareLink() {
-	var range = document.createRange();
-	range.selectNodeContents(teamShareLink);
-	var sel = window.getSelection();
-	sel.removeAllRanges();
-	sel.addRange(range);
-	return sel;
-}
-
-var teamDoConnectAfterServersGet = false, connectedTeamServerLetter = "";
-function teamDoConnect() {
-	if (preventTeamServerConnection) {
-		preventTeamServerConnection = false;
-		return;
-	}
-	setTeamBoxLoadVisibility();
-	if (teamServers.length <= 0) {
-		teamDoConnectAfterServersGet = true;
-		return;
-	}
-	var server = null;
-	if (location.hash.indexOf("#team-") === 0) {
-		var firstLetter = location.hash.substr(6, 1);
-		for (var i = 0; i < teamServers.length; i++) {
-			var thisServer = teamServers[i];
-			if (thisServer.letter == firstLetter) {
-				server = thisServer;
-			}
-		}
-	}
-	if (server === null) {
-		server = randFromArray(activeTeamServers);
-	}
-	if (IS_DEV_BUILD && false) {
-		server = {
-			ipv4: "localhost",
-			ipv6: "localhost",
-			letter: "a",
-			port: 8050,
-		};
-	}
-	var port = IS_SECURE ? server.securePort : server.port;
-	connectedTeamServerLetter = server.letter;
-	// if(IS_DEV_BUILD){
-	// 	teamWs4 = newTeamWs("192.168.2.1:8050/teamServer");
-	// 	teamWs6 = newTeamWs("192.168.2.1:8050/teamServer");
-	// }else{
-	teamWs4 = newTeamWs(server.ipv4 + "/teams");
-	teamWs6 = newTeamWs(server.ipv6 + "/teams");
-	// }
-}
-
-function newTeamWs(ip) {
-	var thisWs = new WebSocket(SECURE_WS + ip);
-	thisWs.binaryType = "arraybuffer";
-	thisWs.onmessage = function (evt) {
-		if (teamWs == this) {
-			teamWsOnMessage(evt);
-		}
-	};
-	thisWs.onclose = function () {
-		if (teamWs4 == this) {
-			teamWs4Failed = true;
-		}
-		if (teamWs6 == this) {
-			teamWs6Failed = true;
-		}
-		if (teamWs == this || (teamWs4Failed && teamWs6Failed)) {
-			teamWsOnClose();
-		}
-	};
-	thisWs.onopen = function () {
-		if (!testTeamWsConnection()) {
-			teamWs = thisWs;
-			teamWs4 = null;
-			teamWs6 = null;
-			teamWsOnConnect();
-		} else {
-			thisWs.close();
-		}
-		setTeamBoxLoadVisibility();
-	};
-	return thisWs;
-}
-
-function testTeamWsConnection() {
-	return teamWs !== null && teamWs.readyState == WebSocket.OPEN;
-}
-
-function setTeamBoxLoadVisibility() {
-	var connected = testTeamWsConnection();
-	teamBoxLoading.style.display = connected ? "none" : null;
-	teamBoxLoaded.style.display = connected ? null : "none";
-}
-
-function teamWsOnConnect() {
-	teamBeginUIIsHost = false;
-	teamWsWasConnected = true;
-	setJoinButton();
-	setTeamNameUI();
-	if (location.hash.indexOf("#team-") === 0) {
-		var hash = location.hash;
-		var thisTeamId = hash.substring(7, hash.length);
-		teamWsSendMsg(teamSendAction.REQUEST_TEAM_ID, thisTeamId);
-	} else if (lastTeamLostConnShareUrl !== "" && Date.now() - lastTeamLostConnTime < 120000) {
-		teamWsSendMsg(teamSendAction.REQUEST_TEAM_ID, lastTeamLostConnShareUrl.substring(1));
-		lastTeamLostConnShareUrl = "";
-	} else {
-		teamWsSendMsg(teamSendAction.REQUEST_TEAM_ID);
-	}
-	teamSendPlayerName();
-	teamSendTeamName();
-	setNotification("");
-}
-
-var lastTeamLostConnShareUrl = "", lastTeamLostConnTime = 0;
-function teamWsOnClose() {
-	if (!teamWsCloseWasIntended) {
-		if (teamWsWasConnected) {
-			setNotification("The connection to the team server was lost :/");
-			lastTeamLostConnShareUrl = teamShareUrl;
-			lastTeamLostConnTime = Date.now();
-		} else {
-			setNotification("Couldn't connect to the team server :/");
-		}
-	}
-	setTeamBoxLoadVisibility();
-	changeTeamModeToNormalMode();
-	teamWsWasConnected = false;
-	teamWsCloseWasIntended = false;
-	teamWs4Failed = false;
-	teamWs6Failed = false;
-	teamPlayersList.innerHTML = "";
-	teamShareLink.innerHTML = "loading...";
-}
-
-function teamWsClose() {
-	teamWsCloseWasIntended = true;
-	if (testTeamWsConnection()) {
-		teamWs.close();
-	}
-	teamWs = null;
-	teamWsOnClose();
-}
-
-var skipChangeToNormalOnce = false;
-function changeTeamModeToNormalMode() {
-	if (skipChangeToNormalOnce) {
-		skipChangeToNormalOnce = false;
-	} else {
-		if (location.hash.indexOf("#team") === 0) {
-			removeHash();
-		}
-		if (gamemodeDropDownEl.value == "Teams") {
-			gamemodeDropDownEl.value = "Normal";
-			gamemodeDropDownEl.onchange();
-		}
-		skipChangeToNormalOnce = true;
-		teamWsClose();
-	}
+	joinButton.value = "Join";
 }
 
 function removeHash() {
@@ -2746,12 +2356,7 @@ function testHashForMobile() {
 	if (deviceType != DeviceTypes.DESKTOP) {
 		var hash = location.hash;
 		if (hash != "" && hash != "#pledged") {
-			var confirmText = "Would you like to open the splix.io app?";
-			if (hash.indexOf("#team") === 0) {
-				confirmText = "Would you like to join this team in the app?";
-			} else {
-				confirmText = "Would you like to join this server in the app?";
-			}
+			var confirmText = "Would you like to join this server in the app?";
 			if (confirm(confirmText)) {
 				didConfirmOpenInApp = true;
 				openSplixApp(hash.substring(1, hash.length));
@@ -2766,192 +2371,6 @@ function openSplixApp(data) {
 		window.document.body.innerHTML = "Chrome doesn't like auto redirecting, click <a href=\"" + url +
 			'">here</a> to open the splix.io app.';
 	}
-}
-
-function teamWsOnMessage(evt) {
-	var playerId, el, elId, preferredServerId;
-	var data = new Uint8Array(evt.data);
-	if (data[0] == teamReceiveAction.URL) {
-		var shareUrlBytes = data.subarray(1, data.length);
-		teamShareUrl = connectedTeamServerLetter + Utf8ArrayToStr(shareUrlBytes);
-		var longShareUrl = location.host + location.pathname + "#team-" + teamShareUrl;
-		// var longShareUrl = "splix.io/sfjljklfjewKL2235JfweKJl4sjleiwwweJF3526jefwJEWwefwfe.html#team-"+teamShareUrl;
-		teamShareLink.innerHTML = '<span class="teamShareLinkHidden">http://</span>' + longShareUrl;
-		location.hash = "team-" + teamShareUrl;
-	}
-	if (data[0] == teamReceiveAction.BECOME_HOST) {
-		teamBeginUIIsHost = true;
-		setJoinButton();
-		setTeamNameUI();
-	}
-	if (data[0] == teamReceiveAction.ADD_PLAYER) {
-		playerId = bytesToInt(data[1]);
-		var nameBytes = data.subarray(2, data.length);
-		var name = Utf8ArrayToStr(nameBytes);
-		elId = "teamPlayer-" + playerId;
-		el = document.getElementById(elId);
-		if (el === null) {
-			el = document.createElement("li");
-			el.id = elId;
-			teamPlayersList.appendChild(el);
-		}
-		el.innerHTML = testEmtpyName(filter(htmlEscape(name)));
-		setJoinButton();
-	}
-	if (data[0] == teamReceiveAction.REMOVE_PLAYER) {
-		playerId = bytesToInt(data[1]);
-		elId = "teamPlayer-" + playerId;
-		el = document.getElementById(elId);
-		if (el !== null) {
-			teamPlayersList.removeChild(el);
-		}
-	}
-	if (data[0] == teamReceiveAction.REQUEST_IPS) {
-		preferredServerId = data[1];
-		if (preferredServerId == 0) {
-			preferredServerId = -1;
-		}
-		var serverObj = getServer(preferredServerId, false);
-		preferredServerId = serverObj.locId;
-		if (serverObj === null) {
-			setNotification("Couldn't find a server to connect to :/");
-			return;
-		}
-		if (serverObj.ip4 === undefined || serverObj.ip6 === undefined) {
-			if (serverObj.ip === undefined) {
-				setNotification("Couldn't find a server to connect to :/");
-				return;
-			} else {
-				teamWsSendMsg(teamSendAction.SEND_IPS, [preferredServerId, serverObj.ip, serverObj.ip]);
-			}
-		}
-		teamWsSendMsg(teamSendAction.SEND_IPS, [preferredServerId, serverObj.ip4, serverObj.ip6]);
-	}
-	if (data[0] == teamReceiveAction.GAME_START) {
-		preferredServerId = data[1];
-		var ip4Len = bytesToInt(data[2], data[3]);
-		var ip4bytes = data.subarray(4, ip4Len + 4);
-		var ip4 = Utf8ArrayToStr(ip4bytes);
-		var ip6bytes = data.subarray(ip4Len + 4, data.length);
-		var ip6 = Utf8ArrayToStr(ip6bytes);
-		var ipToUse = "";
-		for (var serverI = 0; serverI < servers.length; serverI++) {
-			var server = servers[serverI];
-			if (server.locId == preferredServerId) {
-				var use6 = false;
-				if (server.pingTries6 > 0 && server.pingTries <= 0) {
-					use6 = true;
-				} else if (server.pingTries6 > 0 && server.pingTries > 0) {
-					if (server.avgPing6 < server.avgPing) {
-						use6 = true;
-					}
-				}
-				ipToUse = use6 ? ip6 : ip4;
-				break;
-			}
-		}
-		lsSet("lastTeamShareUrl", teamShareUrl);
-		lsSet("lastTeamIp", ipToUse);
-		lsSet("lastTeamJoinTime", Date.now());
-		connectWithTransition(true);
-	}
-	if (data[0] == teamReceiveAction.TEAM_IS_FULL) {
-		setNotification("This team is full :(");
-		teamWsClose();
-	}
-	if (data[0] == teamReceiveAction.SET_TEAM_USERNAME) {
-		var teamNameBytes = data.subarray(1, data.length);
-		var newTeamName = Utf8ArrayToStr(teamNameBytes);
-		newTeamName = filter(newTeamName);
-		teamNameH.innerHTML = htmlEscape(newTeamName);
-		if (!teamBeginUIIsHost) {
-			teamNameInput.value = newTeamName;
-		}
-	}
-}
-
-//send a message to the team websocket, returns true if successful
-function teamWsSendMsg(action, data) {
-	var utf8Array;
-	if (testTeamWsConnection()) {
-		var array = [action];
-		if (action == teamSendAction.REQUEST_TEAM_ID) {
-			if (data) {
-				utf8Array = toUTF8Array(data);
-				array.push.apply(array, utf8Array);
-			}
-		}
-		if (action == teamSendAction.MY_USERNAME || action == teamSendAction.SET_TEAM_USERNAME) {
-			if (data) {
-				utf8Array = toUTF8Array(data);
-				array.push.apply(array, utf8Array);
-			}
-		}
-		if (action == teamSendAction.PING_DATA) {
-			for (var serverI = 0; serverI < data.length; serverI++) {
-				var server = servers[serverI];
-				array.push(server.locId);
-				var ping4Int = server.pingTries > 0 ? server.avgPing : 0;
-				var ping6Int = server.pingTries6 > 0 ? server.avgPing6 : 0;
-				ping4Int = Math.round(Math.min(Math.max(0, ping4Int), 65000));
-				ping6Int = Math.round(Math.min(Math.max(0, ping6Int), 65000));
-				var ping4Bytes = intToBytes(ping4Int, 2);
-				var ping6Bytes = intToBytes(ping6Int, 2);
-				array.push(ping4Bytes[0]);
-				array.push(ping4Bytes[1]);
-				array.push(ping6Bytes[0]);
-				array.push(ping6Bytes[1]);
-			}
-		}
-		if (action == teamSendAction.SEND_IPS) {
-			var ip4bytes = toUTF8Array(data[1]);
-			var ip6bytes = toUTF8Array(data[2]);
-			var ip4Len = intToBytes(ip4bytes.length, 2);
-			array.push(data[0]);
-			array.push(ip4Len[0]);
-			array.push(ip4Len[1]);
-			array.push.apply(array, ip4bytes);
-			array.push.apply(array, ip6bytes);
-		}
-		var payload = new Uint8Array(array);
-		try {
-			teamWs.send(payload);
-			return true;
-		} catch (ex) {
-			console.log("error sending team message", action, data, array, ex);
-		}
-	}
-	return false;
-}
-
-function teamSendPlayerName() {
-	teamWsSendMsg(teamSendAction.MY_USERNAME, nameInput.value);
-}
-
-function teamSendTeamName() {
-	teamWsSendMsg(teamSendAction.SET_TEAM_USERNAME, teamNameInput.value);
-}
-
-function testEmtpyName(name) {
-	if (/\S/.test(name)) {
-		return name;
-	}
-	return "Enter your name...";
-}
-
-function setTeamNameUI() {
-	if (teamBeginUIIsHost) {
-		teamNameH.style.display = "none";
-		teamNameInput.style.display = null;
-	} else {
-		teamNameH.style.display = null;
-		teamNameInput.style.display = "none";
-	}
-}
-
-function teamNameInputOnChange() {
-	teamSendTeamName();
-	lsSet("teamName", teamNameInput.value);
 }
 
 //request canrunads js
@@ -3657,44 +3076,6 @@ function engagementSetIsPlaying(set) {
 	} else {
 		engagementLastNoPlayTime = now;
 	}
-}
-
-var retentionSamples = [];
-function loopRetentionSamples(dt) {
-	for (var i = 0; i < retentionSamples.length; i++) {
-		var sample = retentionSamples[i];
-		sample.secondsFromNow -= dt / 1000;
-		if (sample.secondsFromNow < 0) {
-			var id = sample.sampleId;
-			if (sentRetentionSamples.indexOf(id) == -1) {
-				sentRetentionSamples.push(id);
-				saveSentRetentionSamples();
-				var val = Math.round(engagementValue * 100);
-				simpleRequest("http://stats.splix.io/retention.php?value=" + val + "&id=" + id);
-			}
-		}
-	}
-}
-
-var sentRetentionSamples = [];
-function loadSentRetentionSamples() {
-	var str = localStorage.sentRetentionSamples;
-	if (str === undefined) {
-		str = "";
-	}
-	var tempSentRetentionSamples = str.split(",");
-	sentRetentionSamples = [];
-	for (var i = 0; i < tempSentRetentionSamples.length; i++) {
-		var val = parseInt(tempSentRetentionSamples[i]);
-		if (!isNaN(val)) {
-			sentRetentionSamples.push(val);
-		}
-	}
-}
-loadSentRetentionSamples();
-
-function saveSentRetentionSamples() {
-	lsSet("sentRetentionSamples", sentRetentionSamples.join(","));
 }
 
 //patreon stuff
@@ -6050,16 +5431,11 @@ function loop(timeStamp) {
 			lastStatValueElem.style.opacity = bestStatValueElem.style.opacity = speed - Math.abs((t - 0.5) * speed * 2);
 		}
 
-		//team begin screen
 		if (beginScreenVisible) {
 			if (Date.now() - lastNameChangeCheck > 1000) {
 				if (lastNameValue != nameInput.value) {
 					nameInputOnChange();
 					lastNameValue = nameInput.value;
-				}
-				if (lastTeamNameValue != teamNameInput.value) {
-					teamNameInputOnChange();
-					lastTeamNameValue = teamNameInput.value;
 				}
 				lastNameChangeCheck = Date.now();
 			}
@@ -6076,8 +5452,6 @@ function loop(timeStamp) {
 			var textWidth = ctx.measureText(str).width;
 			ctx.fillText(str, ctx.canvas.width - textWidth - 10, ctx.canvas.height - 10);
 		}
-
-		loopRetentionSamples(deltaTime);
 
 		testAdBoxLoaded();
 		testAdBox2Loaded();
