@@ -19,6 +19,7 @@ import { MAX_UNDO_EVENT_TIME } from "../config.js";
  * @typedef PlayerEventKillPlayer
  * @property {"kill-player"} type
  * @property {number} playerId
+ * @property {import("./Player.js").DeathType} deathType
  */
 
 /**

@@ -209,9 +209,11 @@ export class Player {
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
 				this.game.undoPlayerDeath(event.playerId);
-				this.#killCount--;
-				this.#killCount = Math.max(0, this.#killCount);
-				this.#sendMyScore();
+				if (event.deathType != "area-bounds") {
+					this.#killCount--;
+					this.#killCount = Math.max(0, this.#killCount);
+					this.#sendMyScore();
+				}
 			} else if (event.type == "start-trail") {
 				// The player started creating a trail, we reset it in order to prevent
 				// the tiles underneath the trail from getting filled as a result of the player
@@ -778,10 +780,13 @@ export class Player {
 		this.#eventHistory.addEvent(this.getPosition(), {
 			type: "kill-player",
 			playerId: otherPlayer.id,
+			deathType,
 		});
 		otherPlayer.#die(deathType, this.name);
-		this.#killCount++;
-		this.#sendMyScore();
+		if (deathType != "area-bounds") {
+			this.#killCount++;
+			this.#sendMyScore();
+		}
 		return true;
 	}
 
