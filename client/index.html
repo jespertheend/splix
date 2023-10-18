@@ -103,29 +103,10 @@
           </div>
         </div>
         <input type="text" class="fancyBox inputFancy" maxlength="20" id="nameInput" placeholder="Enter your name"/><br>
-        <select id="gamemodeSelect" class="fancyBox inputFancy">
-          <option>Normal</option>
-          <option>Teams</option>
+        <select id="serverSelect" disabled class="fancyBox inputFancy">
+          <option>Loading...</option>
         </select>
-        <input type="submit" class="fancyBox fancyBtn" id="joinButton" value="Join" />
-        <div id="teamBox" style="display: none;">
-          <div id="teamBoxLoading" class="whiteText">Loading...</div>
-          <div id="teamBoxLoaded" style="display: none;">
-            <div id="teamShareLinkContainer">
-              <div id="teamShareLinkBox">
-                <div id="teamShareLinkDesc" class="whiteText">Share this url with your<br>friends to create a team.</div>
-                <div id="teamShareLink" class="fancyBox inputFancy">loading...</div>
-                <input type="button" id="teamShareCopyBtn" class="fancyBox fancyBtn" value="copy" />
-              </div>
-            </div>
-            <div id="teamPlayersContainer">
-              <input type="text" class="fancyBox inputFancy" maxlength="20" id="teamNameInput" placeholder="Enter a team name" />
-              <h2 id="teamNameH" class="whiteText"></h2>
-              <h3 class="whiteText" style="margin-bottom: 5px;">Connected players</h3>
-              <ul id="teamPlayersList"></ul>
-            </div>
-          </div>
-        </div>
+        <input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
       </form>
       <br><br>
       <div id="tutorialText" style="opacity: 0;"></div>

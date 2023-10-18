@@ -14,7 +14,9 @@
 	"fmt": {
 		"files": {
 			"exclude": [
-				".denoTypes"
+				".denoTypes",
+				"deps",
+				"client/out"
 			]
 		},
 		"options": {

@@ -4,6 +4,11 @@ import { GameServer } from "./GameServer.js";
  * @typedef {{id: number, config: import("./GameServer.js").GameServerConfig}[]} GameServerConfigs
  */
 
+/**
+ * @typedef ServersJson
+ * @property {ReturnType<GameServer["getJson"]>[]} servers
+ */
+
 export class ServerManager {
 	/** @type {Map<number, GameServer>} */
 	#servers = new Map();
@@ -58,6 +63,7 @@ export class ServerManager {
 
 	/**
 	 * Returns data that can be used by clients for listing available servers.
+	 * @returns {ServersJson}
 	 */
 	getServersJson() {
 		const servers = [];
