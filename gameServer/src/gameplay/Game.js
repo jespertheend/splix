@@ -326,9 +326,22 @@ export class Game {
 		});
 	}
 
-	*getPlayerPositions() {
+	/**
+	 * Yields a list of player positions,
+	 * and the start of their trail if they have one.
+	 * Used to prevent filling locations with other players inside.
+	 * @param {import("./Player.js").Player} excludePlayer
+	 */
+	*getUnfillableLocations(excludePlayer) {
 		for (const player of this.#players.values()) {
+			if (player == excludePlayer || player.permanentlyDead) {
+				continue;
+			}
+
 			yield player.getPosition();
+			if (player.isGeneratingTrail) {
+				yield Array.from(player.getTrailVertices())[0];
+			}
 		}
 	}
 
