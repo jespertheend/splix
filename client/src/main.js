@@ -1620,9 +1620,10 @@ async function getServers() {
 		const optionEl = document.createElement("option");
 		optionEl.value = server.endpoint;
 		let textContent = server.displayName;
-		if (server.playerCount > 0) {
-			textContent += ` - ${server.playerCount} players`;
-		}
+		// TODO: #72
+		// if (server.playerCount > 0) {
+		// 	textContent += ` - ${server.playerCount} players`;
+		// }
 		optionEl.textContent = textContent;
 
 		if (server.official) {
