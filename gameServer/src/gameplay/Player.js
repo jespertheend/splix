@@ -154,6 +154,9 @@ export class Player {
 
 	#permanentlyDead = false;
 	#permanentlyDieTime = 0;
+	get permanentlyDead() {
+		return this.#permanentlyDead;
+	}
 
 	#skinColorId = 0;
 	#skinPatternId = 0;
@@ -943,7 +946,7 @@ export class Player {
 	async #updateCapturedArea() {
 		const totalFilledTileCount = await this.game.arena.updateCapturedArea(
 			this.id,
-			Array.from(this.game.getPlayerPositions()),
+			Array.from(this.game.getUnfillableLocations(this)),
 		);
 		if (this.#capturedTileCount != totalFilledTileCount) {
 			this.#capturedTileCount = totalFilledTileCount;
