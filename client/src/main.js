@@ -1416,6 +1416,8 @@ window.onload = function () {
 	bestStatAlive = Math.max(bestStatAlive, localStorage.getItem("bestStatAlive"));
 	bestStatNo1Time = Math.max(bestStatNo1Time, localStorage.getItem("bestStatNo1Time"));
 
+	getServers();
+
 	window.requestAnimationFrame(loop);
 
 	var devString = IS_DEV_BUILD ? " (dev build)" : "";
@@ -1636,7 +1638,6 @@ async function getServers() {
 	serverSelectEl.disabled = false;
 	joinButton.disabled = false;
 }
-const getServersPromise = getServers();
 
 //starts websocket connection
 //return true if it should start the transition on submit
