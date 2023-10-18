@@ -33,7 +33,9 @@ export class WebSocketManager {
 				const url = new URL(request.url);
 				if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
 					const data = mainInstance.servermanager.getServersJson();
-					return Response.json(data);
+					const response = Response.json(data);
+					response.headers.set("Access-Control-Allow-Origin", "*");
+					return response;
 				}
 				return null;
 			},

@@ -1,4 +1,5 @@
 import { rollup } from "$rollup";
+import replace from "$rollup-plugin-replace";
 import { terser } from "../shared/rollup-terser-plugin.js";
 import { resolve } from "$std/path/mod.ts";
 import { copy, ensureDir } from "$std/fs/mod.ts";
@@ -8,6 +9,8 @@ import { setCwd } from "chdir-anywhere";
 setCwd();
 
 Deno.chdir("../client");
+
+const versionArg = Deno.args[0] || "0.0.0";
 
 const outDir = resolve("./out");
 const distDir = resolve(outDir, "./dist");
@@ -25,6 +28,15 @@ const bundle = await rollup({
 		if (message.code == "CIRCULAR_DEPENDENCY") return;
 		console.error(message.message);
 	},
+	plugins: [
+		replace({
+			values: {
+				IS_DEV_BUILD: JSON.stringify(false),
+				CLIENT_VERSION: JSON.stringify(versionArg),
+			},
+			preventAssignment: true,
+		}),
+	],
 });
 await bundle.write({
 	file: resolve(distDir, "main.js"),

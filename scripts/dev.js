@@ -36,6 +36,7 @@ generateTypes({
 	exactTypeModules: {
 		"$rollup": "https://unpkg.com/rollup@3.5.0/dist/rollup.d.ts",
 		"$rollup-plugin-alias": "https://unpkg.com/@rollup/plugin-alias@4.0.2/types/index.d.ts",
+		"$rollup-plugin-replace": "https://cdn.jsdelivr.net/npm/@rollup/plugin-replace@5.0.4/types/index.d.ts",
 		"$terser": "https://unpkg.com/terser@5.16.0/tools/terser.d.ts",
 	},
 	logLevel: "WARNING",
