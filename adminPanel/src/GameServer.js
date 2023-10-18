@@ -3,6 +3,7 @@ export class GameServer {
 	#publicCheckbox;
 	#officialCheckbox;
 	#recommendedCheckbox;
+	#needsControlSocketCheckbox;
 	#displayNameEl;
 	#endpointEl;
 	/** @type {Set<() => void>} */
@@ -23,6 +24,7 @@ export class GameServer {
 		this.#publicCheckbox = this.#createCheckboxInput("Public");
 		this.#officialCheckbox = this.#createCheckboxInput("Official");
 		this.#recommendedCheckbox = this.#createCheckboxInput("Recommended");
+		this.#needsControlSocketCheckbox = this.#createCheckboxInput("Control socket");
 
 		this.#displayNameEl = this.#createTextInput("Display name");
 		this.#endpointEl = this.#createTextInput("Endpoint");
@@ -75,6 +77,7 @@ export class GameServer {
 		this.#publicCheckbox.checked = config.public;
 		this.#officialCheckbox.checked = config.official;
 		this.#recommendedCheckbox.checked = config.recommended;
+		this.#needsControlSocketCheckbox.checked = config.needsControlSocket;
 		this.#displayNameEl.value = config.displayName;
 		this.#endpointEl.value = config.endpoint;
 	}
@@ -87,6 +90,7 @@ export class GameServer {
 			public: this.#publicCheckbox.checked,
 			official: this.#officialCheckbox.checked,
 			recommended: this.#recommendedCheckbox.checked,
+			needsControlSocket: this.#needsControlSocketCheckbox.checked,
 			displayName: this.#displayNameEl.value,
 			endpoint: this.#endpointEl.value,
 		};
