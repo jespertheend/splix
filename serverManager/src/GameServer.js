@@ -3,6 +3,10 @@
  * @property {boolean} public
  * @property {boolean} official
  * @property {boolean} recommended
+ * @property {boolean} needsControlSocket When true, a connection will be made to the control socket of the gameserver.
+ * This socket is used for things such as getting real time player count, and availability checking.
+ * When the connection fails, the server will be removed from the /gameservers endpoint.
+ * Disabling the control socket connection will disable this check and instead the server will always be included.
  * @property {string} displayName
  * @property {string} endpoint
  */
@@ -32,6 +36,7 @@ export class GameServer {
 	#public = false;
 	#official = false;
 	#recommended = false;
+	#needsControlSocket = true;
 	#displayName = "";
 	#endpoint = "";
 	#validEndpoint = false;
@@ -70,8 +75,13 @@ export class GameServer {
 	 */
 	get available() {
 		if (!this.#public) return false;
-		if (!this.#validEndpoint || !this.#persistentWebSocket) return false;
-		return this.#persistentWebSocket.connected;
+		if (!this.#validEndpoint) return false;
+		if (this.#needsControlSocket) {
+			if (!this.#persistentWebSocket) return false;
+			return this.#persistentWebSocket.connected;
+		} else {
+			return true;
+		}
 	}
 
 	getJson() {
@@ -94,6 +104,7 @@ export class GameServer {
 			public: this.#public,
 			official: this.#official,
 			recommended: this.#recommended,
+			needsControlSocket: this.#needsControlSocket,
 			displayName: this.#displayName,
 			endpoint: this.#endpoint,
 		};
@@ -118,6 +129,7 @@ export class GameServer {
 		this.#public = config.public;
 		this.#official = config.official;
 		this.#recommended = config.recommended;
+		this.#needsControlSocket = config.needsControlSocket;
 		this.#displayName = config.displayName;
 		if (config.endpoint != this.#endpoint) {
 			this.#endpoint = config.endpoint;
@@ -142,7 +154,7 @@ export class GameServer {
 
 	#updateWebSocket() {
 		this.#closeWebSocket();
-		if (this.#validEndpoint) {
+		if (this.#validEndpoint && this.#needsControlSocket) {
 			this.#persistentWebSocket = new PersistentWebSocket(this.#endpoint);
 			const socket = this.#persistentWebSocket;
 			socket.onOpen(() => {
