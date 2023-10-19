@@ -6,7 +6,7 @@ import { GameServer } from "./GameServer.js";
 
 /**
  * @typedef ServersJson
- * @property {ReturnType<GameServer["getJson"]>[]} servers
+ * @property {import("./GameServer.js").GameServerJsonData[]} servers
  */
 
 export class ServerManager {
