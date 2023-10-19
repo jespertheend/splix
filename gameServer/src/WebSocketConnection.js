@@ -308,6 +308,9 @@ export class WebSocketConnection {
 		try {
 			this.#socket.send(data);
 		} catch (e) {
+			if (e instanceof DOMException && e.message == "readyState not OPEN") {
+				return;
+			}
 			console.error("An error occurred while trying to send a message", data, e);
 			if (e instanceof Error) {
 				console.error(e.stack);
