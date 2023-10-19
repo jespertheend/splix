@@ -28,6 +28,7 @@ function createResponseHandlers(gameServer) {
 				count = 0;
 			}
 			count = clamp(count, 0, 999);
+			count = Math.round(count);
 			gameServer.updatePlayerCount(count);
 		},
 	};
