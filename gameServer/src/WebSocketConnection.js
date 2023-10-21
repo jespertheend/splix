@@ -308,7 +308,7 @@ export class WebSocketConnection {
 		try {
 			this.#socket.send(data);
 		} catch (e) {
-			if (e instanceof DOMException && e.message == "readyState not OPEN") {
+			if (e instanceof DOMException && e.name == "InvalidStateError") {
 				return;
 			}
 			console.error("An error occurred while trying to send a message", data, e);
