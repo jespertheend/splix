@@ -1582,7 +1582,7 @@ function connectWithTransition(dontDoAds) {
 	}
 }
 
-const serverSelectEl = document.getElementById("serverSelect");
+const serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById("serverSelect"));
 async function getServers() {
 	let endPoint;
 	if (!IS_DEV_BUILD) {
@@ -1606,35 +1606,48 @@ async function getServers() {
 	const unofficialGroup = document.createElement("optgroup");
 	unofficialGroup.label = "Unofficial";
 
-	// TODO, select recommended
-
-	if (location.hash.indexOf("#ip=") == 0) {
-		const optionEl = document.createElement("option");
-		optionEl.value = location.hash.substring(4);
-		optionEl.textContent = "From url";
-		unofficialGroup.appendChild(optionEl);
-		// TODO: select the created entry
-	}
+	/** @type {HTMLOptionElement[]} */
+	const officialEndpoints = [];
+	/** @type {HTMLOptionElement?} */
+	let selectedEndpoint = null;
 
 	for (const server of servers.servers) {
 		const optionEl = document.createElement("option");
 		optionEl.value = server.endpoint;
 		let textContent = server.displayName;
-		// TODO: #72
+		// TODO: #75
 		// if (server.playerCount > 0) {
 		// 	textContent += ` - ${server.playerCount} players`;
 		// }
 		optionEl.textContent = textContent;
 
 		if (server.official) {
+			officialEndpoints.push(optionEl);
 			officialGroup.appendChild(optionEl);
 		} else {
 			unofficialGroup.appendChild(optionEl);
 		}
+		if (server.recommended) {
+			selectedEndpoint = optionEl;
+		}
+	}
+
+	if (location.hash.indexOf("#ip=") == 0) {
+		const optionEl = document.createElement("option");
+		optionEl.value = location.hash.substring(4);
+		optionEl.textContent = "From url";
+		unofficialGroup.appendChild(optionEl);
+		selectedEndpoint = optionEl;
+	}
+
+	if (!selectedEndpoint) {
+		selectedEndpoint = officialEndpoints[0] || null;
 	}
 
 	if (officialGroup.childElementCount > 0) serverSelectEl.appendChild(officialGroup);
 	if (unofficialGroup.childElementCount > 0) serverSelectEl.appendChild(unofficialGroup);
+
+	serverSelectEl.selectedIndex = selectedEndpoint.index;
 
 	serverSelectEl.disabled = false;
 	joinButton.disabled = false;

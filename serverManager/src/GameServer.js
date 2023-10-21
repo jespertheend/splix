@@ -1,3 +1,7 @@
+import { clamp, TypedMessenger } from "renda";
+import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
+import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
+
 /**
  * @typedef GameServerConfig
  * @property {boolean} public
@@ -11,9 +15,14 @@
  * @property {string} endpoint
  */
 
-import { clamp, TypedMessenger } from "renda";
-import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
-import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
+/**
+ * @typedef GameServerJsonData
+ * @property {string} displayName
+ * @property {string} endpoint
+ * @property {number} playerCount
+ * @property {boolean} [official]
+ * @property {boolean} [recommended]
+ */
 
 /**
  * @param {GameServer} gameServer
@@ -93,12 +102,16 @@ export class GameServer {
 		if (!this.#public) {
 			throw new Error("Servers that are not public should not be exposed to clients");
 		}
-		return {
+
+		/** @type {GameServerJsonData} */
+		const data = {
 			displayName: this.#displayName,
 			endpoint: this.#endpoint,
-			official: this.#official,
 			playerCount: this.#playerCount,
 		};
+		if (this.#official) data.official = true;
+		if (this.#recommended) data.recommended = true;
+		return data;
 	}
 
 	/**
