@@ -1,4 +1,4 @@
-import { TypedMessenger } from "renda";
+import { clamp, TypedMessenger } from "renda";
 import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
 import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
 
@@ -33,6 +33,11 @@ function createResponseHandlers(gameServer) {
 		 * @param {number} count
 		 */
 		reportPlayerCount(count) {
+			if (typeof count != "number") {
+				count = 0;
+			}
+			count = clamp(count, 0, 999);
+			count = Math.round(count);
 			gameServer.updatePlayerCount(count);
 		},
 	};
