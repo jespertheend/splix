@@ -379,7 +379,9 @@ export class Player {
 				if (lastVertexA.x == lastVertexB.x && lastVertexA.x == pos.x) {
 					if (pos.y >= lastVertexA.y && pos.y <= lastVertexB.y) {
 						throw new Error(
-							"Assertion failed: Attempted to add a trail vertex in between two previous vertices.",
+							`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
+								this.#trailVertices.join(" ")
+							}`,
 						);
 					}
 					lastVertexA.set(pos);
@@ -587,7 +589,12 @@ export class Player {
 					this.#currentPosition.y += 1;
 				}
 
-				this.#updateCurrentTile(previousPosition);
+				try {
+					this.#updateCurrentTile(previousPosition);
+				} catch (e) {
+					console.error(e);
+					this.#connection.close();
+				}
 				this.#currentPositionChanged();
 				this.#drainMovementQueue();
 			}
