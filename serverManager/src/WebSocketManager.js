@@ -44,9 +44,10 @@ export class WebSocketManager {
 
 	/**
 	 * @param {number} port
+	 * @param {string} hostname
 	 */
-	startServer(port) {
-		this.#hoster.startServer(port);
+	startServer(port, hostname) {
+		this.#hoster.startServer(port, hostname);
 	}
 
 	/**

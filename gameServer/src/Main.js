@@ -26,8 +26,9 @@ export class Main {
 	/**
 	 * @param {Object} options
 	 * @param {number} options.port
+	 * @param {string} options.hostname
 	 */
-	init({ port }) {
-		this.websocketManager.startServer(port);
+	init({ port, hostname }) {
+		this.websocketManager.startServer(port, hostname);
 	}
 }
