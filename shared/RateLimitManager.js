@@ -28,6 +28,15 @@ export class RateLimitManager {
 	}
 
 	/**
+	 * @param {string} ip
+	 */
+	actionAllowed(ip) {
+		const attempt = this.#recentAttempts.get(ip);
+		if (!attempt) return true;
+		return attempt.resolved;
+	}
+
+	/**
 	 * Returns a promises that resolves as soon as the action is allowed again.
 	 * @param {string} ip
 	 * @returns {Promise<void>}
