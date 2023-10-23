@@ -6,6 +6,7 @@ if (!persistentStoragePath) {
 }
 
 const port = parseInt(Deno.env.get("PORT") || "8080");
+const hostname = Deno.env.get("HOSTNAME") || "127.0.0.1";
 
 const websocketAuthToken = Deno.env.get("WEBSOCKET_AUTH_TOKEN");
 if (!websocketAuthToken) {
@@ -16,4 +17,4 @@ const mainInstance = init({
 	persistentStoragePath,
 	websocketAuthToken,
 });
-mainInstance.websocketManager.startServer(port);
+mainInstance.websocketManager.startServer(port, hostname);

@@ -35,6 +35,11 @@ if (import.meta.main) {
 -p --port
     Configures the port of the websocket.
     Example: ${executableName} -p 5050
+-h --hostname
+    Configures the hostname of the websocket.
+	Defaults to 127.0.0.1.
+	Use 0.0.0.0 to allow access from other devices.
+	Example: ${executableName} -h 0.0.0.0
 
 --arenaWidth, --arenaHeight
     Configures the width and height of the arena.
@@ -48,6 +53,7 @@ if (import.meta.main) {
 `);
 	} else {
 		const port = args.p || args.port || 8080;
+		const hostname = args.h || args.hostname || "127.0.0.1";
 		let arenaWidth = parseInt(args.arenaWidth || 100);
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
@@ -59,6 +65,6 @@ if (import.meta.main) {
 			arenaWidth,
 			arenaHeight,
 		});
-		main.init({ port });
+		main.init({ port, hostname });
 	}
 }
