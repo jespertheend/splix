@@ -1,3 +1,4 @@
+import { RateLimitManager } from "../../shared/RateLimitManager.js";
 import { WebSocketConnection } from "./WebSocketConnection.js";
 import { getMainInstance } from "./mainInstance.js";
 import { WebSocketHoster } from "./util/WebSocketHoster.js";
@@ -8,8 +9,16 @@ export class WebSocketManager {
 	/** @type {Set<WebSocketConnection>} */
 	#activeConnections = new Set();
 
+	#rateLimitManager = new RateLimitManager();
+
 	constructor() {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
+			if (!this.#rateLimitManager.actionAllowed(ip)) {
+				socket.close();
+				return;
+			}
+			this.#rateLimitManager.markIpAsRecentAttempt(ip);
+
 			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
 			this.#activeConnections.add(connection);
 			socket.addEventListener("message", async (message) => {
