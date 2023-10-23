@@ -51,7 +51,7 @@ export class WebSocketConnection {
 			 * @param {string} token
 			 */
 			authenticate: async (token) => {
-				await this.#mainInstance.authRateLimitManager.waitForAuthenticationAllowed(this.#ip);
+				await this.#mainInstance.authRateLimitManager.waitForActionAllowed(this.#ip);
 				if (!this.#configuredAuthToken) return false;
 				if (token != this.#configuredAuthToken) {
 					this.#mainInstance.authRateLimitManager.markIpAsRecentAttempt(this.#ip);
