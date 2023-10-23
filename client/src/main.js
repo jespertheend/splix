@@ -1586,7 +1586,7 @@ const serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById
 async function getServers() {
 	let endPoint;
 	if (!IS_DEV_BUILD) {
-		endPoint = "https://servermanager.splix.io/gameservers";
+		endPoint = "https://splix.io/gameservers";
 	} else {
 		const url = new URL(location.href);
 		url.pathname = "/servermanager/gameservers";
