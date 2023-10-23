@@ -59,9 +59,10 @@ export class WebSocketHoster {
 
 	/**
 	 * @param {number} port
+	 * @param {string} hostname
 	 */
-	async startServer(port) {
-		const listener = Deno.listen({ port });
+	async startServer(port, hostname) {
+		const listener = Deno.listen({ port, hostname });
 		announceAddrs([{ protocol: "ws", addr: listener.addr }]);
 		registerUnhandledRejection();
 		while (true) {

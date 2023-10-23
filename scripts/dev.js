@@ -101,10 +101,10 @@ if (!Deno.args.includes("--no-init")) {
 			);
 		} else if (url.pathname == "/gameserver") {
 			return gameServer.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
-		} else if (url.pathname.startsWith("/servermanager/")) {
-			return serverManager.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
 		} else if (url.pathname.startsWith("/servermanagerToken")) {
 			return new Response(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
+		} else if (url.pathname.startsWith("/servermanager")) {
+			return serverManager.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
 		}
 
 		for (const dir of serveRootDirs) {
