@@ -1,9 +1,9 @@
 import { clamp } from "renda";
 
 /**
- * Tracks which ips have recently attempted to authenticate and limits their rate of invalid attempts.
+ * Tracks which IPs have recently attempted to perform an action and limits their rate of invalid attempts.
  */
-export class AuthRateLimitManager {
+export class RateLimitManager {
 	/**
 	 * @typedef Attempt
 	 * @property {number} attemptCount
@@ -28,11 +28,11 @@ export class AuthRateLimitManager {
 	}
 
 	/**
-	 * Returns a promises that resolves as soon as authentication is allowed again.
+	 * Returns a promises that resolves as soon as the action is allowed again.
 	 * @param {string} ip
 	 * @returns {Promise<void>}
 	 */
-	waitForAuthenticationAllowed(ip) {
+	waitForActionAllowed(ip) {
 		const attempt = this.#recentAttempts.get(ip);
 		if (attempt) {
 			return attempt.promise;
