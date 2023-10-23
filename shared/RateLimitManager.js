@@ -54,7 +54,7 @@ export class RateLimitManager {
 	 * @param {number} attemptCount
 	 */
 	#getRateLimitForAttemptCount(attemptCount) {
-		return Math.pow(2, attemptCount) * 1000;
+		return Math.pow(2, attemptCount - 5) * 1000;
 	}
 
 	/**
@@ -62,7 +62,7 @@ export class RateLimitManager {
 	 */
 	markIpAsRecentAttempt(ip) {
 		const attempt = this.#recentAttempts.get(ip);
-		const attemptCount = clamp((attempt?.attemptCount || 0) + 1, 0, 5);
+		const attemptCount = clamp((attempt?.attemptCount || 0) + 1, 0, 10);
 		if (attempt && !attempt.resolved) {
 			clearTimeout(attempt.timeout);
 			attempt.timeout = setTimeout(() => {
