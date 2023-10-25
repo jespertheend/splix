@@ -40,7 +40,7 @@ const bundle = await rollup({
 		}),
 	],
 });
-const {output} = await bundle.write({
+const { output } = await bundle.write({
 	dir: resolve(distDir, "bundle"),
 	format: "esm",
 	entryFileNames: "[name]-[hash].js",
