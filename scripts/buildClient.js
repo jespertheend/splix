@@ -40,16 +40,31 @@ const bundle = await rollup({
 		}),
 	],
 });
-await bundle.write({
-	file: resolve(distDir, "main.js"),
+const {output} = await bundle.write({
+	dir: resolve(distDir, "bundle"),
 	format: "esm",
+	entryFileNames: "[name]-[hash].js",
 	plugins: [
 		terser(),
 	],
 });
 
+const originalBundleEntryPoint = path.resolve("src/main.js");
+
+let bundleEntryPoint = null;
+for (const chunk of output) {
+	if (chunk.type == "chunk") {
+		if (chunk.facadeModuleId == originalBundleEntryPoint) {
+			bundleEntryPoint = chunk.fileName;
+		}
+	}
+}
+if (!bundleEntryPoint) {
+	throw new Error("Assertion failed, unable to find main entry point in generated bundle.");
+}
+
 let indexContent = await Deno.readTextFile("index.html");
-indexContent = indexContent.replace("src/main.js", "main.js");
+indexContent = indexContent.replace("./src/main.js", "./bundle/" + bundleEntryPoint);
 await Deno.writeTextFile(resolve(distDir, "index.html"), indexContent);
 await copy("about.html", resolve(distDir, "about.html"));
 await copy("flags.html", resolve(distDir, "flags.html"));

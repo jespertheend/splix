@@ -1,7 +1,7 @@
 import { rollup } from "$rollup";
 import { terser } from "../shared/rollup-terser-plugin.js";
 import alias from "$rollup-plugin-alias";
-import { resolve } from "$std/path/mod.ts";
+import * as path from "$std/path/mod.ts";
 import { copy, ensureDir } from "$std/fs/mod.ts";
 import * as streams from "$std/streams/mod.ts";
 import { Tar } from "$std/archive/tar.ts";
@@ -10,8 +10,8 @@ setCwd();
 
 Deno.chdir("../adminPanel");
 
-const outDir = resolve("./out");
-const distDir = resolve(outDir, "./dist");
+const outDir = path.resolve("./out");
+const distDir = path.resolve(outDir, "./dist");
 
 try {
 	await Deno.remove(outDir, { recursive: true });
@@ -38,18 +38,33 @@ const bundle = await rollup({
 		}),
 	],
 });
-await bundle.write({
-	file: resolve(distDir, "main.js"),
+const {output} = await bundle.write({
+	dir: path.resolve(distDir, "bundle"),
 	format: "esm",
+	entryFileNames: "[name]-[hash].js",
 	plugins: [
 		terser(),
 	],
 });
 
+const originalBundleEntryPoint = path.resolve("src/main.js");
+
+let bundleEntryPoint = null;
+for (const chunk of output) {
+	if (chunk.type == "chunk") {
+		if (chunk.facadeModuleId == originalBundleEntryPoint) {
+			bundleEntryPoint = chunk.fileName;
+		}
+	}
+}
+if (!bundleEntryPoint) {
+	throw new Error("Assertion failed, unable to find main entry point in generated bundle.");
+}
+
 let indexContent = await Deno.readTextFile("index.html");
-indexContent = indexContent.replace("src/main.js", "main.js");
-await Deno.writeTextFile(resolve(distDir, "index.html"), indexContent);
-await copy("style.css", resolve(distDir, "style.css"));
+indexContent = indexContent.replace("./src/main.js", "./bundle/" + bundleEntryPoint);
+await Deno.writeTextFile(path.resolve(distDir, "index.html"), indexContent);
+await copy("style.css", path.resolve(distDir, "style.css"));
 
 // Archive all files
 
@@ -57,12 +72,12 @@ const tar = new Tar();
 for await (const entry of Deno.readDir(distDir)) {
 	if (entry.isFile) {
 		await tar.append(entry.name, {
-			filePath: resolve(distDir, entry.name),
+			filePath: path.resolve(distDir, entry.name),
 		});
 	}
 }
 
-const tarDestination = resolve("./out/adminPanel.tar");
+const tarDestination = path.resolve("./out/adminPanel.tar");
 const writer = await Deno.open(tarDestination, { write: true, create: true });
 await streams.copy(tar.getReader(), writer);
 writer.close();
