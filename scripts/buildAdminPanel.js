@@ -2,6 +2,7 @@ import { rollup } from "$rollup";
 import { terser } from "../shared/rollup-terser-plugin.js";
 import alias from "$rollup-plugin-alias";
 import * as path from "$std/path/mod.ts";
+import * as fs from "$std/fs/mod.ts";
 import { copy, ensureDir } from "$std/fs/mod.ts";
 import * as streams from "$std/streams/mod.ts";
 import { Tar } from "$std/archive/tar.ts";
@@ -67,12 +68,12 @@ await Deno.writeTextFile(path.resolve(distDir, "index.html"), indexContent);
 await copy("style.css", path.resolve(distDir, "style.css"));
 
 // Archive all files
-
 const tar = new Tar();
-for await (const entry of Deno.readDir(distDir)) {
+for await (const entry of fs.walk(distDir)) {
 	if (entry.isFile) {
-		await tar.append(entry.name, {
-			filePath: path.resolve(distDir, entry.name),
+		const filenameInArchive = path.relative(distDir, entry.path);
+		await tar.append(filenameInArchive, {
+			filePath: path.resolve(distDir, entry.path),
 		});
 	}
 }
