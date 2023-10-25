@@ -44,7 +44,7 @@ export const MAX_UNDO_EVENT_TIME = 600;
  * Assuming a speed of 6 tiles per second and a value of 3 would mean that clients need more than 500ms ping
  * in order to not be able to control themselves.
  */
-export const MAX_UNDO_TILE_COUNT = 3;
+export const MAX_UNDO_TILE_COUNT = 5;
 
 /**
  * The maximum allowed skin color id.
