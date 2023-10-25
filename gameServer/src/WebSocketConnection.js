@@ -240,6 +240,7 @@ export class WebSocketConnection {
 				this.send(leaderboard);
 			}
 			this.#sendReady();
+			this.#sendLegacyReady();
 		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
 			this.#lastPingTime = performance.now();
 			this.#sendPong();
@@ -320,6 +321,39 @@ export class WebSocketConnection {
 
 	#sendReady() {
 		this.send(new Uint8Array([WebSocketConnection.SendAction.READY]));
+	}
+
+	/**
+	 * The mobile client expects at least one `CHUNK_OF_BLOCKS` message before it starts
+	 * rendering player movement.
+	 * This sends an empty chunk of width = 0 and height = 0, causing no blocks to be added
+	 * to the client while still enabling player movement.
+	 */
+	#sendLegacyReady() {
+		const buffer = new ArrayBuffer(10);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.CHUNK_OF_BLOCKS);
+		cursor++;
+
+		// x
+		view.setUint16(cursor, 0, false);
+		cursor += 2;
+
+		// y
+		view.setUint16(cursor, 0, false);
+		cursor += 2;
+
+		// w
+		view.setUint16(cursor, 0, false);
+		cursor += 2;
+
+		// h
+		view.setUint16(cursor, 0, false);
+		cursor += 2;
+
+		this.send(buffer);
 	}
 
 	#sendPong() {
