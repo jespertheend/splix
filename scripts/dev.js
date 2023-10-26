@@ -26,11 +26,11 @@ generateTypes({
 	],
 	importMap: "importmap.json",
 	excludeUrls: [
-		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/src/styles/projectSelectorStyles.js",
-		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/src/styles/studioStyles.js",
-		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/src/styles/shadowStyles.js",
-		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/deps/rollup-plugin-resolve-url-objects.js",
-		"https://raw.githubusercontent.com/rendajs/Renda/78bf39b6095a75b182fc2afe76c747e93989d7a6/studio/deps/rollup.browser.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/projectSelectorStyles.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/studioStyles.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/shadowStyles.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/deps/rollup-plugin-resolve-url-objects.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/deps/rollup.browser.js",
 		"rollup",
 	],
 	exactTypeModules: {

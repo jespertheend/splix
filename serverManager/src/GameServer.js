@@ -54,7 +54,7 @@ export class GameServer {
 	#displayName = "";
 	#endpoint = "";
 	#validEndpoint = false;
-	/** @type {PersistentWebSocket<import("renda").TypedMessengerMessageSendData<ServerManagerResponseHandlers, import("../../gameServer/src/ControlSocketConnection.js").ControlSocketResponseHandlers, false>>?} */
+	/** @type {PersistentWebSocket<import("renda").TypedMessengerMessageSendData<ServerManagerResponseHandlers, import("../../gameServer/src/ControlSocketConnection.js").ControlSocketResponseHandlers>>?} */
 	#persistentWebSocket = null;
 	/** @type {TypedMessenger<ServerManagerResponseHandlers, import("../../gameServer/src/ControlSocketConnection.js").ControlSocketResponseHandlers>} */
 	#messenger = new TypedMessenger();

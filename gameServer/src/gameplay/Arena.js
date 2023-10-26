@@ -53,7 +53,7 @@ export class Arena {
 			type: "module",
 		});
 		this.#messenger = new TypedMessenger();
-		this.#messenger.initialize(this.#worker, {
+		this.#messenger.initializeWorker(this.#worker, {
 			notifyAreasFilled: (areas) => {
 				for (const area of areas) {
 					const rect = deserializeRect(area.rect);

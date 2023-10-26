@@ -33,8 +33,8 @@ export function getMinimapPart(part, arenaWidth, arenaHeight, arenaTiles) {
 		for (let j = 0; j < 8; j++) {
 			const coordIndex = i * 8 + j;
 			const minimapCoord = indexToRectCoord(coordIndex, minimapRect);
-			let x = mapValue(minimapRect.min.x, minimapRect.max.x, mapRect.min.x, mapRect.max.x, minimapCoord.x, true);
-			let y = mapValue(minimapRect.min.y, minimapRect.max.y, mapRect.min.y, mapRect.max.y, minimapCoord.y, true);
+			let x = mapValue(minimapCoord.x, minimapRect.min.x, minimapRect.max.x, mapRect.min.x, mapRect.max.x);
+			let y = mapValue(minimapCoord.y, minimapRect.min.y, minimapRect.max.y, mapRect.min.y, mapRect.max.y);
 			x = Math.floor(x);
 			y = Math.floor(y);
 			const isFilled = arenaTiles[x][y] > 0;
