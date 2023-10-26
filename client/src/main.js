@@ -90,6 +90,12 @@ function isIframe() {
 	}
 }
 
+// Some dated code is using these in places like `for(i = 0`.
+// While ideally these variables should all be made local,
+// I'm worried some locations actually rely on them not being local.
+// So for now these are all global, but we should slowly try to get rid of these.
+var i, w;
+
 var IS_SECURE = location.protocol.indexOf("https") >= 0;
 // if(IS_SECURE && (["#nohttpsredirect", "#pledged"].indexOf(location.hash) < 0) && !isIframe() && !patreonQueryWasFound){
 // 	location.protocol = "http:";
@@ -154,6 +160,7 @@ var transitionCanvas,
 	transitionText = "GAME OVER";
 var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = null, transitionReverseOnHalf = false;
 var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
+var touchControlsElem;
 var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
 var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
@@ -2176,7 +2183,6 @@ function resetAll() {
 	totalPlayers = 0;
 	playingAndReady = false;
 	camShakeForces = [];
-	titleComplete = false;
 	resetTitleNextFrame = true;
 	allowSkipDeathTransition = false;
 	skipDeathTransition = false;
