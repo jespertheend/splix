@@ -1,3 +1,4 @@
+import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 
 var GLOBAL_SPEED = 0.006;
@@ -8,8 +9,6 @@ var BLOCKS_ON_SCREEN = 1100;
 // var BLOCKS_ON_SCREEN = 20000;
 var WAIT_FOR_DISCONNECTED_MS = 1000;
 var USERNAME_SIZE = 6;
-var IS_DEV_BUILD = true;
-var CLIENT_VERSION = 0;
 
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
