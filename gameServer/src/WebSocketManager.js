@@ -9,6 +9,9 @@ export class WebSocketManager {
 	/** @type {Set<WebSocketConnection>} */
 	#activeConnections = new Set();
 
+	/** @type {Map<string, number>} */
+	#ipCounts = new Map();
+
 	#rateLimitManager = new RateLimitManager();
 
 	constructor() {
@@ -17,7 +20,9 @@ export class WebSocketManager {
 				socket.close();
 				return;
 			}
-			this.#rateLimitManager.markIpAsRecentAttempt(ip);
+			this.#offsetIpCount(ip, 1);
+			const ipCount = this.#getIpCount(ip);
+			this.#rateLimitManager.markIpAsRecentAttempt(ip, ipCount);
 
 			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
 			this.#activeConnections.add(connection);
@@ -35,6 +40,7 @@ export class WebSocketManager {
 			socket.addEventListener("close", () => {
 				connection.onClose();
 				this.#activeConnections.delete(connection);
+				this.#offsetIpCount(ip, -1);
 			});
 		});
 		this.#hoster.handleRequest;
@@ -78,5 +84,25 @@ export class WebSocketManager {
 		for (const connection of this.#controlSocketConnections()) {
 			connection.messenger.send.reportPlayerCount(count);
 		}
+	}
+
+	/**
+	 * @param {string} ip
+	 * @param {number} offset
+	 */
+	#offsetIpCount(ip, offset) {
+		const count = this.#getIpCount(ip) + offset;
+		if (count <= 0) {
+			this.#ipCounts.delete(ip);
+		} else {
+			this.#ipCounts.set(ip, count);
+		}
+	}
+
+	/**
+	 * @param {string} ip
+	 */
+	#getIpCount(ip) {
+		return this.#ipCounts.get(ip) || 0;
 	}
 }

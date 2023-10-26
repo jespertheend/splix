@@ -126,7 +126,7 @@ const arenaWorkerHandlers = {
 
 /** @type {TypedMessenger<ArenaWorkerHandlers, import("../Arena.js").WorkerArenaHandlers>} */
 const messenger = new TypedMessenger();
-messenger.initialize(globalThis, arenaWorkerHandlers);
+messenger.initializeWorkerContext(arenaWorkerHandlers);
 
 /** @typedef {typeof arenaWorkerHandlers} ArenaWorkerHandlers */
 

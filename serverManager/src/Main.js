@@ -13,6 +13,6 @@ export class Main {
 		this.persistentStorage = new PersistentStorage(persistentStoragePath);
 		this.servermanager = new ServerManager(this);
 		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
-		this.authRateLimitManager = new RateLimitManager();
+		this.authRateLimitManager = new RateLimitManager({ alwaysUseMultiConnectionLimit: true });
 	}
 }

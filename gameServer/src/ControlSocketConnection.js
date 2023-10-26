@@ -26,7 +26,7 @@ export class ControlSocketConnection {
 	}
 
 	/**
-	 * @param {import("renda").TypedMessengerMessageSendData<ControlSocketResponseHandlers, import("../../serverManager/src/GameServer.js").ServerManagerResponseHandlers, false>} data
+	 * @param {import("renda").TypedMessengerMessageSendData<ControlSocketResponseHandlers, import("../../serverManager/src/GameServer.js").ServerManagerResponseHandlers>} data
 	 */
 	onMessage(data) {
 		this.#messenger.handleReceivedMessage(data);
