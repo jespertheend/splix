@@ -1,3 +1,6 @@
+import "./globals.js";
+import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+
 var GLOBAL_SPEED = 0.006;
 var VIEWPORT_RADIUS = 30;
 var MAX_ZOOM = 430;
@@ -6,8 +9,6 @@ var BLOCKS_ON_SCREEN = 1100;
 // var BLOCKS_ON_SCREEN = 20000;
 var WAIT_FOR_DISCONNECTED_MS = 1000;
 var USERNAME_SIZE = 6;
-var IS_DEV_BUILD = true;
-var CLIENT_VERSION = 0;
 
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
@@ -89,6 +90,12 @@ function isIframe() {
 	}
 }
 
+// Some dated code is using these in places like `for(i = 0`.
+// While ideally these variables should all be made local,
+// I'm worried some locations actually rely on them not being local.
+// So for now these are all global, but we should slowly try to get rid of these.
+var i, w;
+
 var IS_SECURE = location.protocol.indexOf("https") >= 0;
 // if(IS_SECURE && (["#nohttpsredirect", "#pledged"].indexOf(location.hash) < 0) && !isIframe() && !patreonQueryWasFound){
 // 	location.protocol = "http:";
@@ -153,6 +160,7 @@ var transitionCanvas,
 	transitionText = "GAME OVER";
 var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = null, transitionReverseOnHalf = false;
 var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
+var touchControlsElem;
 var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
 var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
@@ -1416,7 +1424,7 @@ window.onload = function () {
 	bestStatAlive = Math.max(bestStatAlive, localStorage.getItem("bestStatAlive"));
 	bestStatNo1Time = Math.max(bestStatNo1Time, localStorage.getItem("bestStatNo1Time"));
 
-	getServers();
+	initServerSelection();
 
 	window.requestAnimationFrame(loop);
 
@@ -1582,76 +1590,6 @@ function connectWithTransition(dontDoAds) {
 	}
 }
 
-const serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById("serverSelect"));
-async function getServers() {
-	let endPoint;
-	if (!IS_DEV_BUILD) {
-		endPoint = "https://splix.io/gameservers";
-	} else {
-		const url = new URL(location.href);
-		url.pathname = "/servermanager/gameservers";
-		endPoint = url.href;
-	}
-
-	const response = await fetch(endPoint);
-	/** @type {import("../../serverManager/src/ServerManager.js").ServersJson} */
-	const servers = await response.json();
-
-	while (serverSelectEl.firstChild) {
-		serverSelectEl.firstChild.remove();
-	}
-
-	const officialGroup = document.createElement("optgroup");
-	officialGroup.label = "Official";
-	const unofficialGroup = document.createElement("optgroup");
-	unofficialGroup.label = "Unofficial";
-
-	/** @type {HTMLOptionElement[]} */
-	const officialEndpoints = [];
-	/** @type {HTMLOptionElement?} */
-	let selectedEndpoint = null;
-
-	for (const server of servers.servers) {
-		const optionEl = document.createElement("option");
-		optionEl.value = server.endpoint;
-		let textContent = server.displayName;
-		if (server.playerCount > 0) {
-			textContent += ` - ${server.playerCount}`;
-		}
-		optionEl.textContent = textContent;
-
-		if (server.official) {
-			officialEndpoints.push(optionEl);
-			officialGroup.appendChild(optionEl);
-		} else {
-			unofficialGroup.appendChild(optionEl);
-		}
-		if (server.recommended) {
-			selectedEndpoint = optionEl;
-		}
-	}
-
-	if (location.hash.indexOf("#ip=") == 0) {
-		const optionEl = document.createElement("option");
-		optionEl.value = location.hash.substring(4);
-		optionEl.textContent = "From url";
-		unofficialGroup.appendChild(optionEl);
-		selectedEndpoint = optionEl;
-	}
-
-	if (!selectedEndpoint) {
-		selectedEndpoint = officialEndpoints[0] || null;
-	}
-
-	if (officialGroup.childElementCount > 0) serverSelectEl.appendChild(officialGroup);
-	if (unofficialGroup.childElementCount > 0) serverSelectEl.appendChild(unofficialGroup);
-
-	serverSelectEl.selectedIndex = selectedEndpoint.index;
-
-	serverSelectEl.disabled = false;
-	joinButton.disabled = false;
-}
-
 //starts websocket connection
 //return true if it should start the transition on submit
 var isConnecting = false;
@@ -1677,7 +1615,7 @@ function doConnect(dontDoAds) {
 		// 	doConnectAfterServersGet = true;
 		// 	return true;
 		// }
-		var server = serverSelectEl.value;
+		var server = getSelectedServer();
 		if (!server) {
 			onClose();
 			return false;
@@ -2245,7 +2183,6 @@ function resetAll() {
 	totalPlayers = 0;
 	playingAndReady = false;
 	camShakeForces = [];
-	titleComplete = false;
 	resetTitleNextFrame = true;
 	allowSkipDeathTransition = false;
 	skipDeathTransition = false;
