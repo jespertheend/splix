@@ -87,6 +87,15 @@ export class WebSocketManager {
 	}
 
 	/**
+	 * @param {import("../../serverManager/src/LeaderboardManager.js").PlayerScoreData} score
+	 */
+	notifyControlSocketsPlayerScore(score) {
+		for (const connection of this.#controlSocketConnections()) {
+			connection.messenger.send.reportPlayerScore(score);
+		}
+	}
+
+	/**
 	 * @param {string} ip
 	 * @param {number} offset
 	 */

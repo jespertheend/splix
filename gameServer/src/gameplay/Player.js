@@ -104,6 +104,8 @@ export class Player {
 	/** @type {Vec2[]} */
 	#trailVertices = [];
 
+	#currentTrailLengthExcludingPos = 0;
+
 	get isGeneratingTrail() {
 		return this.#trailVertices.length > 0;
 	}
@@ -131,6 +133,7 @@ export class Player {
 	#eventHistory = new PlayerEventHistory();
 
 	#capturedTileCount = 0;
+	#maxCapturedTileCount = 0;
 	#killCount = 0;
 	#rank;
 	#highestRank;
@@ -138,6 +141,7 @@ export class Player {
 	#isCurrentlyRankingFirst = false;
 	#rankingFirstStartTime = 0;
 	#rankingFirstSeconds = 0;
+	#maxTrailLength = 0;
 
 	/**
 	 * @typedef DeathState
@@ -221,14 +225,13 @@ export class Player {
 				// The player started creating a trail, we reset it in order to prevent
 				// the tiles underneath the trail from getting filled as a result of the player
 				// returning to their captured area.
-				this.#trailVertices = [];
+				this.#clearTrailVertices();
 				this.game.broadcastPlayerTrail(this);
 			}
 		});
 
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
-		this.#capturedTileCount = capturedTileCount;
-		this.#sendMyScore();
+		this.#setCapturedTileCount(capturedTileCount);
 
 		this.#joinTime = performance.now();
 
@@ -401,6 +404,22 @@ export class Player {
 			}
 		}
 		this.#trailVertices.push(pos.clone());
+		this.#updateTrailLengthExcludingPos();
+	}
+
+	#clearTrailVertices() {
+		this.#trailVertices = [];
+		this.#currentTrailLengthExcludingPos = 0;
+	}
+
+	#updateTrailLengthExcludingPos() {
+		let length = 0;
+		for (let i = 0; i < this.#trailVertices.length - 1; i++) {
+			const vertexA = this.#trailVertices[i];
+			const vertexB = this.#trailVertices[i + 1];
+			length += vertexA.distanceTo(vertexB);
+		}
+		this.#currentTrailLengthExcludingPos = length;
 	}
 
 	/**
@@ -626,6 +645,14 @@ export class Player {
 			this.#trailBounds.max = this.#currentPosition.clone();
 		}
 
+		// Update max trail length
+		if (this.isGeneratingTrail) {
+			const lastVertex = this.#trailVertices.at(-1);
+			if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
+			const trailLength = lastVertex.distanceTo(this.#currentPosition) + this.#currentTrailLengthExcludingPos;
+			this.#maxTrailLength = Math.max(this.#maxTrailLength, trailLength);
+		}
+
 		{
 			// Check if any new players entered or left our viewport
 			let leftPlayers = new Set([...this.#playersInViewport]);
@@ -838,19 +865,22 @@ export class Player {
 		if (!this.#lastDeathState) {
 			throw new Error("Assertion failed, no death state is set");
 		}
-		const timeAliveMs = performance.now() - this.#joinTime;
-		const timeAliveSeconds = Math.round(timeAliveMs / 1000);
 		this.#incrementRankingFirstSeconds();
 		const rankingFirstSeconds = Math.round(this.#rankingFirstSeconds / 1000);
 		this.connection.sendGameOver(
 			this.#capturedTileCount,
 			this.#killCount,
 			this.#highestRank,
-			timeAliveSeconds,
+			this.#getTimeAliveSeconds(),
 			rankingFirstSeconds,
 			this.#lastDeathState.type,
 			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
 		);
+	}
+
+	#getTimeAliveSeconds() {
+		const timeAliveMs = performance.now() - this.#joinTime;
+		return Math.round(timeAliveMs / 1000);
 	}
 
 	/**
@@ -950,7 +980,7 @@ export class Player {
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.#updateCapturedArea();
 				this.game.broadcastPlayerEmptyTrail(this);
-				this.#trailVertices = [];
+				this.#clearTrailVertices();
 			}
 
 			this.#currentTileType = tileValue;
@@ -962,8 +992,16 @@ export class Player {
 			this.id,
 			Array.from(this.game.getUnfillableLocations(this)),
 		);
-		if (this.#capturedTileCount != totalFilledTileCount) {
-			this.#capturedTileCount = totalFilledTileCount;
+		this.#setCapturedTileCount(totalFilledTileCount);
+	}
+
+	/**
+	 * @param {number} capturedTileCount
+	 */
+	#setCapturedTileCount(capturedTileCount) {
+		if (this.#capturedTileCount != capturedTileCount) {
+			this.#capturedTileCount = capturedTileCount;
+			this.#maxCapturedTileCount = Math.max(this.#maxCapturedTileCount, this.#capturedTileCount);
 			this.#sendMyScore();
 		}
 	}
@@ -1004,6 +1042,20 @@ export class Player {
 
 	getTotalScore() {
 		return this.#capturedTileCount + this.#killCount * 500;
+	}
+
+	/**
+	 * @returns {import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData}
+	 */
+	getGlobalLeaderboardScore() {
+		return {
+			name: this.name,
+			scoreTiles: this.#maxCapturedTileCount,
+			rankingFirstSeconds: this.#rankingFirstSeconds,
+			scoreKills: this.#killCount,
+			timeAliveSeconds: this.#getTimeAliveSeconds(),
+			trailLength: this.#maxTrailLength,
+		};
 	}
 
 	/**

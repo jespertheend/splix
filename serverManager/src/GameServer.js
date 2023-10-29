@@ -1,6 +1,7 @@
 import { clamp, TypedMessenger } from "renda";
 import { initializeControlSocketMessage } from "../../gameServer/src/WebSocketConnection.js";
 import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
+import { LeaderboardManager } from "./LeaderboardManager.js";
 
 /**
  * @typedef GameServerConfig
@@ -26,8 +27,9 @@ import { PersistentWebSocket } from "../../shared/PersistentWebSocket.js";
 
 /**
  * @param {GameServer} gameServer
+ * @param {LeaderboardManager} leaderboardManager
  */
-function createResponseHandlers(gameServer) {
+function createResponseHandlers(gameServer, leaderboardManager) {
 	return {
 		/**
 		 * @param {number} count
@@ -39,6 +41,12 @@ function createResponseHandlers(gameServer) {
 			count = clamp(count, 0, 999);
 			count = Math.round(count);
 			gameServer.updatePlayerCount(count);
+		},
+		/**
+		 * @param {import("./LeaderboardManager.js").PlayerScoreData} score
+		 */
+		reportPlayerScore: (score) => {
+			leaderboardManager.reportPlayerScore(score);
 		},
 	};
 }
@@ -63,10 +71,11 @@ export class GameServer {
 
 	/**
 	 * @param {number} id
+	 * @param {LeaderboardManager} leaderboardManager
 	 */
-	constructor(id) {
+	constructor(id, leaderboardManager) {
 		this.#id = id;
-		this.#messenger.setResponseHandlers(createResponseHandlers(this));
+		this.#messenger.setResponseHandlers(createResponseHandlers(this, leaderboardManager));
 		this.#messenger.setSendHandler((data) => {
 			if (!this.#persistentWebSocket || !this.#persistentWebSocket.connected) {
 				throw new Error("Assertion failed, tried to send a control socket message without an open socket");
