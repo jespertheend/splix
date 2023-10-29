@@ -40,6 +40,7 @@ export class WebSocketManager {
 					const data = mainInstance.leaderboardManager.getApiJson();
 					const response = Response.json(data);
 					response.headers.set("Access-Control-Allow-Origin", "*");
+					response.headers.set("Cache-Control", "max-age=300");
 					return response;
 				}
 				return null;
