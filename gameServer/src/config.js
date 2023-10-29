@@ -66,3 +66,5 @@ export const MINIMAP_PART_UPDATE_FREQUENCY = 250;
  * How often (in milliseconds) the leaderboard is sent to all players in a game.
  */
 export const LEADERBOARD_UPDATE_FREQUENCY = 3_000;
+
+export const REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD = 10;
