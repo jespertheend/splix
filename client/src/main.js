@@ -1538,7 +1538,6 @@ function connectWithTransition(dontDoAds) {
 var isConnecting = false;
 function doConnect(dontDoAds) {
 	if (!ws && !isConnecting && !isTransitioning) {
-		console.log(canRunAds, dontDoAds, testPatreonAdsAllowed());
 		if (canRunAds && !dontDoAds && testPatreonAdsAllowed()) {
 			var adCounter = getAdCounter();
 			var lastAdTime = localStorage.lastAdTime;
@@ -2275,7 +2274,6 @@ function openSplixApp(data) {
 //request canrunads js
 var canRunAdsRequested = false;
 function requestCanRunAds() {
-	console.log("requestCanRunAds");
 	if (!canRunAdsRequested && testPatreonAdsAllowed()) {
 		fetch("https://api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js", { mode: "no-cors" }).then(
 			function () {
