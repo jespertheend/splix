@@ -3,7 +3,7 @@
 		"$std/": "https://deno.land/std@0.198.0/",
 		"renda": "https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/mod.js",
 		"chdir-anywhere": "https://deno.land/x/chdir_anywhere@v0.0.3/mod.js",
-		"$rollup": "npm:rollup@3.20.2",
+		"$rollup": "npm:rollup@4.1.5",
 		"$rollup-plugin-replace": "npm:@rollup/plugin-replace@5.0.4",
 		"$rollup-plugin-alias": "npm:@rollup/plugin-alias@4.0.2",
 		"$terser": "npm:terser@5.15.0"

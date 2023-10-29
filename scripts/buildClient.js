@@ -25,7 +25,10 @@ try {
 await ensureDir(distDir);
 
 const bundle = await rollup({
-	input: "src/main.js",
+	input: [
+		"src/main.js",
+		"src/leaderboards.js",
+	],
 	onwarn: (message) => {
 		if (message.code == "CIRCULAR_DEPENDENCY") return;
 		console.error(message.message);
@@ -45,27 +48,41 @@ const { output } = await bundle.write({
 	format: "esm",
 	entryFileNames: "[name]-[hash].js",
 	plugins: [
-		terser(),
+		terser({
+			module: true,
+		}),
 	],
 });
 
 const originalBundleEntryPoint = path.resolve("src/main.js");
+const leaderboardsBundleEntryPoint = path.resolve("src/leaderboards.js");
 
-let bundleEntryPoint = null;
+let mainEntryPoint = null;
+let leaderboardsEntryPoint = null;
 for (const chunk of output) {
 	if (chunk.type == "chunk") {
 		if (chunk.facadeModuleId == originalBundleEntryPoint) {
-			bundleEntryPoint = chunk.fileName;
+			mainEntryPoint = chunk.fileName;
+		} else if (chunk.facadeModuleId == leaderboardsBundleEntryPoint) {
+			leaderboardsEntryPoint = chunk.fileName;
 		}
 	}
 }
-if (!bundleEntryPoint) {
+if (!mainEntryPoint) {
 	throw new Error("Assertion failed, unable to find main entry point in generated bundle.");
+}
+if (!leaderboardsEntryPoint) {
+	throw new Error("Assertion failed, unable to find leaderboards entry point in generated bundle.");
 }
 
 let indexContent = await Deno.readTextFile("index.html");
-indexContent = indexContent.replace("./src/main.js", "./bundle/" + bundleEntryPoint);
+indexContent = indexContent.replace("./src/main.js", "./bundle/" + mainEntryPoint);
 await Deno.writeTextFile(resolve(distDir, "index.html"), indexContent);
+
+let leaderboardsContent = await Deno.readTextFile("leaderboards.html");
+leaderboardsContent = leaderboardsContent.replace("./src/leaderboards.js", "./bundle/" + leaderboardsEntryPoint);
+await Deno.writeTextFile(resolve(distDir, "leaderboards.html"), leaderboardsContent);
+
 await copy("about.html", resolve(distDir, "about.html"));
 await copy("flags.html", resolve(distDir, "flags.html"));
 await copy("privacy.html", resolve(distDir, "privacy.html"));

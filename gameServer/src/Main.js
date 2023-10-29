@@ -20,6 +20,9 @@ export class Main {
 		this.game.onPlayerCountChange((playerCount) => {
 			this.websocketManager.notifyControlSocketsPlayerCount(playerCount);
 		});
+		this.game.onPlayerScoreReported((score) => {
+			this.websocketManager.notifyControlSocketsPlayerScore(score);
+		});
 		this.applicationLoop = new ApplicationLoop();
 	}
 

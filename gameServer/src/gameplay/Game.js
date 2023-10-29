@@ -4,7 +4,12 @@ import { lerp, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
-import { LEADERBOARD_UPDATE_FREQUENCY, MINIMAP_PART_UPDATE_FREQUENCY, PLAYER_SPAWN_RADIUS } from "../config.js";
+import {
+	LEADERBOARD_UPDATE_FREQUENCY,
+	MINIMAP_PART_UPDATE_FREQUENCY,
+	PLAYER_SPAWN_RADIUS,
+	REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
+} from "../config.js";
 
 /**
  * @typedef TileTypeForMessage
@@ -149,6 +154,18 @@ export class Game {
 	 * @param {Player} player
 	 */
 	removePlayer(player) {
+		if (this.#players.size == REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD) {
+			// If the current player count is REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
+			// then once this player is removed scores will no longer be counted.
+			// We want to at least report the current player scores, that way their progress wasn't all for nothing.
+			// Global scores are deduplicated based on the player name,
+			// so the fact that we might report a score for these players a second time shouldn't be an issue.
+			for (const player of this.#players.values()) {
+				this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+			}
+		} else {
+			this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+		}
 		player.removedFromGame();
 		this.#players.delete(player.id);
 		this.#fireOnPlayerCountChange();
@@ -168,6 +185,26 @@ export class Game {
 
 	#fireOnPlayerCountChange() {
 		this.#onPlayerCountChangeCbs.forEach((cb) => cb(this.#players.size));
+	}
+
+	/** @typedef {(score: import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData) => void} OnPlayerScoreReportedCallback */
+
+	/** @type {Set<OnPlayerScoreReportedCallback>} */
+	#onPlayerScoreReportedCbs = new Set();
+
+	/**
+	 * @param {OnPlayerScoreReportedCallback} cb
+	 */
+	onPlayerScoreReported(cb) {
+		this.#onPlayerScoreReportedCbs.add(cb);
+	}
+
+	/**
+	 * @param {import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData} score
+	 */
+	#reportPlayerScore(score) {
+		if (this.#players.size < REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD) return;
+		this.#onPlayerScoreReportedCbs.forEach((cb) => cb(score));
 	}
 
 	/**
