@@ -104,6 +104,8 @@ export class Player {
 	/** @type {Vec2[]} */
 	#trailVertices = [];
 
+	#currentTrailLengthExcludingPos = 0;
+
 	get isGeneratingTrail() {
 		return this.#trailVertices.length > 0;
 	}
@@ -139,6 +141,7 @@ export class Player {
 	#isCurrentlyRankingFirst = false;
 	#rankingFirstStartTime = 0;
 	#rankingFirstSeconds = 0;
+	#maxTrailLength = 0;
 
 	/**
 	 * @typedef DeathState
@@ -222,7 +225,7 @@ export class Player {
 				// The player started creating a trail, we reset it in order to prevent
 				// the tiles underneath the trail from getting filled as a result of the player
 				// returning to their captured area.
-				this.#trailVertices = [];
+				this.#clearTrailVertices();
 				this.game.broadcastPlayerTrail(this);
 			}
 		});
@@ -401,6 +404,22 @@ export class Player {
 			}
 		}
 		this.#trailVertices.push(pos.clone());
+		this.#updateTrailLengthExcludingPos();
+	}
+
+	#clearTrailVertices() {
+		this.#trailVertices = [];
+		this.#currentTrailLengthExcludingPos = 0;
+	}
+
+	#updateTrailLengthExcludingPos() {
+		let length = 0;
+		for (let i = 0; i < this.#trailVertices.length - 1; i++) {
+			const vertexA = this.#trailVertices[i];
+			const vertexB = this.#trailVertices[i + 1];
+			length += vertexA.distanceTo(vertexB);
+		}
+		this.#currentTrailLengthExcludingPos = length;
 	}
 
 	/**
@@ -624,6 +643,14 @@ export class Player {
 		} else {
 			this.#trailBounds.min = this.#currentPosition.clone();
 			this.#trailBounds.max = this.#currentPosition.clone();
+		}
+
+		// Update max trail length
+		if (this.isGeneratingTrail) {
+			const lastVertex = this.#trailVertices.at(-1);
+			if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
+			const trailLength = lastVertex.distanceTo(this.#currentPosition) + this.#currentTrailLengthExcludingPos;
+			this.#maxTrailLength = Math.max(this.#maxTrailLength, trailLength);
 		}
 
 		{
@@ -948,7 +975,7 @@ export class Player {
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
 				this.#updateCapturedArea();
 				this.game.broadcastPlayerEmptyTrail(this);
-				this.#trailVertices = [];
+				this.#clearTrailVertices();
 			}
 
 			this.#currentTileType = tileValue;
@@ -1022,7 +1049,7 @@ export class Player {
 			rankingFirstSeconds: this.#rankingFirstSeconds,
 			scoreKills: this.#killCount,
 			timeAliveSeconds: this.#getTimeAliveSeconds(),
-			trailLength: 0,
+			trailLength: this.#maxTrailLength,
 		};
 	}
 
