@@ -1,4 +1,5 @@
 import { GameServer } from "./GameServer.js";
+import { LeaderboardManager } from "./LeaderboardManager.js";
 
 /**
  * @typedef {{id: number, config: import("./GameServer.js").GameServerConfig}[]} GameServerConfigs
@@ -42,7 +43,7 @@ export class ServerManager {
 			}
 		}
 
-		const server = new GameServer(id);
+		const server = new GameServer(id, this.#mainInstance.leaderboardManager);
 		this.#servers.set(id, server);
 		this.#mainInstance.websocketManager.sendAllServerConfigs();
 		this.#saveServersData();
@@ -110,7 +111,7 @@ export class ServerManager {
 			/** @type {GameServerConfigs | undefined} */ (this.#mainInstance.persistentStorage.get("servers"));
 		if (serversData) {
 			for (const serverData of serversData) {
-				const server = new GameServer(serverData.id);
+				const server = new GameServer(serverData.id, this.#mainInstance.leaderboardManager);
 				this.#servers.set(serverData.id, server);
 				server.setConfig(serverData.config);
 			}

@@ -150,6 +150,7 @@ export class Game {
 	 */
 	removePlayer(player) {
 		player.removedFromGame();
+		this.#fireOnPlayerScoreReported(player.getGlobalLeaderboardScore());
 		this.#players.delete(player.id);
 		this.#fireOnPlayerCountChange();
 	}
@@ -168,6 +169,25 @@ export class Game {
 
 	#fireOnPlayerCountChange() {
 		this.#onPlayerCountChangeCbs.forEach((cb) => cb(this.#players.size));
+	}
+
+	/** @typedef {(score: import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData) => void} OnPlayerScoreReportedCallback */
+
+	/** @type {Set<OnPlayerScoreReportedCallback>} */
+	#onPlayerScoreReportedCbs = new Set();
+
+	/**
+	 * @param {OnPlayerScoreReportedCallback} cb
+	 */
+	onPlayerScoreReported(cb) {
+		this.#onPlayerScoreReportedCbs.add(cb);
+	}
+
+	/**
+	 * @param {import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData} score
+	 */
+	#fireOnPlayerScoreReported(score) {
+		this.#onPlayerScoreReportedCbs.forEach((cb) => cb(score));
 	}
 
 	/**
