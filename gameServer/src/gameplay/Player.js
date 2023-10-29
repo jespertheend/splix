@@ -610,12 +610,12 @@ export class Player {
 
 				try {
 					this.#updateCurrentTile(previousPosition);
+					this.#currentPositionChanged();
+					this.#drainMovementQueue();
 				} catch (e) {
 					console.error(e);
 					this.#connection.close();
 				}
-				this.#currentPositionChanged();
-				this.#drainMovementQueue();
 			}
 		}
 
