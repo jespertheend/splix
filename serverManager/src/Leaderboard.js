@@ -23,7 +23,10 @@ export class Leaderboard {
 		let insertionIndex = 0;
 		for (const [i, otherEntry] of this.#scores.entries()) {
 			if (otherEntry.name == name) {
-				otherEntry.score = Math.max(score, otherEntry.score);
+				if (score > otherEntry.score) {
+					otherEntry.score = score;
+					otherEntry.lastUpdateTime = Date.now();
+				}
 				return;
 			} else if (score > otherEntry.score) {
 				insertionIndex = i;
