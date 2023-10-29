@@ -696,6 +696,7 @@ export class Player {
 	 */
 	#playerAddedToViewport(player) {
 		if (this.#playersInViewport.has(player)) return;
+		if (player.permanentlyDead) return;
 		this.#playersInViewport.add(player);
 		player.#inOtherPlayerViewports.add(this);
 		player.sendPlayerStateToPlayer(this);
