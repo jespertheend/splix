@@ -2375,7 +2375,6 @@ function initVideoAdsScript() {
 					},
 					AIP_REMOVE: function () {},
 				});
-				console.log(adplayer);
 			});
 		}
 	}
@@ -2383,7 +2382,6 @@ function initVideoAdsScript() {
 
 var prerollElem, isWaitingForAd = false, boltIsRendered = false;
 function displayAd() {
-	console.log("displayAd()");
 	isWaitingForAd = true;
 	formElem.style.display = "none";
 	prerollElem.style.display = null;
@@ -2406,7 +2404,6 @@ function displayAd() {
 		}
 	} else {
 		aiptag.cmd.player.push(function () {
-			console.log("startpreroll");
 			adplayer.startPreRoll();
 		});
 		onAdLoaded();
