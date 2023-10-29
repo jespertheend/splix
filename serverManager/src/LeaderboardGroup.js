@@ -60,6 +60,17 @@ export class LeaderboardGroup {
 	}
 
 	/**
+	 * @param {number} maxAge
+	 */
+	clearOldScores(maxAge) {
+		this.#tilesLeaderboard.clearOldScores(maxAge);
+		this.#killsLeaderboard.clearOldScores(maxAge);
+		this.#timeAliveLeaderboard.clearOldScores(maxAge);
+		this.#rankingFirstLeaderboard.clearOldScores(maxAge);
+		this.#traillLengthLeaderboard.clearOldScores(maxAge);
+	}
+
+	/**
 	 * @returns {ApiLeaderboardGroupData}
 	 */
 	getApiJson() {

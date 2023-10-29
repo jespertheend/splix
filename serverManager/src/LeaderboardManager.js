@@ -37,6 +37,10 @@ export class LeaderboardManager {
 	constructor(persistentStorage) {
 		this.#persistentStorage = persistentStorage;
 		this.#loadScores();
+
+		setInterval(() => {
+			this.#clearOldScores();
+		}, 60_000);
 	}
 
 	/**
@@ -65,6 +69,13 @@ export class LeaderboardManager {
 			this.#dailyGroup.loadSaveData(castData.daily);
 			this.#weeklyGroup.loadSaveData(castData.weekly);
 		}
+	}
+
+	#clearOldScores() {
+		const day = 1000 * 60 * 60 * 24;
+		const week = day * 7;
+		this.#dailyGroup.clearOldScores(day);
+		this.#weeklyGroup.clearOldScores(week);
 	}
 
 	/**

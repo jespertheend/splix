@@ -60,4 +60,21 @@ export class Leaderboard {
 	loadSaveData(scores) {
 		this.#scores = scores;
 	}
+
+	/**
+	 * @param {number} maxAge
+	 */
+	clearOldScores(maxAge) {
+		const oldIndices = [];
+		for (const [index, entry] of this.#scores.entries()) {
+			const ageMs = Date.now() - entry.lastUpdateTime;
+			if (ageMs > maxAge) {
+				oldIndices.push(index);
+			}
+		}
+		for (let i = oldIndices.length - 1; i >= 0; i--) {
+			const index = oldIndices[i];
+			this.#scores.splice(index, 1);
+		}
+	}
 }
