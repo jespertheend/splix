@@ -20,20 +20,23 @@ export class Leaderboard {
 	 * @param {number} score
 	 */
 	reportPlayer(name, score) {
-		let insertionIndex = 0;
-		for (const [i, otherEntry] of this.#scores.entries()) {
-			if (otherEntry.name == name) {
-				if (score > otherEntry.score) {
-					otherEntry.score = score;
-					otherEntry.lastUpdateTime = Date.now();
-				}
-				return;
-			} else if (score > otherEntry.score) {
-				insertionIndex = i;
-				break;
-			}
+		const existingIndex = this.#scores.findIndex(otherEntry => otherEntry.name == name);
+		const insertionIndex = this.#scores.findIndex(otherEntry => score > otherEntry.score);
+		if (existingIndex >= 0) {
+			// Remove the existing entry
+			this.#scores.splice(existingIndex, 1);
 		}
-		this.#scores.splice(insertionIndex, 0, { name, score, lastUpdateTime: Date.now() });
+		/** @type {LeaderboardScoreEntry} */
+		const newEntry = {
+			name, score,
+			lastUpdateTime: Date.now()
+		}
+		// Insert at the insertion index, or at the end otherwise
+		if (insertionIndex >= 0) {
+			this.#scores.splice(insertionIndex, 0, newEntry);
+		} else {
+			this.#scores.push(newEntry);
+		}
 		// Limit scores to a max of 50 entries
 		this.#scores = this.#scores.slice(0, 50);
 	}

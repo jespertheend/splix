@@ -67,4 +67,11 @@ export const MINIMAP_PART_UPDATE_FREQUENCY = 250;
  */
 export const LEADERBOARD_UPDATE_FREQUENCY = 3_000;
 
+/**
+ * If the amount of players in a game is less then this,
+ * then scores won't be reported to the global leaderboard.
+ * The current scores of all in game players will be reported
+ * once the player count falls below this threshold,
+ * allowing players to at least get their current progress on the leaderboard.
+ */
 export const REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD = 10;
