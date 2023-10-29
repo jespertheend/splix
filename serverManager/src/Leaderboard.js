@@ -20,17 +20,18 @@ export class Leaderboard {
 	 * @param {number} score
 	 */
 	reportPlayer(name, score) {
-		const existingIndex = this.#scores.findIndex(otherEntry => otherEntry.name == name);
-		const insertionIndex = this.#scores.findIndex(otherEntry => score > otherEntry.score);
+		const existingIndex = this.#scores.findIndex((otherEntry) => otherEntry.name == name);
+		const insertionIndex = this.#scores.findIndex((otherEntry) => score > otherEntry.score);
 		if (existingIndex >= 0) {
 			// Remove the existing entry
 			this.#scores.splice(existingIndex, 1);
 		}
 		/** @type {LeaderboardScoreEntry} */
 		const newEntry = {
-			name, score,
-			lastUpdateTime: Date.now()
-		}
+			name,
+			score,
+			lastUpdateTime: Date.now(),
+		};
 		// Insert at the insertion index, or at the end otherwise
 		if (insertionIndex >= 0) {
 			this.#scores.splice(insertionIndex, 0, newEntry);
