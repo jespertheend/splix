@@ -17,6 +17,12 @@ import { PersistentStorage } from "./PersistentStorage.js";
  * @property {import("./LeaderboardGroup.js").SavedLeaderboardGroupData} weekly
  */
 
+/**
+ * @typedef ApiLeaderboardData
+ * @property {import("./LeaderboardGroup.js").ApiLeaderboardGroupData} daily
+ * @property {import("./LeaderboardGroup.js").ApiLeaderboardGroupData} weekly
+ */
+
 const PERSISTENT_STORAGE_KEY = "globalLeaderboard";
 
 export class LeaderboardManager {
@@ -59,5 +65,15 @@ export class LeaderboardManager {
 			this.#dailyGroup.loadSaveData(castData.daily);
 			this.#weeklyGroup.loadSaveData(castData.weekly);
 		}
+	}
+
+	/**
+	 * @returns {ApiLeaderboardData}
+	 */
+	getApiJson() {
+		return {
+			daily: this.#dailyGroup.getApiJson(),
+			weekly: this.#weeklyGroup.getApiJson(),
+		};
 	}
 }

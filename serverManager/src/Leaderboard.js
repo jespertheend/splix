@@ -5,6 +5,12 @@
  * @property {number} lastUpdateTime
  */
 
+/**
+ * @typedef ApiLeaderboardScoreEntry
+ * @property {string} name
+ * @property {number} score
+ */
+
 export class Leaderboard {
 	/** @type {LeaderboardScoreEntry[]} */
 	#scores = [];
@@ -31,6 +37,18 @@ export class Leaderboard {
 
 	getSaveData() {
 		return this.#scores;
+	}
+
+	/**
+	 * @returns {ApiLeaderboardScoreEntry[]}
+	 */
+	getApiJson() {
+		return this.#scores.map((s) => {
+			return {
+				name: s.name,
+				score: s.score,
+			};
+		});
 	}
 
 	/**

@@ -9,6 +9,15 @@ import { Leaderboard } from "./Leaderboard.js";
  * @property {import("./Leaderboard.js").LeaderboardScoreEntry[]} trailLength
  */
 
+/**
+ * @typedef ApiLeaderboardGroupData
+ * @property {import("./Leaderboard.js").ApiLeaderboardScoreEntry[]} tiles
+ * @property {import("./Leaderboard.js").ApiLeaderboardScoreEntry[]} kills
+ * @property {import("./Leaderboard.js").ApiLeaderboardScoreEntry[]} timeAliveSeconds
+ * @property {import("./Leaderboard.js").ApiLeaderboardScoreEntry[]} rankingFirstSeconds
+ * @property {import("./Leaderboard.js").ApiLeaderboardScoreEntry[]} trailLength
+ */
+
 export class LeaderboardGroup {
 	#tilesLeaderboard = new Leaderboard();
 	#killsLeaderboard = new Leaderboard();
@@ -48,5 +57,18 @@ export class LeaderboardGroup {
 		this.#timeAliveLeaderboard.loadSaveData(scoreData.timeAliveSeconds);
 		this.#rankingFirstLeaderboard.loadSaveData(scoreData.rankingFirstSeconds);
 		this.#traillLengthLeaderboard.loadSaveData(scoreData.trailLength);
+	}
+
+	/**
+	 * @returns {ApiLeaderboardGroupData}
+	 */
+	getApiJson() {
+		return {
+			tiles: this.#tilesLeaderboard.getApiJson(),
+			kills: this.#killsLeaderboard.getApiJson(),
+			timeAliveSeconds: this.#timeAliveLeaderboard.getApiJson(),
+			rankingFirstSeconds: this.#rankingFirstLeaderboard.getApiJson(),
+			trailLength: this.#traillLengthLeaderboard.getApiJson(),
+		};
 	}
 }
