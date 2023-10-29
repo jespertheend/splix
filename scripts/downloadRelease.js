@@ -22,6 +22,7 @@ const outPath = parsedFlags.out || parsedFlags.o;
 if (!outPath) throw new Error("No out dir/file was provided");
 const singleFile = parsedFlags.single || parsedFlags.s;
 
+console.log("Getting latest release data from GitHub.");
 const releaseResponse = await fetch("https://api.github.com/repos/jespertheend/splix/releases/latest");
 const release = await releaseResponse.json();
 
@@ -39,6 +40,7 @@ function findAsset(assetName) {
 
 const asset = findAsset(assetName);
 
+console.log("Downloading asset...");
 const assetResponse = await fetch(asset.url, {
 	headers: {
 		Accept: "application/octet-stream",
@@ -65,6 +67,7 @@ async function tryRemoveRecursive(dir) {
 }
 
 const tempDir = await Deno.makeTempDir({ prefix: "splixrelease" });
+console.log("Writing to temp dir: " + tempDir);
 try {
 	let entryCount = 0;
 	for await (const entry of untar) {
@@ -80,13 +83,16 @@ try {
 		await streams.copy(entry, file);
 	}
 
+	console.log("Removing old version");
 	await tryRemoveRecursive(outPath);
+	console.log("Moving downloaded asset to " + outPath);
 	if (singleFile) {
 		await Deno.rename(path.resolve(tempDir, "file"), outPath);
 	} else {
 		await Deno.rename(tempDir, outPath);
 	}
 } finally {
+	console.log("Removing temp dir");
 	await tryRemoveRecursive(tempDir);
 }
 
