@@ -703,6 +703,10 @@ export class Player {
 		const playerId = player == this ? 0 : player.id;
 		this.#connection.sendPlayerSkin(playerId, colorId);
 		this.#connection.sendPlayerName(playerId, player.#name);
+		if (player.dead) {
+			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
+			this.#connection.send(playerDeadMessage);
+		}
 		player.sendTrailToPlayer(this);
 	}
 
