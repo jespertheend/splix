@@ -1595,6 +1595,7 @@ function connectWithTransition(dontDoAds) {
 var isConnecting = false;
 function doConnect(dontDoAds) {
 	if (!ws && !isConnecting && !isTransitioning) {
+		console.log(canRunAds, dontDoAds, testPatreonAdsAllowed());
 		if (canRunAds && !dontDoAds && testPatreonAdsAllowed()) {
 			var adCounter = getAdCounter();
 			var lastAdTime = localStorage.lastAdTime;
@@ -2331,6 +2332,7 @@ function openSplixApp(data) {
 //request canrunads js
 var canRunAdsRequested = false;
 function requestCanRunAds() {
+	console.log("requestCanRunAds");
 	if (!canRunAdsRequested && testPatreonAdsAllowed()) {
 		fetch("https://api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js", { mode: "no-cors" }).then(
 			function () {
@@ -2346,6 +2348,7 @@ function requestCanRunAds() {
 }
 
 var initVidAdsCalled = false;
+var adplayer;
 function initVideoAdsScript() {
 	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
 		initVidAdsCalled = true;
@@ -2372,6 +2375,7 @@ function initVideoAdsScript() {
 					},
 					AIP_REMOVE: function () {},
 				});
+				console.log(adplayer);
 			});
 		}
 	}
@@ -2379,7 +2383,7 @@ function initVideoAdsScript() {
 
 var prerollElem, isWaitingForAd = false, boltIsRendered = false;
 function displayAd() {
-	// console.log("displayAd()");
+	console.log("displayAd()");
 	isWaitingForAd = true;
 	formElem.style.display = "none";
 	prerollElem.style.display = null;
@@ -2402,6 +2406,7 @@ function displayAd() {
 		}
 	} else {
 		aiptag.cmd.player.push(function () {
+			console.log("startpreroll");
 			adplayer.startPreRoll();
 		});
 		onAdLoaded();
@@ -4016,6 +4021,10 @@ function doSkipDeathTransition() {
 			deathTransitionTimeout = null;
 			onClose();
 			doTransition("", false, function () {
+				window.setTimeout(() => {
+					requestCanRunAds();
+					initVideoAdsScript();
+				}, 700);
 				resetAll();
 			});
 		}
