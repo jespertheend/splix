@@ -12,7 +12,7 @@ export class Main {
 	 */
 	constructor({ persistentStoragePath, websocketAuthToken }) {
 		this.persistentStorage = new PersistentStorage(persistentStoragePath);
-		this.leaderboardManager = new LeaderboardManager();
+		this.leaderboardManager = new LeaderboardManager(this.persistentStorage);
 		this.servermanager = new ServerManager(this);
 		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
 		this.authRateLimitManager = new RateLimitManager({ alwaysUseMultiConnectionLimit: true });

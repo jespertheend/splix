@@ -1,10 +1,12 @@
+/**
+ * @typedef LeaderboardScoreEntry
+ * @property {string} name
+ * @property {number} score
+ * @property {number} lastUpdateTime
+ */
+
 export class Leaderboard {
-	/**
-	 * @typedef ScoreEntry
-	 * @property {string} name
-	 * @property {number} score
-	 */
-	/** @type {ScoreEntry[]} */
+	/** @type {LeaderboardScoreEntry[]} */
 	#scores = [];
 
 	/**
@@ -22,9 +24,19 @@ export class Leaderboard {
 				break;
 			}
 		}
-		this.#scores.splice(insertionIndex, 0, { name, score });
+		this.#scores.splice(insertionIndex, 0, { name, score, lastUpdateTime: Date.now() });
 		// Limit scores to a max of 50 entries
 		this.#scores = this.#scores.slice(0, 50);
-		console.log(this.#scores);
+	}
+
+	getSaveData() {
+		return this.#scores;
+	}
+
+	/**
+	 * @param {LeaderboardScoreEntry[]} scores
+	 */
+	loadSaveData(scores) {
+		this.#scores = scores;
 	}
 }
