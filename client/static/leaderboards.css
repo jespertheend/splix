@@ -4,7 +4,7 @@ body{
   text-align: center;
 }
 
-.navBtn, table, .tblHead{
+.nav-button, table, .tblHead{
   background-color: #1e7d29;
   box-shadow: 1px 1px #114a17,2px 2px #114a17,3px 3px #114a17,4px 4px #114a17,5px 5px #114a17,10px 30px 80px rgba(0,0,0,.3);
   border-radius: 3px;
@@ -12,11 +12,18 @@ body{
   text-decoration: none;
 }
 
-.navBtn{
+.nav-button {
   padding: 10px;
   position: relative;
   display: inline-block;
   margin-bottom: 10px;
+}
+
+.boards-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 table{
@@ -52,7 +59,7 @@ td, th{
   margin: 0px;
 }
 
-.nameCell{
+.name-cell{
   max-width: 460px;
   white-space: nowrap;
   overflow: hidden;
@@ -69,11 +76,11 @@ tr:hover, th{
   background-color: #1b6924;
 }
 
-.navBtn:hover, .navBtn.selected{
+.nav-button:hover, .nav-button.selected{
   background-color: #30ab3e;
 }
 
-.navBtn:active{
+.nav-button:active{
   left: 2px;
   top: 5px;
   box-shadow: 0 0 #155a1c;
@@ -84,12 +91,12 @@ tr:hover, th{
   display: inline-block;
 }
 
-#backBtn{
+#backButton{
   position: fixed;
 }
 
 @media (max-width: 700px){
-  #backBtn{
+  #backButton{
     position: static;
   }
 }

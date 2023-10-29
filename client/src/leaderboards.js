@@ -16,41 +16,41 @@ async function loadLeaderboardData() {
 	return data;
 }
 
-const blocksBoard = /** @type {HTMLDivElement} */ (document.getElementById("blocksBoard"));
-const no1Board = /** @type {HTMLDivElement} */ (document.getElementById("no1Board"));
+const tilesBoard = /** @type {HTMLDivElement} */ (document.getElementById("tilesBoard"));
+const rankingFirstBoard = /** @type {HTMLDivElement} */ (document.getElementById("rankingFirstBoard"));
 const trailBoard = /** @type {HTMLDivElement} */ (document.getElementById("trailBoard"));
-const aliveBoard = /** @type {HTMLDivElement} */ (document.getElementById("aliveBoard"));
+const timeAliveBoard = /** @type {HTMLDivElement} */ (document.getElementById("timeAliveBoard"));
 const killsBoard = /** @type {HTMLDivElement} */ (document.getElementById("killsBoard"));
 
-const blocksBtn = document.getElementById("blocksBtn");
-const no1Btn = document.getElementById("no1Btn");
-const trailBtn = document.getElementById("trailBtn");
-const aliveBtn = document.getElementById("aliveBtn");
-const killsBtn = document.getElementById("killsBtn");
+const tilesButton = /** @type {HTMLAnchorElement} */ (document.getElementById("tilesButton"));
+const rankingFirstButton = /** @type {HTMLAnchorElement} */ (document.getElementById("rankingFirstButton"));
+const trailButton = /** @type {HTMLAnchorElement} */ (document.getElementById("trailButton"));
+const timeAliveButton = /** @type {HTMLAnchorElement} */ (document.getElementById("timeAliveButton"));
+const killsButton = /** @type {HTMLAnchorElement} */ (document.getElementById("killsButton"));
 
-function setVisibleLb() {
-	var boards = {
-		"blocks": [blocksBoard, blocksBtn],
-		"time_on_one": [no1Board, no1Btn],
-		"trail_length": [trailBoard, trailBtn],
-		"time_alive": [aliveBoard, aliveBtn],
-		"kills": [killsBoard, killsBtn],
-	};
+function setVisibleLeaderboard() {
+	/** @type {[hash: string, leaderboardEl: HTMLDivElement, buttonEl: HTMLAnchorElement][]} */
+	var linkedElements = [
+		["blocks", tilesBoard, tilesButton],
+		["time_on_one", rankingFirstBoard, rankingFirstButton],
+		["trail_length", trailBoard, trailButton],
+		["time_alive", timeAliveBoard, timeAliveButton],
+		["kills", killsBoard, killsButton],
+	];
 	var hashExists = false;
-	for (var key in boards) {
-		var item = boards[key];
-		var isCurrent = location.hash == "#" + key;
+	for (const [hash, leaderboardEl, buttonEl] of linkedElements) {
+		const isCurrent = location.hash == "#" + hash;
 		if (isCurrent) hashExists = true;
-		item[0].style.display = isCurrent ? null : "none";
-		item[1].className = isCurrent ? "navBtn selected" : "navBtn";
+		leaderboardEl.style.display = isCurrent ? null : "none";
+		buttonEl.classList.toggle("selected", isCurrent);
 	}
 	if (!hashExists) {
 		location.hash = "#blocks";
 	}
 }
 
-window.onhashchange = setVisibleLb;
-setVisibleLb();
+window.onhashchange = setVisibleLeaderboard;
+setVisibleLeaderboard();
 
 function parseTimeToString(seconds) {
 	var hours = Math.floor(seconds / 3600);
@@ -161,7 +161,7 @@ function createLeaderboard(scores, title, metric, isTimeValue) {
 		rankEl.textContent = "#" + (i + 1);
 
 		const nameEl = document.createElement("td");
-		nameEl.classList.add("nameCell");
+		nameEl.classList.add("name-cell");
 		nameEl.textContent = filter(score.name);
 
 		const valueEl = document.createElement("td");
@@ -181,20 +181,9 @@ function createLeaderboard(scores, title, metric, isTimeValue) {
 }
 
 const leaderboardData = await loadLeaderboardData();
-createLeaderboards(leaderboardData.daily.kills, leaderboardData.weekly.kills, killsBoard, "Kills");
-createLeaderboards(leaderboardData.daily.tiles, leaderboardData.weekly.tiles, blocksBoard, "Tiles");
-createLeaderboards(
-	leaderboardData.daily.timeAliveSeconds,
-	leaderboardData.weekly.timeAliveSeconds,
-	aliveBoard,
-	"Time",
-	true,
-);
-createLeaderboards(
-	leaderboardData.daily.rankingFirstSeconds,
-	leaderboardData.weekly.rankingFirstSeconds,
-	no1Board,
-	"Time",
-	true,
-);
-createLeaderboards(leaderboardData.daily.trailLength, leaderboardData.weekly.trailLength, trailBoard, "Length");
+const { daily, weekly } = leaderboardData;
+createLeaderboards(daily.kills, weekly.kills, killsBoard, "Kills");
+createLeaderboards(daily.tiles, weekly.tiles, tilesBoard, "Tiles");
+createLeaderboards(daily.timeAliveSeconds, weekly.timeAliveSeconds, timeAliveBoard, "Time", true);
+createLeaderboards(daily.rankingFirstSeconds, weekly.rankingFirstSeconds, rankingFirstBoard, "Time", true);
+createLeaderboards(daily.trailLength, weekly.trailLength, trailBoard, "Length");
