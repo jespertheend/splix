@@ -426,8 +426,8 @@ function addSocketWrapper() {
 
 	var simulatedLatency = parseInt(localStorage.simulatedLatency) / 2;
 	if (simulatedLatency > 0) {
-		var RealWebSocket = WebSocket;
-		WrappedWebSocket = function (url) {
+		const RealWebSocket = WebSocket;
+		const WrappedWebSocket = function (url) {
 			var websocket = new RealWebSocket(url);
 			websocket.binaryType = "arraybuffer";
 
