@@ -36,7 +36,7 @@ export class WebSocketManager {
 					const response = Response.json(data);
 					response.headers.set("Access-Control-Allow-Origin", "*");
 					return response;
-				} else if (url.pathname == "/servermanager/leaderboard" || url.pathname == "/api/leaderboard") {
+				} else if (url.pathname == "/servermanager/leaderboards" || url.pathname == "/api/leaderboards") {
 					const data = mainInstance.leaderboardManager.getApiJson();
 					const response = Response.json(data);
 					response.headers.set("Access-Control-Allow-Origin", "*");
