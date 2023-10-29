@@ -194,22 +194,12 @@ var joinButton,
 	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
 
-//banner ads
+//adinplay banner ads
 var aiptag = window["aiptag"] = window["aiptag"] || {};
 aiptag.cmd = aiptag.cmd || [];
 aiptag.cmd.display = aiptag.cmd.display || [];
 aiptag.cmd.player = aiptag.cmd.player || [];
-// aiptag.gdprConsent = localStorage.hasAdsConsent == "true";
-var bannerAdsUseCurse = false;
-// if(localStorage.bannerAdsUseCurse){
-// 	bannerAdsUseCurse = localStorage.bannerAdsUseCurse == "true";
-// }else{
-// 	bannerAdsUseCurse = Math.random() > 0.5;
-// 	lsSet("bannerAdsUseCurse", bannerAdsUseCurse ? "true" : "false");
-// }
-// var googletag = {}, adBox;
-// var _paq;
-// var prevWindowWidth = 0, prevWindowHeight = 0;
+
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
 	PLAYER_POS: 2,
@@ -1363,58 +1353,11 @@ window.onload = function () {
 	//banner ads
 	if (testPatreonAdsAllowed()) {
 		setUpAdBoxContent();
-		if (bannerAdsUseCurse) {
-			var script = document.createElement("script");
-			var tstamp = new Date();
-			script.id = "factorem";
-			script.src = "//cdm.cursecdn.com/js/splix/cdmfactorem_min.js?sec=home&misc=" + tstamp.getTime();
-			// script.src = '//splix.io/js/cdmfactorem_min_temp_v2.js?sec=home&misc=' + tstamp.getTime();
-			// script.async = false;
-			script.type = "text/javascript";
-			document.head.appendChild(script);
-		} else {
-			var script = document.createElement("script");
-			script.src = "//api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js";
-			script.type = "text/javascript";
-			document.head.appendChild(script);
-			refreshBanner();
-		}
-
-		// window.addEventListener('pushState', function(event){
-		// 	console.log('hashchange');
-		// 	// setTimeout(factorem.refreshAds.bind(factorem, null, true), 10);
-		// });
-
-		// googletag.cmd = [];
-		// var s = document.createElement("script");
-		// s.type = "text/javascript";
-		// s.src = "https://www.googletagservices.com/tag/js/gpt.js";
-		// document.getElementsByTagName("head")[0].appendChild(s);
-		// googletag.cmd.push(function() {
-		// 	var slotDatas = [
-		// 		{"id": "/421469808/JTE_splix.io_300x250", "size": [300, 250]},
-		// 		{"id": "/421469808/JTE_splix.io_336x280", "size": [336, 280]}
-		// 	];
-		// 	var slotData = randFromArray(slotDatas);
-		// 	googletag.defineSlot(slotData.id, slotData.size, 'gpt-banner-1').addService(googletag.pubads());
-		// 	googletag.pubads().enableSingleRequest();
-		// 	// googletag.pubads().addEventListener("impressionViewable", function(event){
-		// 	// 	console.log("ImpressionViewable", event);
-		// 	// });
-		// 	googletag.pubads().addEventListener("slotOnload", function(){
-		// 		// console.log("slotOnload");
-		// 		showBanner();
-		// 		setAdBoxLeft();
-		// 	});
-		// 	// googletag.pubads().addEventListener("slotRenderEnded", function(event){
-		// 	// 	console.log("SlotRenderEnded", event);
-		// 	// });
-		// 	// googletag.pubads().addEventListener("slotVisibilityChanged", function(event){
-		// 	// 	console.log("slotVisibilityChangedEvent", event);
-		// 	// });
-		// 	googletag.enableServices();
-		// });
-		// googletag.cmd.push(function() { googletag.display('gpt-banner-1'); });
+		var script = document.createElement("script");
+		script.src = "//api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js";
+		script.type = "text/javascript";
+		document.head.appendChild(script);
+		refreshBanner();
 	}
 
 	//best stats
@@ -2346,111 +2289,50 @@ function requestCanRunAds() {
 }
 
 var initVidAdsCalled = false;
+var adplayer;
 function initVideoAdsScript() {
 	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
 		initVidAdsCalled = true;
-		var head = document.getElementsByTagName("head")[0];
-		if (bannerAdsUseCurse) {
-			var s = document.createElement("script");
-			s.type = "text/javascript";
-			s.src = "//api.adinplay.com/player/v2/JTE/splix.io/player.min.js";
-			head.appendChild(s);
-		} else {
-			aiptag.cmd.player.push(function () {
-				adplayer = new aipPlayer({
-					AD_WIDTH: 960,
-					AD_HEIGHT: 540,
-					AD_FULLSCREEN: false,
-					AD_CENTERPLAYER: false,
-					LOADING_TEXT: "loading advertisement",
-					PREROLL_ELEM: function () {
-						return prerollElem;
-					},
-					AIP_COMPLETE: function (AD_TYPE) {
-						console.log("Ad: " + AD_TYPE + " Completed");
-						onAdFinish();
-					},
-					AIP_REMOVE: function () {},
-				});
+		aiptag.cmd.player.push(function () {
+			adplayer = new aipPlayer({
+				AD_WIDTH: 960,
+				AD_HEIGHT: 540,
+				AD_FULLSCREEN: false,
+				AD_CENTERPLAYER: false,
+				LOADING_TEXT: "loading advertisement",
+				PREROLL_ELEM: function () {
+					return prerollElem;
+				},
+				AIP_COMPLETE: function (AD_TYPE) {
+					console.log("Ad: " + AD_TYPE + " Completed");
+					onAdFinish();
+				},
+				AIP_REMOVE: function () {},
 			});
-		}
+		});
 	}
 }
 
 var prerollElem, isWaitingForAd = false, boltIsRendered = false;
 function displayAd() {
-	// console.log("displayAd()");
 	isWaitingForAd = true;
 	formElem.style.display = "none";
 	prerollElem.style.display = null;
 
-	if (bannerAdsUseCurse) {
-		if (typeof aipPlayer != "undefined") {
-			adplayer = new aipPlayer({
-				AD_WIDTH: 960,
-				AD_HEIGHT: 540,
-				PREROLL_ELEM: prerollElem,
-				AIP_COMPLETE: function () {
-					onAdFinish();
-				},
-			});
-			adplayer.startPreRoll();
-			onAdLoaded();
-		} else {
-			console.log("couldn't load ad, aipPlayer not defined");
-			onAdFinish();
-		}
-	} else {
-		aiptag.cmd.player.push(function () {
-			adplayer.startPreRoll();
-		});
-		onAdLoaded();
-	}
+	aiptag.cmd.player.push(function () {
+		adplayer.startPreRoll();
+	});
+	onAdLoaded();
 
 	scrollAd();
 }
-
-/* jshint ignore:start */
-function getScript(src, callback) {
-	var headElm = document.head || document.getElementsByTagName("head")[0];
-	var script = document.createElement("script");
-	var once = true;
-	script.async = "async";
-	script.type = "text/javascript";
-	script.charset = "UTF-8";
-	script.src = src;
-	script.onload = script.onreadystatechange = function () {
-		if (once && (!script.readyState || /loaded|complete/.test(script.readyState))) {
-			once = false;
-			callback();
-			script.onload = script.onreadystatechange = null;
-		}
-	};
-
-	headElm.appendChild(script);
-}
-// function fullslotAdReturned() {
-// 	onAdLoaded();
-// }
-
-// function removeAdSwf() {
-// 	onAdFinish();
-// }
-
-// function noAdsReturned() {
-// 	onAdError("no ads returned");
-// }
 
 var prerollIsVisible = false;
 function onAdLoaded(evt) {
 	lsSet("refreshDuringAd", "true");
 	prerollIsVisible = true;
-	// ga("send","event","ads","ad_loaded");
-	// _paq.push(['trackEvent', 'Ads', 'ad_loaded']);
 	hideBanners();
 	destroyBanners();
-	// prerollElem.style.opacity = 100;
-	// prerollElem.style.position = null;
 }
 
 function scrollAd() {
@@ -2463,11 +2345,6 @@ function scrollAd() {
 		window.scroll(0, middle - window.innerHeight / 2);
 	}
 }
-
-// function onAdError(msg){
-// 	console.log("ad error: "+msg);
-// 	onAdFinish();
-// }
 
 function onAdFinish() {
 	countAd();
@@ -2505,17 +2382,9 @@ function countAd() {
 
 function refreshBanner() {
 	if (testPatreonAdsAllowed()) {
-		if (bannerAdsUseCurse) {
-			setUpAdBoxContent();
-			if (typeof factorem != "undefined") {
-				setTimeout(factorem.refreshAds.bind(factorem, null, true), 10);
-				// factorem.refreshAds();
-			}
-		} else {
-			aiptag.cmd.display.push(function () {
-				aipDisplayTag.display("JTE_splix-io_300x250");
-			});
-		}
+		aiptag.cmd.display.push(function () {
+			aipDisplayTag.display("JTE_splix-io_300x250");
+		});
 	}
 }
 
@@ -2532,7 +2401,6 @@ function showBanner2() {
 }
 
 function destroyBanners() {
-	if (!bannerAdsUseCurse) return;
 	adBox.innerHTML = "";
 	adBox2.innerHTML = "";
 }
@@ -2549,12 +2417,7 @@ function setUpAdBoxContent() {
 	destroyBanners();
 	adBoxContentDiv = document.createElement("div");
 	adBoxContentDiv2 = document.createElement("div");
-	if (bannerAdsUseCurse) {
-		adBoxContentDiv.id = "cdm-zone-02";
-		adBoxContentDiv2.id = "cdm-zone-01";
-	} else {
-		adBoxContentDiv.id = "JTE_splix-io_300x250";
-	}
+	adBoxContentDiv.id = "JTE_splix-io_300x250";
 	adBox.appendChild(adBoxContentDiv);
 	adBox2.appendChild(adBoxContentDiv2);
 }
@@ -2593,112 +2456,6 @@ function testAdBox2Loaded() {
 		onAdBox2Loaded();
 	}
 }
-
-//initiate google adsense ima sdk
-// var adOverlayElem, adDisplayContainer, adsLoader, adsManager, videoContent;
-// var adsIsInit = false, displayAdAfterInit = false, initAdsCalled = false;
-// function initAds(){
-// 	initAdsCalled = true;
-
-// 	adOverlayElem = document.createElement("div");
-// 	adOverlayElem.style.position = "fixed";
-// 	adOverlayElem.style.width = adOverlayElem.style.height = "100%";
-// 	adOverlayElem.style.top = adOverlayElem.style.left = "0px";
-// 	adOverlayElem.style.zIndex = 20000;
-// 	adOverlayElem.style.display = "none";
-// 	document.body.appendChild(adOverlayElem);
-
-// 	videoContent = document.createElement("video");
-
-// 	var s = document.createElement("script");
-// 	s.type = "text/javascript";
-// 	s.src = "https:///imasdk.googleapis.com/js/sdkloader/ima3.js";
-// 	s.onload = function(){
-// 		adDisplayContainer = new google.ima.AdDisplayContainer(adOverlayElem, videoContent);
-// 		adDisplayContainer.initialize();
-
-// 		adsLoader = new google.ima.AdsLoader(adDisplayContainer);
-// 		adsLoader.addEventListener(
-// 			google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-// 			onAdLoaded,
-// 			false
-// 		);
-// 		adsLoader.addEventListener(
-// 			google.ima.AdErrorEvent.Type.AD_ERROR,
-// 			onAdError,
-// 			false
-// 		);
-
-// 		adsIsInit = true;
-// 		if(displayAdAfterInit){
-// 			displayAdAfterInit = false;
-// 			displayAd();
-// 		}
-// 	};
-// 	document.getElementsByTagName("head")[0].appendChild(s);
-// }
-
-// //requests an ad and displays it
-// function displayAd(){
-// 	isWaitingForAd = true;
-// 	if(!adsIsInit){
-// 		displayAdAfterInit = true;
-// 	}else{
-// 		var adsRequest = new google.ima.AdsRequest();
-// 		// adsRequest.adTagUrl = "https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/single_ad_samples&ciu_szs=300x250&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ct%3Dskippablelinear&correlator=";
-// 		var adTagUrl = "http://pubads.g.doubleclick.net/gampad/ads?sz=960x540&iu=/421469808/JTE_splix.io_preroll&ciu_szs&impl=s&gdfp_req=1&env=vp&output=xml_vast2&unviewed_position_start=1&url=[referrer_url]&description_url=[description_url]&correlator=[timestamp]";
-// 		adTagUrl = adTagUrl.replace("[referrer_url]",document.referrer).replace("[timestamp]",(new Date).getTime()).replace(/'/g, "%27").replace(/"/g, "%22");
-// 		adsRequest.adTagUrl = adTagUrl;
-// 		adsRequest.linearAdSlotWidth = 640;
-// 		adsRequest.linearAdSlotHeight = 400;
-// 		adsRequest.nonLinearAdSlotWidth = 640;
-// 		adsRequest.nonLinearAdSlotHeight = 150;
-// 		adsLoader.requestAds(adsRequest);
-// 	}
-// }
-
-// function onAdLoaded(evt){
-// 	adsManager = evt.getAdsManager(videoContent);
-
-// 	adsManager.addEventListener(
-// 		google.ima.AdErrorEvent.Type.AD_ERROR,
-// 		onAdError
-// 	);
-// 	adsManager.addEventListener(
-// 		google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
-// 		onAdFinish
-// 	);
-
-// 	adOverlayElem.style.display = null;
-
-// 	try {
-// 		adsManager.init(window.innerWidth, window.innerHeight, google.ima.ViewMode.FULLSCREEN);
-// 		adsManager.start();
-// 	}catch(adError){
-// 		onAdError(adError);
-// 	}
-
-// }
-
-// function onAdError(/*evt*/){
-// 	// console.log("Ad Error",evt);
-// 	onAdFinish();
-// }
-
-// var isWaitingForAd = false;
-// function onAdFinish(){
-// 	adOverlayElem.style.display = "none";
-// 	if(isWaitingForAd){
-// 		isWaitingForAd = false;
-// 		doConnect(true);
-// 	}
-// }
-
-// function onResize(width, height){
-// 	// if(adsManager){
-// 	// 	adsManager.resize(width, height, google.ima.ViewMode.FULLSCREEN);
-// 	// }
-// }
 
 //called when moving mouse/ clicking
 function showCursor() {
@@ -4016,6 +3773,10 @@ function doSkipDeathTransition() {
 			deathTransitionTimeout = null;
 			onClose();
 			doTransition("", false, function () {
+				window.setTimeout(() => {
+					requestCanRunAds();
+					initVideoAdsScript();
+				}, 700);
 				resetAll();
 			});
 		}
