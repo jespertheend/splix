@@ -399,7 +399,7 @@ export class Game {
 	 */
 	broadcastPlayerTrail(player) {
 		const message = WebSocketConnection.createTrailMessage(player.id, Array.from(player.getTrailVertices()));
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			if (nearbyPlayer == player) {
 				// The client that owns the player should receive 0 as player id
 				const samePlayerMessage = WebSocketConnection.createTrailMessage(
@@ -422,7 +422,7 @@ export class Game {
 		if (!lastVertex) throw new Error("Assertion failed, trailVertices is empty");
 
 		const message = WebSocketConnection.createEmptyTrailMessage(player.id, lastVertex);
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			if (nearbyPlayer == player) {
 				// The client that owns the player should receive 0 as player id
 				const samePlayerMessage = WebSocketConnection.createEmptyTrailMessage(0, lastVertex);
@@ -440,7 +440,7 @@ export class Game {
 	broadcastPlayerDeath(player) {
 		const position = player.getPosition();
 		const message = WebSocketConnection.createPlayerDieMessage(player.id, position);
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			if (nearbyPlayer == player) {
 				// The client that owns the player should receive 0 as player id
 				// We don't want to send the current position of the player either, the client already
@@ -460,7 +460,7 @@ export class Game {
 	 */
 	broadcastUndoPlayerDeath(player) {
 		const message = WebSocketConnection.createPlayerUndoDieMessage(player.id);
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			if (nearbyPlayer == player) {
 				const samePlayerMessage = WebSocketConnection.createPlayerUndoDieMessage(0);
 				nearbyPlayer.connection.send(samePlayerMessage);
@@ -488,7 +488,7 @@ export class Game {
 	broadcastHitLineAnimation(player, hitByPlayer) {
 		const position = hitByPlayer.getPosition();
 		const didHitSelf = player == hitByPlayer;
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			const pointsColorId = player.skinColorIdForPlayer(nearbyPlayer);
 			const hitByPlayerId = nearbyPlayer == hitByPlayer ? 0 : hitByPlayer.id;
 			const message = WebSocketConnection.createHitLineMessage(
@@ -507,7 +507,7 @@ export class Game {
 	 */
 	broadcastHonk(player, honkDuration) {
 		const message = WebSocketConnection.createHonkMessage(player.id, honkDuration);
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(player.getTrailBounds())) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			if (nearbyPlayer == player) continue;
 			nearbyPlayer.connection.send(message);
 		}
