@@ -866,13 +866,12 @@ export class Player {
 			throw new Error("Assertion failed, no death state is set");
 		}
 		this.#incrementRankingFirstSeconds();
-		const rankingFirstSeconds = Math.round(this.#rankingFirstSeconds / 1000);
 		this.connection.sendGameOver(
 			this.#capturedTileCount,
 			this.#killCount,
 			this.#highestRank,
 			this.#getTimeAliveSeconds(),
-			rankingFirstSeconds,
+			this.#rankingFirstSeconds,
 			this.#lastDeathState.type,
 			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
 		);
@@ -1032,7 +1031,8 @@ export class Player {
 	#incrementRankingFirstSeconds() {
 		if (this.#rankingFirstStartTime <= 0) return;
 		const duration = performance.now() - this.#rankingFirstStartTime;
-		this.#rankingFirstSeconds += duration;
+		const durationInSeconds = Math.round(duration / 1000);
+		this.#rankingFirstSeconds += durationInSeconds;
 		this.#rankingFirstStartTime = 0;
 	}
 
