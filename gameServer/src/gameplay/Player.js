@@ -184,6 +184,10 @@ export class Player {
 	 */
 	#inOtherPlayerViewports = new Set();
 
+	*inOtherPlayerViewports() {
+		yield* this.#inOtherPlayerViewports;
+	}
+
 	/**
 	 * @param {number} id
 	 * @param {import("./Game.js").Game} game
