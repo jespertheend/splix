@@ -245,7 +245,10 @@ export class Game {
 
 		const tilePlayer = this.#players.get(tileValue);
 		if (!tilePlayer) {
-			throw new Error("Assertion failed, the tile points to a non existent player");
+			return {
+				colorId: 1, // unfilled/grey
+				patternId: 0,
+			};
 		}
 
 		const colorId = tilePlayer.skinColorIdForPlayer(player) + 1;
