@@ -17,7 +17,7 @@ export class ServerManager {
 		createGameServerButton.textContent = "Create Game Server";
 		this.el.appendChild(createGameServerButton);
 		createGameServerButton.addEventListener("click", () => {
-			main.webSocketManager.requestCreateGameServer();
+			main.webSocketManager.messenger.send.createGameServer();
 		});
 	}
 
@@ -36,7 +36,10 @@ export class ServerManager {
 
 				const createdGameServer = gameServer;
 				gameServer.onConfigChange(() => {
-					this.#mainInstance.webSocketManager.setServerConfig(config.id, createdGameServer.getConfig());
+					this.#mainInstance.webSocketManager.messenger.send.setGameServerConfig(
+						config.id,
+						createdGameServer.getConfig(),
+					);
 				});
 			}
 
