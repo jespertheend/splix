@@ -12,24 +12,26 @@ export class LegacyServersManager {
 		this.#mainInstance = mainInstance;
 
 		this.el = document.createElement("div");
+		this.el.classList.add("legay-server-manager");
 
-		this.#ip4El = this.#createIpInput("Legacy ip4");
-		this.#ip6El = this.#createIpInput("Legacy ip6");
+		this.#ip4El = this.#createIpInput("Legacy IPv4: ");
+		this.#ip6El = this.#createIpInput("Legacy IPv6: ");
 	}
 
 	/**
-	 * @param {string} placeholder
+	 * @param {string} labelText
 	 */
-	#createIpInput(placeholder) {
+	#createIpInput(labelText) {
+		const labelEl = document.createElement("label");
+		this.el.append(labelEl);
 		const inputEl = document.createElement("input");
-		inputEl.placeholder = placeholder;
-		this.el.append(inputEl);
 		inputEl.addEventListener("change", () => {
 			this.#mainInstance.webSocketManager.messenger.send.setLegacyServerData({
 				ipv4: this.#ip4El.value,
 				ipv6: this.#ip6El.value,
 			});
 		});
+		labelEl.append(labelText, inputEl);
 		return inputEl;
 	}
 
