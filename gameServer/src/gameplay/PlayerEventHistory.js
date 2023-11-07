@@ -111,7 +111,7 @@ export class PlayerEventHistory {
 				event.position.x < allowedRect.max.x &&
 				event.position.y < allowedRect.max.y
 			) {
-				yield event;
+				yield event.event;
 			}
 		}
 	}
@@ -123,7 +123,7 @@ export class PlayerEventHistory {
 	 */
 	undoRecentEvents(previousPosition, newPosition) {
 		for (const event of this.getRecentEvents(previousPosition, newPosition)) {
-			this.#onUndoEventCbs.forEach((cb) => cb(event.event));
+			this.#onUndoEventCbs.forEach((cb) => cb(event));
 		}
 		this.#events.clear();
 	}

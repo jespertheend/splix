@@ -337,8 +337,24 @@ export class Player {
 				return;
 			}
 
+			const previousPosition = this.#currentPosition.clone();
+
+			// If the player is dead, we only want to allow moves which would undo the death of the player.
+			if (this.dead) {
+				let hasUndoDeathEvent = false;
+				for (const event of this.#eventHistory.getRecentEvents(previousPosition, desiredPosition)) {
+					if (event.type == "kill-player" && event.playerId == this.id) {
+						hasUndoDeathEvent = true;
+						break;
+					}
+				}
+				if (!hasUndoDeathEvent) {
+					lastMoveWasInvalid = true;
+					break;
+				}
+			}
+
 			this.#movementQueue.shift();
-			let previousPosition = this.#currentPosition.clone();
 			this.#currentPosition.set(desiredPosition);
 			this.#lastCertainClientPosition.set(desiredPosition);
 			if (this.isGeneratingTrail) {
@@ -348,7 +364,7 @@ export class Player {
 			if (firstItem.direction != "paused") {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
-			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
+			this.#eventHistory.undoRecentEvents(previousPosition, desiredPosition);
 			this.game.broadcastPlayerState(this);
 			this.#updateCurrentTile(this.#currentPosition);
 			this.#currentPositionChanged();
