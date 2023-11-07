@@ -1055,7 +1055,7 @@ export class Player {
 		return {
 			name: this.name,
 			scoreTiles: this.#maxCapturedTileCount,
-			rankingFirstSeconds: this.#rankingFirstSeconds,
+			rankingFirstSeconds: Math.round(this.#rankingFirstSeconds / 1000),
 			scoreKills: this.#killCount,
 			timeAliveSeconds: this.#getTimeAliveSeconds(),
 			trailLength: this.#maxTrailLength,
