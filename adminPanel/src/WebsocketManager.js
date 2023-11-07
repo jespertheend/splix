@@ -4,9 +4,12 @@ import { TypedMessenger } from "renda";
 /** @typedef {ReturnType<WebSocketManager["getResponseHandlers"]>} AdminPanelResponseHandlers */
 
 export class WebSocketManager {
+	#mainInstance;
 	/** @type {TypedMessenger<AdminPanelResponseHandlers, import("../../serverManager/src/WebSocketConnection.js").ServerManagerResponseHandlers>} */
 	#messenger;
-	#mainInstance;
+	get messenger() {
+		return this.#messenger;
+	}
 
 	/**
 	 * @param {import("./main.js").Main} mainInstance
@@ -53,25 +56,6 @@ export class WebSocketManager {
 		});
 	}
 
-	requestCreateGameServer() {
-		this.#messenger.send.createGameServer();
-	}
-
-	/**
-	 * @param {number} id
-	 */
-	requestDeleteGameServer(id) {
-		this.#messenger.send.requestDeleteGameServer(id);
-	}
-
-	/**
-	 * @param {number} id
-	 * @param {import("../../serverManager/src/GameServer.js").GameServerConfig} config
-	 */
-	setServerConfig(id, config) {
-		this.#messenger.send.setGameServerConfig(id, config);
-	}
-
 	getResponseHandlers() {
 		return {
 			/**
@@ -86,6 +70,12 @@ export class WebSocketManager {
 			 */
 			udpateServerConfig: (id, config) => {
 				this.#mainInstance.serverManager.updateGameServerConfig(id, config);
+			},
+			/**
+			 * @param {import("../../serverManager/src/LegacyServerManager.js").LegacyServerData} serverData
+			 */
+			updateLegacyServerData: (serverData) => {
+				this.#mainInstance.legacyServersManager.setServerData(serverData);
 			},
 		};
 	}

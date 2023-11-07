@@ -36,6 +36,13 @@ export class WebSocketManager {
 					const response = Response.json(data);
 					response.headers.set("Access-Control-Allow-Origin", "*");
 					return response;
+				} else if (
+					url.pathname == "/servermanager/legacygameservers" || url.pathname == "/json/servers.2.json"
+				) {
+					const data = mainInstance.legacyServerManager.getServersJson();
+					const response = Response.json(data);
+					response.headers.set("Access-Control-Allow-Origin", "*");
+					return response;
 				} else if (url.pathname == "/servermanager/leaderboards" || url.pathname == "/api/leaderboards") {
 					const data = mainInstance.leaderboardManager.getApiJson();
 					const response = Response.json(data);
@@ -78,6 +85,16 @@ export class WebSocketManager {
 		for (const connection of this.#activeConnections) {
 			if (!connection.authenticated) continue;
 			connection.sendServerConfig(id, config);
+		}
+	}
+
+	/**
+	 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
+	 */
+	sendAllLegacyServerData(serverData) {
+		for (const connection of this.#activeConnections) {
+			if (!connection.authenticated) continue;
+			connection.sendLegacyServerData(serverData);
 		}
 	}
 }

@@ -58,6 +58,9 @@ export class GameServer {
 	#public = false;
 	#official = false;
 	#recommended = false;
+	get recommended() {
+		return this.#recommended;
+	}
 	#needsControlSocket = true;
 	#displayName = "";
 	#endpoint = "";

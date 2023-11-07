@@ -59,6 +59,7 @@ export class WebSocketConnection {
 				}
 				this.#authenticated = true;
 				this.sendAllServerConfigs();
+				this.#messenger.send.updateLegacyServerData(this.#mainInstance.legacyServerManager.getServerData());
 				return true;
 			},
 			createGameServer: () => {
@@ -76,6 +77,12 @@ export class WebSocketConnection {
 			 */
 			setGameServerConfig: (id, config) => {
 				this.#mainInstance.servermanager.setGameServerConfig(id, config);
+			},
+			/**
+			 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
+			 */
+			setLegacyServerData: (serverData) => {
+				return this.#mainInstance.legacyServerManager.setServerData(serverData);
 			},
 		};
 
@@ -108,5 +115,13 @@ export class WebSocketConnection {
 	sendServerConfig(id, config) {
 		this.#assertAuthenticated();
 		this.#messenger.send.udpateServerConfig(id, config);
+	}
+
+	/**
+	 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
+	 */
+	sendLegacyServerData(serverData) {
+		this.#assertAuthenticated();
+		this.#messenger.send.updateLegacyServerData(serverData);
 	}
 }

@@ -33,7 +33,7 @@ export class GameServer {
 		deleteButton.textContent = "Delete";
 		this.el.appendChild(deleteButton);
 		deleteButton.addEventListener("click", () => {
-			mainInstance.webSocketManager.requestDeleteGameServer(id);
+			mainInstance.webSocketManager.messenger.send.requestDeleteGameServer(id);
 		});
 	}
 
