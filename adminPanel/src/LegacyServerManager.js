@@ -1,6 +1,6 @@
 import { Main } from "./main.js";
 
-export class LegacyServersManager {
+export class LegacyServerManager {
 	#mainInstance;
 	#ip4El;
 	#ip6El;
@@ -36,7 +36,7 @@ export class LegacyServersManager {
 	}
 
 	/**
-	 * @param {import("../../serverManager/src/LegacyServersManager.js").LegacyServerData} serverData
+	 * @param {import("../../serverManager/src/LegacyServerManager.js").LegacyServerData} serverData
 	 */
 	setServerData(serverData) {
 		this.#ip4El.value = serverData.ipv4;

@@ -1,11 +1,11 @@
-import { LegacyServersManager } from "./LegacyServersManager.js";
+import { LegacyServerManager } from "./LegacyServerManager.js";
 import { ServerManager } from "./ServerManager.js";
 import { WebSocketManager } from "./WebsocketManager.js";
 
 export class Main {
 	constructor() {
 		this.webSocketManager = new WebSocketManager(this);
-		this.legacyServersManager = new LegacyServersManager(this);
+		this.legacyServersManager = new LegacyServerManager(this);
 		this.serverManager = new ServerManager(this);
 	}
 }

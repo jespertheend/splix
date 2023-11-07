@@ -8,7 +8,7 @@ import { Main } from "./Main.js";
 
 const PERSISTENT_STORAGE_KEY = "legacyServersManagerData";
 
-export class LegacyServersManager {
+export class LegacyServerManager {
 	#mainInstance;
 
 	/** @type {LegacyServerData} */

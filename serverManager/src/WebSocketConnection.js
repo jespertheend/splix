@@ -79,7 +79,7 @@ export class WebSocketConnection {
 				this.#mainInstance.servermanager.setGameServerConfig(id, config);
 			},
 			/**
-			 * @param {import("./LegacyServersManager.js").LegacyServerData} serverData
+			 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
 			 */
 			setLegacyServerData: (serverData) => {
 				return this.#mainInstance.legacyServerManager.setServerData(serverData);
@@ -118,7 +118,7 @@ export class WebSocketConnection {
 	}
 
 	/**
-	 * @param {import("./LegacyServersManager.js").LegacyServerData} serverData
+	 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
 	 */
 	sendLegacyServerData(serverData) {
 		this.#assertAuthenticated();

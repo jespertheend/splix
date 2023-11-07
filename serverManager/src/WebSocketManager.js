@@ -89,7 +89,7 @@ export class WebSocketManager {
 	}
 
 	/**
-	 * @param {import("./LegacyServersManager.js").LegacyServerData} serverData
+	 * @param {import("./LegacyServerManager.js").LegacyServerData} serverData
 	 */
 	sendAllLegacyServerData(serverData) {
 		for (const connection of this.#activeConnections) {

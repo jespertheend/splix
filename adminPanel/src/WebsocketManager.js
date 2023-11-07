@@ -72,7 +72,7 @@ export class WebSocketManager {
 				this.#mainInstance.serverManager.updateGameServerConfig(id, config);
 			},
 			/**
-			 * @param {import("../../serverManager/src/LegacyServersManager.js").LegacyServerData} serverData
+			 * @param {import("../../serverManager/src/LegacyServerManager.js").LegacyServerData} serverData
 			 */
 			updateLegacyServerData: (serverData) => {
 				this.#mainInstance.legacyServersManager.setServerData(serverData);
