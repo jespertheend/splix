@@ -30,3 +30,9 @@ html, body{
 	display: flex;
 	gap: 15px;
 }
+
+.legay-server-manager {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 10px;
+}
