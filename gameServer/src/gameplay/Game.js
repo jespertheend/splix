@@ -259,11 +259,11 @@ export class Game {
 	}
 
 	async #updateNextMinimapPart() {
-		this.#lastMinimapPart++;
-		this.#lastMinimapPart = this.#lastMinimapPart % 4;
-		const part = await this.#arena.getMinimapPart(this.#lastMinimapPart);
-		const message = WebSocketConnection.createMinimapMessage(this.#lastMinimapPart, part);
-		this.#minimapMessages[this.#lastMinimapPart] = message;
+		this.#lastMinimapPart = (this.#lastMinimapPart + 1) % 4;
+		const lastMinimapPart = this.#lastMinimapPart;
+		const part = await this.#arena.getMinimapPart(lastMinimapPart);
+		const message = WebSocketConnection.createMinimapMessage(lastMinimapPart, part);
+		this.#minimapMessages[lastMinimapPart] = message;
 		for (const player of this.#players.values()) {
 			player.connection.send(message);
 		}
