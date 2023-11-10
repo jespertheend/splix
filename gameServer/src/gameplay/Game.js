@@ -55,7 +55,7 @@ export class Game {
 			}
 		});
 
-		this.#updateNextMinimapPartInstance = new SingleInstancePromise(this.#updateNextMinimapPart);
+		this.#updateNextMinimapPartInstance = new SingleInstancePromise(() => this.#updateNextMinimapPart());
 	}
 
 	/**
@@ -261,7 +261,7 @@ export class Game {
 		};
 	}
 
-	#updateNextMinimapPart = async () => {
+	async #updateNextMinimapPart() {
 		this.#lastMinimapPart = (this.#lastMinimapPart + 1) % 4;
 		const lastMinimapPart = this.#lastMinimapPart;
 		const part = await this.#arena.getMinimapPart(lastMinimapPart);
@@ -270,7 +270,7 @@ export class Game {
 		for (const player of this.#players.values()) {
 			player.connection.send(message);
 		}
-	};
+	}
 
 	*getMinimapMessages() {
 		yield* this.#minimapMessages;
