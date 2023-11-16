@@ -700,7 +700,7 @@ export class WebSocketConnection {
 		let deathTypeInt = 0;
 		if (deathType == "player") {
 			deathTypeInt = 1;
-		} else if (deathType == "area-bounds") {
+		} else if (deathType == "arena-bounds") {
 			deathTypeInt = 2;
 		} else if (deathType == "self") {
 			deathTypeInt = 3;

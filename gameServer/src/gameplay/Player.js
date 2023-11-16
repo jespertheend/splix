@@ -27,7 +27,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @typedef {Exclude<Direction, "paused">} UnpausedDirection
  */
 
-/** @typedef {"player" | "area-bounds" | "self"} DeathType */
+/** @typedef {"player" | "arena-bounds" | "self"} DeathType */
 
 /**
  * @typedef SkinData
@@ -220,7 +220,7 @@ export class Player {
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
 				this.game.undoPlayerDeath(event.playerId);
-				if (event.deathType != "area-bounds") {
+				if (event.deathType != "arena-bounds") {
 					this.#killCount--;
 					this.#killCount = Math.max(0, this.#killCount);
 					this.#sendMyScore();
@@ -701,7 +701,7 @@ export class Player {
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
 			this.#currentPosition.y >= this.game.arena.height - 1
 		) {
-			this.#killPlayer(this, "area-bounds");
+			this.#killPlayer(this, "arena-bounds");
 		}
 
 		// Check if we are touching someone's trail.
@@ -847,7 +847,7 @@ export class Player {
 			deathType,
 		});
 		otherPlayer.#die(deathType, this.name);
-		if (deathType != "area-bounds") {
+		if (deathType != "arena-bounds") {
 			this.#killCount++;
 			this.#sendMyScore();
 		}
