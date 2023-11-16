@@ -15,6 +15,8 @@ const MAX_LOOP_DURATION_MS = 3 / PLAYER_TRAVEL_SPEED;
 
 export class ApplicationLoop {
 	#prevNow = 0;
+	/** @type {Set<() => void>} */
+	#onSlowTickEndedCbs = new Set();
 
 	constructor() {
 		this.now = 0;
@@ -26,6 +28,7 @@ export class ApplicationLoop {
 		let dt = now - this.#prevNow;
 		if (dt > MAX_LOOP_DURATION_MS) {
 			dt = Math.min(MAX_LOOP_DURATION_MS, dt);
+			this.#onSlowTickEndedCbs.forEach((cb) => cb());
 		}
 		this.#prevNow = now;
 		this.now += dt;
@@ -46,5 +49,15 @@ export class ApplicationLoop {
 	currentTickIsSlow() {
 		const dt = performance.now() - this.#prevNow;
 		return dt > MAX_LOOP_DURATION_MS;
+	}
+
+	/**
+	 * Registers a callback that fires right after a slow tick has ended and
+	 * right before a new tick is about to start.
+	 * The tick that is about to start will fire with a high `dt` value.
+	 * @param {() => void} cb
+	 */
+	onSlowTickEnded(cb) {
+		this.#onSlowTickEndedCbs.add(cb);
 	}
 }

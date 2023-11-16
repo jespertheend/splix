@@ -10,6 +10,7 @@ import {
 	PLAYER_SPAWN_RADIUS,
 	REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
 } from "../config.js";
+import { ApplicationLoop } from "../ApplicationLoop.js";
 
 /**
  * @typedef TileTypeForMessage
@@ -37,12 +38,13 @@ export class Game {
 	}
 
 	/**
+	 * @param {ApplicationLoop} applicationLoop
 	 * @param {Object} options
 	 * @param {number} [options.arenaWidth]
 	 * @param {number} [options.arenaHeight]
 	 * @param {GameModes} [options.gameMode]
 	 */
-	constructor({
+	constructor(applicationLoop, {
 		arenaWidth = 600,
 		arenaHeight = 600,
 	} = {}) {
@@ -51,6 +53,14 @@ export class Game {
 			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
 				const { colorId, patternId } = this.getTileTypeForMessage(player, tileValue);
 				player.connection.sendFillRect(rect, colorId, patternId);
+			}
+		});
+
+		applicationLoop.onSlowTickEnded(() => {
+			for (const player of this.#players.values()) {
+				this.broadcastPlayerTrail(player);
+				this.broadcastPlayerState(player);
+				player.sendPlayerStateToPlayer(player);
 			}
 		});
 	}
