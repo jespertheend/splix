@@ -23,10 +23,28 @@ export class ApplicationLoop {
 
 	loop() {
 		const now = performance.now();
-		const dt = Math.min(MAX_LOOP_DURATION_MS, now - this.#prevNow);
+		let dt = now - this.#prevNow;
+		if (dt > MAX_LOOP_DURATION_MS) {
+			dt = Math.min(MAX_LOOP_DURATION_MS, dt);
+		}
 		this.#prevNow = now;
 		this.now += dt;
 		getMainInstance().game.loop(this.now, dt);
 		getMainInstance().websocketManager.loop(this.now, dt);
+	}
+
+	/**
+	 * If the server is currently under a lot of stress, and the current tick is taking too long,
+	 * messages will not arrive at the exact time when they were sent.
+	 * Instead, a tick starts taking very long and all messages that were sent during that tick are
+	 * all bundled together and fired in rapid succession.
+	 * In some cases, it is best to just ignore some of these messages when this happens.
+	 * But since these messages arrive just before the next tick starts,
+	 * any message handling code can't rely on the `dt` value of any loop.
+	 * Instead this function should be called to check if the current tick has been running for too long.
+	 */
+	currentTickIsSlow() {
+		const dt = performance.now() - this.#prevNow;
+		return dt > MAX_LOOP_DURATION_MS;
 	}
 }
