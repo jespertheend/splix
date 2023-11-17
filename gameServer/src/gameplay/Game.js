@@ -1,6 +1,6 @@
 /** @typedef {"default" | "teams"} GameModes */
 
-import { lerp, Vec2 } from "renda";
+import { lerp, SingleInstancePromise, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
@@ -27,6 +27,7 @@ export class Game {
 
 	/** @type {ArrayBuffer[]} */
 	#minimapMessages = [];
+	#updateNextMinimapPartInstance;
 	#lastMinimapUpdateTime = 0;
 	#lastMinimapPart = 0;
 	#lastLeaderboardSendTime = 0;
@@ -56,6 +57,8 @@ export class Game {
 			}
 		});
 
+		this.#updateNextMinimapPartInstance = new SingleInstancePromise(() => this.#updateNextMinimapPart());
+
 		applicationLoop.onSlowTickEnded(() => {
 			for (const player of this.#players.values()) {
 				this.broadcastPlayerTrail(player);
@@ -76,7 +79,7 @@ export class Game {
 
 		if (now - this.#lastMinimapUpdateTime > MINIMAP_PART_UPDATE_FREQUENCY) {
 			this.#lastMinimapUpdateTime = now;
-			this.#updateNextMinimapPart();
+			this.#updateNextMinimapPartInstance.run();
 		}
 
 		if (now - this.#lastLeaderboardSendTime > LEADERBOARD_UPDATE_FREQUENCY) {
@@ -269,11 +272,11 @@ export class Game {
 	}
 
 	async #updateNextMinimapPart() {
-		this.#lastMinimapPart++;
-		this.#lastMinimapPart = this.#lastMinimapPart % 4;
-		const part = await this.#arena.getMinimapPart(this.#lastMinimapPart);
-		const message = WebSocketConnection.createMinimapMessage(this.#lastMinimapPart, part);
-		this.#minimapMessages[this.#lastMinimapPart] = message;
+		this.#lastMinimapPart = (this.#lastMinimapPart + 1) % 4;
+		const lastMinimapPart = this.#lastMinimapPart;
+		const part = await this.#arena.getMinimapPart(lastMinimapPart);
+		const message = WebSocketConnection.createMinimapMessage(lastMinimapPart, part);
+		this.#minimapMessages[lastMinimapPart] = message;
 		for (const player of this.#players.values()) {
 			player.connection.send(message);
 		}
