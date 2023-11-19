@@ -12,6 +12,7 @@ import {
 import { lerp, Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
 import { PlayerEventHistory } from "./PlayerEventHistory.js";
+import { getMainInstance } from "../mainInstance.js";
 
 /**
  * When sent inside messages, these translate to an integer:
@@ -294,6 +295,8 @@ export class Player {
 	 * @param {Vec2} desiredPosition
 	 */
 	clientPosUpdateRequested(direction, desiredPosition) {
+		if (getMainInstance().applicationLoop.currentTickIsSlow()) return;
+
 		this.#movementQueue.push({
 			direction,
 			desiredPosition,

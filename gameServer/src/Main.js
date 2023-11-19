@@ -12,8 +12,9 @@ export class Main {
 		arenaWidth,
 		arenaHeight,
 	}) {
+		this.applicationLoop = new ApplicationLoop();
 		this.websocketManager = new WebSocketManager();
-		this.game = new Game({
+		this.game = new Game(this.applicationLoop, {
 			arenaWidth,
 			arenaHeight,
 		});
@@ -23,7 +24,6 @@ export class Main {
 		this.game.onPlayerScoreReported((score) => {
 			this.websocketManager.notifyControlSocketsPlayerScore(score);
 		});
-		this.applicationLoop = new ApplicationLoop();
 	}
 
 	/**
