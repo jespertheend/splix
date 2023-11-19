@@ -349,7 +349,6 @@ export class Player {
 					}
 				}
 				if (!hasUndoDeathEvent) {
-					this.#movementQueue.shift();
 					lastMoveWasInvalid = true;
 					break;
 				}
