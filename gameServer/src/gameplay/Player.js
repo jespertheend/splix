@@ -216,6 +216,7 @@ export class Player {
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#lastCertainClientPosition = position.clone();
+		this.#playerAddedToViewport(this);
 		this.#currentPositionChanged();
 
 		this.#eventHistory.onUndoEvent((event) => {
@@ -752,6 +753,7 @@ export class Player {
 	 */
 	#playerRemovedFromViewport(player) {
 		if (this.#removedFromGame) return;
+		if (player == this) return;
 		if (!this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.delete(player);
 		player.#inOtherPlayerViewports.delete(this);
