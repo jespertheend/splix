@@ -43,15 +43,15 @@ export class PlayerEventHistory {
 	 * @property {number} time
 	 */
 
-	/** @type {PlayerEventData[]} */
-	#events = [];
+	/** @type {Set<PlayerEventData>} */
+	#events = new Set();
 
 	/**
 	 * @param {Vec2} position The location of the player where the event occurred.
 	 * @param {PlayerEvent} event
 	 */
 	addEvent(position, event) {
-		this.#events.push({
+		this.#events.add({
 			event,
 			position,
 			time: performance.now(),
@@ -59,11 +59,11 @@ export class PlayerEventHistory {
 	}
 
 	/**
-	 * Undoes events that occurred during the provided positions.
+	 * Yields recent events that both lie within the provided range and have recently been created.
 	 * @param {Vec2} previousPosition
 	 * @param {Vec2} newPosition
 	 */
-	undoRecentEvents(previousPosition, newPosition) {
+	*getRecentEvents(previousPosition, newPosition) {
 		// We create a rectangle which we can use to check which events lie within that rectangle.
 		// Any events outside of the rectangle should be ignored, otherwise we allow the player jump over
 		// certain tiles, such as player trails or the wall.
@@ -98,10 +98,11 @@ export class PlayerEventHistory {
 		} else {
 			throw new Error("Assertion failed, previous and new position create a diagonal line.");
 		}
-		while (true) {
-			const event = this.#events.pop();
-			if (!event) break;
-			if (performance.now() - event.time > MAX_UNDO_EVENT_TIME) break;
+		for (const event of this.#events) {
+			if (performance.now() - event.time > MAX_UNDO_EVENT_TIME) {
+				this.#events.delete(event);
+				continue;
+			}
 
 			// Check if the event lies between previousPosition and newPosition, and skip otherwise
 			if (
@@ -110,10 +111,21 @@ export class PlayerEventHistory {
 				event.position.x < allowedRect.max.x &&
 				event.position.y < allowedRect.max.y
 			) {
-				this.#onUndoEventCbs.forEach((cb) => cb(event.event));
+				yield event.event;
 			}
 		}
-		this.#events = [];
+	}
+
+	/**
+	 * Undoes events that occurred during the provided positions.
+	 * @param {Vec2} previousPosition
+	 * @param {Vec2} newPosition
+	 */
+	undoRecentEvents(previousPosition, newPosition) {
+		for (const event of this.getRecentEvents(previousPosition, newPosition)) {
+			this.#onUndoEventCbs.forEach((cb) => cb(event));
+		}
+		this.#events.clear();
 	}
 
 	/** @type {Set<OnUndoEventCallback>} */

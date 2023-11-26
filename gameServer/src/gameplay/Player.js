@@ -28,7 +28,7 @@ import { getMainInstance } from "../mainInstance.js";
  * @typedef {Exclude<Direction, "paused">} UnpausedDirection
  */
 
-/** @typedef {"player" | "area-bounds" | "self"} DeathType */
+/** @typedef {"player" | "arena-bounds" | "self"} DeathType */
 
 /**
  * @typedef SkinData
@@ -222,7 +222,7 @@ export class Player {
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
 				this.game.undoPlayerDeath(event.playerId);
-				if (event.deathType != "area-bounds") {
+				if (event.deathType != "arena-bounds") {
 					this.#killCount--;
 					this.#killCount = Math.max(0, this.#killCount);
 					this.#sendMyScore();
@@ -341,8 +341,24 @@ export class Player {
 				return;
 			}
 
+			const previousPosition = this.#currentPosition.clone();
+
+			// If the player is dead, we only want to allow moves which would undo the death of the player.
+			if (this.dead) {
+				let hasUndoDeathEvent = false;
+				for (const event of this.#eventHistory.getRecentEvents(previousPosition, desiredPosition)) {
+					if (event.type == "kill-player" && event.playerId == this.id) {
+						hasUndoDeathEvent = true;
+						break;
+					}
+				}
+				if (!hasUndoDeathEvent) {
+					lastMoveWasInvalid = true;
+					break;
+				}
+			}
+
 			this.#movementQueue.shift();
-			let previousPosition = this.#currentPosition.clone();
 			this.#currentPosition.set(desiredPosition);
 			this.#lastCertainClientPosition.set(desiredPosition);
 			if (this.isGeneratingTrail) {
@@ -352,7 +368,7 @@ export class Player {
 			if (firstItem.direction != "paused") {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
-			this.#eventHistory.undoRecentEvents(previousPosition, this.#currentPosition);
+			this.#eventHistory.undoRecentEvents(previousPosition, desiredPosition);
 			this.game.broadcastPlayerState(this);
 			this.#updateCurrentTile(this.#currentPosition);
 			this.#currentPositionChanged();
@@ -689,7 +705,7 @@ export class Player {
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
 			this.#currentPosition.y >= this.game.arena.height - 1
 		) {
-			this.#killPlayer(this, "area-bounds");
+			this.#killPlayer(this, "arena-bounds");
 		}
 
 		// Check if we are touching someone's trail.
@@ -836,7 +852,7 @@ export class Player {
 			deathType,
 		});
 		otherPlayer.#die(deathType, this.name);
-		if (deathType != "area-bounds") {
+		if (deathType != "arena-bounds") {
 			this.#killCount++;
 			this.#sendMyScore();
 		}
