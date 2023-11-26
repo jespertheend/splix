@@ -119,7 +119,6 @@ export class Game {
 		const id = this.#getNewPlayerId();
 		const player = new Player(id, this, connection, playerOptions);
 		this.#players.set(id, player);
-		this.broadcastPlayerState(player);
 		this.#fireOnPlayerCountChange();
 		return player;
 	}
