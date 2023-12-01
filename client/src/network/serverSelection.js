@@ -26,6 +26,7 @@ export async function initServerSelection() {
 	const officialEndpoints = [];
 	/** @type {HTMLOptionElement?} */
 	let selectedEndpoint = null;
+	const lastSelectedEndpoint = localStorage.getItem("lastSelectedEndpoint");
 
 	for (const server of servers.servers) {
 		const optionEl = document.createElement("option");
@@ -42,7 +43,10 @@ export async function initServerSelection() {
 		} else {
 			unofficialGroup.appendChild(optionEl);
 		}
-		if (server.recommended) {
+		if (
+			(!lastSelectedEndpoint && server.recommended) ||
+			(lastSelectedEndpoint && lastSelectedEndpoint === server.endpoint)
+		) {
 			selectedEndpoint = optionEl;
 		}
 	}
