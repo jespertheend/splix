@@ -1,4 +1,4 @@
-/** @typedef {"default" | "teams"} GameModes */
+/** @typedef {"default" | "drawing"} GameModes */
 
 import { lerp, SingleInstancePromise, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
@@ -18,8 +18,15 @@ import { ApplicationLoop } from "../ApplicationLoop.js";
  * @property {number} patternId
  */
 
+/** @type {GameModes[]} */
+export const validGamemodes = ["default", "drawing"];
+
 export class Game {
 	#arena;
+	#gameMode;
+	get gameMode() {
+		return this.#gameMode;
+	}
 
 	get arena() {
 		return this.#arena;
@@ -48,7 +55,9 @@ export class Game {
 	constructor(applicationLoop, {
 		arenaWidth = 600,
 		arenaHeight = 600,
+		gameMode = "default",
 	} = {}) {
+		this.#gameMode = gameMode;
 		this.#arena = new Arena(arenaWidth, arenaHeight);
 		this.#arena.onRectFilled((rect, tileValue) => {
 			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
