@@ -27,6 +27,7 @@ export async function initServerSelection() {
 	/** @type {HTMLOptionElement?} */
 	let selectedEndpoint = null;
 	const lastSelectedEndpoint = localStorage.getItem("lastSelectedEndpoint");
+	const serverEndpoints = new Set(servers.servers.map((server) => server.endpoint));
 
 	for (const server of servers.servers) {
 		const optionEl = document.createElement("option");
@@ -45,7 +46,8 @@ export async function initServerSelection() {
 		}
 		if (
 			(!lastSelectedEndpoint && server.recommended) ||
-			(lastSelectedEndpoint && lastSelectedEndpoint === server.endpoint)
+			(lastSelectedEndpoint && lastSelectedEndpoint === server.endpoint) ||
+			(!lastSelectedEndpoint && server.recommended && !serverEndpoints.has(server.endpoint))
 		) {
 			selectedEndpoint = optionEl;
 		}
