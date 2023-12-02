@@ -1720,8 +1720,9 @@ function onMessage(evt) {
 		w = bytesToInt(data[5], data[6]);
 		h = bytesToInt(data[7], data[8]);
 		type = data[9];
-		var pattern = data[10];
-		fillArea(x, y, w, h, type, pattern);
+		const pattern = data[10];
+		const isEdgeChunk = data[11];
+		fillArea(x, y, w, h, type, pattern, undefined, isEdgeChunk);
 	}
 	if (data[0] == receiveAction.SET_TRAIL) {
 		id = bytesToInt(data[1], data[2]);
@@ -3276,7 +3277,7 @@ function orderTwoPos(pos1, pos2) {
 }
 
 //fills an area, if array is not specified it defaults to blocks[]
-function fillArea(x, y, w, h, type, pattern, array) {
+function fillArea(x, y, w, h, type, pattern, array, isEdgeChunk = false) {
 	var defaultArray = array === undefined;
 	if (defaultArray) {
 		array = blocks;
@@ -3299,7 +3300,7 @@ function fillArea(x, y, w, h, type, pattern, array) {
 		for (var j = y; j < y2; j++) {
 			var block = getBlock(i, j, array);
 			var thisType = applyPattern(type, pattern, i, j);
-			block.setBlockId(thisType, Math.random() * 400);
+			block.setBlockId(thisType, isEdgeChunk ? false : Math.random() * 400);
 		}
 	}
 }
