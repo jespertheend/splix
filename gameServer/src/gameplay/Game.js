@@ -527,4 +527,16 @@ export class Game {
 			nearbyPlayer.connection.send(message);
 		}
 	}
+
+	/**
+	 * Updates the scores of all players except the current player.
+	 * @param {import("./Player.js").Player} currentPlayer
+	 */
+	updatePlayerScores(currentPlayer) {
+		for (const player of this.#players.values()) {
+			if (player == currentPlayer) continue;
+			if (player.isGeneratingTrail && player.currentDirection !== "paused") continue;
+			player.updateCapturedArea();
+		}
+	}
 }
