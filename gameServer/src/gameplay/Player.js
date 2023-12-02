@@ -833,7 +833,7 @@ export class Player {
 	sendChunk(rect) {
 		const chunkData = this.game.getArenaChunkForMessage(rect, this);
 		for (const rect of chunkData) {
-			this.connection.sendFillRect(rect.rect, rect.tileType.colorId, rect.tileType.patternId);
+			this.connection.sendFillRect(rect.rect, rect.tileType.colorId, rect.tileType.patternId, true);
 		}
 	}
 
