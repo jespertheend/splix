@@ -402,8 +402,7 @@ export class Game {
 	 * @param {import("./Player.js").Player} player
 	 */
 	broadcastPlayerState(player) {
-		const bounds = player.getTrailBounds();
-		for (const nearbyPlayer of this.getOverlappingViewportPlayersForRect(bounds)) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			player.sendPlayerStateToPlayer(nearbyPlayer);
 		}
 	}
