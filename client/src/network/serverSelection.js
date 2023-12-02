@@ -44,11 +44,11 @@ export async function initServerSelection() {
 		} else {
 			unofficialGroup.appendChild(optionEl);
 		}
-		if (
-			(!lastSelectedEndpoint && server.recommended) ||
-			(lastSelectedEndpoint && lastSelectedEndpoint === server.endpoint) ||
-			(!lastSelectedEndpoint && server.recommended && !serverEndpoints.has(server.endpoint))
-		) {
+		if (lastSelectedEndpoint && serverEndpoints.has(lastSelectedEndpoint)) {
+			if (lastSelectedEndpoint === server.endPoint) {
+				selectedEndpoint = optionEl;
+			}
+		} else if (server.recommended) {
 			selectedEndpoint = optionEl;
 		}
 	}
