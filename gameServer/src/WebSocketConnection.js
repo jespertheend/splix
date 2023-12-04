@@ -479,9 +479,10 @@ export class WebSocketConnection {
 	 * @param {import("./util/util.js").Rect} rect
 	 * @param {number} tileType
 	 * @param {number} patternId
+	 * @param {boolean} isEdgeChunk
 	 */
-	sendFillRect(rect, tileType, patternId) {
-		const buffer = new ArrayBuffer(11);
+	sendFillRect(rect, tileType, patternId, isEdgeChunk = false) {
+		const buffer = new ArrayBuffer(12);
 		const view = new DataView(buffer);
 		let cursor = 0;
 
@@ -506,6 +507,9 @@ export class WebSocketConnection {
 		cursor++;
 
 		view.setUint8(cursor, patternId);
+		cursor++;
+
+		view.setUint8(cursor, isEdgeChunk ? 1 : 0);
 		cursor++;
 
 		this.send(buffer);
