@@ -1369,6 +1369,11 @@ window.onload = function () {
 
 	initServerSelection();
 
+	document.getElementById("serverSelect").addEventListener(
+		"change",
+		(e) => localStorage.setItem("lastSelectedEndpoint", e.target.value),
+	);
+
 	window.requestAnimationFrame(loop);
 
 	var devString = IS_DEV_BUILD ? " (dev build)" : "";
