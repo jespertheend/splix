@@ -44,9 +44,8 @@ generateTypes({
 
 if (!Deno.args.includes("--no-init")) {
 	const gameServer = initGameServer({
-		arenaWidth: 240,
-		arenaHeight: 240,
-		gameMode: "drawing",
+		arenaWidth: 40,
+		arenaHeight: 40,
 	});
 
 	const persistentStoragePath = resolve("serverManager/persistentStorage.json");
