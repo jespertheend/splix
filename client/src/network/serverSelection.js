@@ -45,7 +45,7 @@ export async function initServerSelection() {
 			unofficialGroup.appendChild(optionEl);
 		}
 		if (lastSelectedEndpoint && serverEndpoints.has(lastSelectedEndpoint)) {
-			if (lastSelectedEndpoint === server.endPoint) {
+			if (lastSelectedEndpoint === server.endpoint) {
 				selectedEndpoint = optionEl;
 			}
 		} else if (server.recommended) {
