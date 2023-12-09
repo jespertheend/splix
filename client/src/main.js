@@ -1347,7 +1347,6 @@ window.onload = function () {
 	//init video ads if refreshed during ad
 	if (localStorage.refreshDuringAd) {
 		initVideoAdsScript();
-		requestCanRunAds();
 	}
 
 	//banner ads
@@ -1970,6 +1969,7 @@ function onMessage(evt) {
 				doTransition("GAME OVER", true, null, function () {
 					onClose();
 					resetAll();
+					initVideoAdsScript();
 				}, true);
 				// console.log("after doTransition",isTransitioning);
 			}
@@ -2297,6 +2297,8 @@ function requestCanRunAds() {
 var initVidAdsCalled = false;
 var adplayer;
 function initVideoAdsScript() {
+	requestCanRunAds();
+
 	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
 		initVidAdsCalled = true;
 		aiptag.cmd.player.push(function () {
@@ -3780,7 +3782,6 @@ function doSkipDeathTransition() {
 			onClose();
 			doTransition("", false, function () {
 				window.setTimeout(() => {
-					requestCanRunAds();
 					initVideoAdsScript();
 				}, 700);
 				resetAll();
