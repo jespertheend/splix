@@ -1,6 +1,7 @@
 import { Main } from "./Main.js";
 import { parse as parseArgs } from "https://deno.land/std@0.198.0/flags/mod.ts";
 import { basename } from "https://deno.land/std@0.198.0/path/mod.ts";
+import { validGamemodes } from "./gameplay/Game.js";
 
 /** @type {Main?} */
 let main = null;
@@ -37,9 +38,9 @@ if (import.meta.main) {
     Example: ${executableName} -p 5050
 -h --hostname
     Configures the hostname of the websocket.
-	Defaults to 127.0.0.1.
-	Use 0.0.0.0 to allow access from other devices.
-	Example: ${executableName} -h 0.0.0.0
+    Defaults to 127.0.0.1.
+    Use 0.0.0.0 to allow access from other devices.
+    Example: ${executableName} -h 0.0.0.0
 
 --arenaWidth, --arenaHeight
     Configures the width and height of the arena.
@@ -50,6 +51,11 @@ if (import.meta.main) {
     Sets both the width and height of the arena to the same value.
     Takes precedence over --arenaWidth and --arenaHeight.
     Example: ${executableName} -s 100
+
+-g --gameMode
+    Sets the game mode of the game. Valid values are:
+    ${validGamemodes.join(" ")}
+    Example: ${executableName} --gameMode default
 `);
 	} else {
 		const port = args.p || args.port || 8080;
@@ -57,6 +63,10 @@ if (import.meta.main) {
 		let arenaWidth = parseInt(args.arenaWidth || 100);
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
+		const gameMode = args.g || args.gameMode || "default";
+		if (!validGamemodes.includes(gameMode)) {
+			throw new Error(`"${gameMode}" is not a valid gamemode.`);
+		}
 		if (arenaSize) {
 			arenaWidth = arenaSize;
 			arenaHeight = arenaSize;
@@ -64,6 +74,7 @@ if (import.meta.main) {
 		const main = init({
 			arenaWidth,
 			arenaHeight,
+			gameMode,
 		});
 		main.init({ port, hostname });
 	}
