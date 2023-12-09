@@ -1405,7 +1405,6 @@ function onOpen() {
 function onConnectOrMiddleOfTransition() {
 	hideSkinScreen();
 	hideBeginShowMain();
-	destroyBanners();
 }
 
 //hides beginScreen and shows the main canvas and ui
@@ -2340,7 +2339,6 @@ function onAdLoaded(evt) {
 	lsSet("refreshDuringAd", "true");
 	prerollIsVisible = true;
 	hideBanners();
-	destroyBanners();
 }
 
 function scrollAd() {
@@ -2408,11 +2406,6 @@ function showBanner2() {
 	}
 }
 
-function destroyBanners() {
-	adBox.innerHTML = "";
-	adBox2.innerHTML = "";
-}
-
 function hideBanners() {
 	adBox.style.visibility = adBox2.style.visibility = "hidden";
 }
@@ -2422,7 +2415,6 @@ function setAdBoxLeft() {
 }
 
 function setUpAdBoxContent() {
-	destroyBanners();
 	adBoxContentDiv = document.createElement("div");
 	adBoxContentDiv2 = document.createElement("div");
 	adBoxContentDiv.id = "JTE_splix-io_300x250";
