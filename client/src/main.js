@@ -1347,7 +1347,6 @@ window.onload = function () {
 	//init video ads if refreshed during ad
 	if (localStorage.refreshDuringAd) {
 		initVideoAdsScript();
-		requestCanRunAds();
 	}
 
 	//banner ads
@@ -1406,7 +1405,6 @@ function onOpen() {
 function onConnectOrMiddleOfTransition() {
 	hideSkinScreen();
 	hideBeginShowMain();
-	destroyBanners();
 }
 
 //hides beginScreen and shows the main canvas and ui
@@ -1970,6 +1968,7 @@ function onMessage(evt) {
 				doTransition("GAME OVER", true, null, function () {
 					onClose();
 					resetAll();
+					initVideoAdsScript();
 				}, true);
 				// console.log("after doTransition",isTransitioning);
 			}
@@ -2297,6 +2296,8 @@ function requestCanRunAds() {
 var initVidAdsCalled = false;
 var adplayer;
 function initVideoAdsScript() {
+	requestCanRunAds();
+
 	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
 		initVidAdsCalled = true;
 		aiptag.cmd.player.push(function () {
@@ -2338,7 +2339,6 @@ function onAdLoaded(evt) {
 	lsSet("refreshDuringAd", "true");
 	prerollIsVisible = true;
 	hideBanners();
-	destroyBanners();
 }
 
 function scrollAd() {
@@ -2406,11 +2406,6 @@ function showBanner2() {
 	}
 }
 
-function destroyBanners() {
-	adBox.innerHTML = "";
-	adBox2.innerHTML = "";
-}
-
 function hideBanners() {
 	adBox.style.visibility = adBox2.style.visibility = "hidden";
 }
@@ -2420,7 +2415,6 @@ function setAdBoxLeft() {
 }
 
 function setUpAdBoxContent() {
-	destroyBanners();
 	adBoxContentDiv = document.createElement("div");
 	adBoxContentDiv2 = document.createElement("div");
 	adBoxContentDiv.id = "JTE_splix-io_300x250";
@@ -3780,7 +3774,6 @@ function doSkipDeathTransition() {
 			onClose();
 			doTransition("", false, function () {
 				window.setTimeout(() => {
-					requestCanRunAds();
 					initVideoAdsScript();
 				}, 700);
 				resetAll();
