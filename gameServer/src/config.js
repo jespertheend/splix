@@ -54,7 +54,7 @@ export const VALID_SKIN_COLOR_RANGE = 13;
 /**
  * The maximum allowed pattern id.
  */
-export const VALID_SKIN_PATTERN_RANGE = 27;
+export const VALID_SKIN_PATTERN_RANGE = 29;
 
 /**
  * How often (in milliseconds) a new part of the minimap is updated.
