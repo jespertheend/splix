@@ -1,5 +1,10 @@
 import { clamp, Vec2 } from "renda";
-import { UPDATES_VIEWPORT_RECT_SIZE, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_RANGE } from "./config.js";
+import {
+	UPDATES_VIEWPORT_RECT_SIZE,
+	VALID_PLAYER_NAME_LENGTH,
+	VALID_SKIN_COLOR_RANGE,
+	VALID_SKIN_PATTERN_RANGE,
+} from "./config.js";
 import { Player } from "./gameplay/Player.js";
 import { ControlSocketConnection } from "./ControlSocketConnection.js";
 
@@ -290,9 +295,12 @@ export class WebSocketConnection {
 			};
 		} else if (messageType == WebSocketConnection.ReceiveAction.SET_USERNAME) {
 			if (this.#player) return;
+			const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
+			const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
+			if (data.byteLength > maxByteLength) return;
 			const decoder = new TextDecoder();
 			const bytes = new Uint8Array(data, 1);
-			this.#receivedName = decoder.decode(bytes);
+			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
 			if (!this.#player) return;
 			if (view.byteLength != 2) return;
