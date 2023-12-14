@@ -57,6 +57,11 @@ export const VALID_SKIN_COLOR_RANGE = 13;
 export const VALID_SKIN_PATTERN_RANGE = 29;
 
 /**
+ * How many characters player are allowed to have.
+ */
+export const VALID_PLAYER_NAME_LENGTH = 20;
+
+/**
  * How often (in milliseconds) a new part of the minimap is updated.
  * The minimap is divided in 4 parts, so a value of 250 would mean the full map sent every second.
  */
