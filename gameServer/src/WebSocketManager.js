@@ -2,6 +2,7 @@ import { RateLimitManager } from "../../shared/RateLimitManager.js";
 import { WebSocketConnection } from "./WebSocketConnection.js";
 import { getMainInstance } from "./mainInstance.js";
 import { WebSocketHoster } from "./util/WebSocketHoster.js";
+import { DinoRateLimiter } from "./util/SocketRateLimiter.js";
 
 export class WebSocketManager {
 	#hoster;
@@ -26,7 +27,17 @@ export class WebSocketManager {
 
 			const connection = new WebSocketConnection(socket, ip, getMainInstance().game);
 			this.#activeConnections.add(connection);
+
+			const socketRateLimiter = new DinoRateLimiter({
+				maxMessages: 20,
+				interval: 100,
+				onRateLimitExceeded: () => {
+					socket.close();
+				}
+			});
+
 			socket.addEventListener("message", async (message) => {
+				socketRateLimiter.tick();
 				try {
 					if (message.data instanceof ArrayBuffer) {
 						await connection.onMessage(message.data);
