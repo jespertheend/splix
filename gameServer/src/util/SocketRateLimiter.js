@@ -55,11 +55,12 @@ export class DinoRateLimiter {
 
         // console.log(this.messageTimeQueue.length); // DEBUG
 
-        if (this.messageTimeQueue.length > this.maxMessages && this.onRateLimitExceeded) {
-            this.onRateLimitExceeded();
+        if (this.messageTimeQueue.length > this.maxMessages) {
+            if (this.onRateLimitExceeded) {
+                this.onRateLimitExceeded();
+            }
             return true;
         }
-
         return false;
     }
 }
