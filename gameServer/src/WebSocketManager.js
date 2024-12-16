@@ -33,7 +33,7 @@ export class WebSocketManager {
 				interval: 100,
 				onRateLimitExceeded: () => {
 					socket.close();
-				}
+				},
 			});
 
 			socket.addEventListener("message", async (message) => {
