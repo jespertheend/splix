@@ -19,7 +19,13 @@
  * }
  */
 
-export class DinoRateLimiter {
+export class SocketRateLimiter {
+	/** @type {number[]} */
+	#messageTimeQueue = [];
+	#maxMessages;
+	#interval;
+	#onRateLimitExceeded;
+
 	/**
 	 * @param {Object} options - Configurations
 	 * @param {number} options.maxMessages - Maximum number of messages allowed in the time interval.
@@ -27,11 +33,9 @@ export class DinoRateLimiter {
 	 * @param {Function} [options.onRateLimitExceeded] - Optional callback to invoke when the rate limit is exceeded.
 	 */
 	constructor({ maxMessages, interval, onRateLimitExceeded = undefined }) {
-		/** @type {number[]} */
-		this.messageTimeQueue = [];
-		this.maxMessages = maxMessages;
-		this.interval = interval;
-		this.onRateLimitExceeded = onRateLimitExceeded;
+		this.#maxMessages = maxMessages;
+		this.#interval = interval;
+		this.#onRateLimitExceeded = onRateLimitExceeded;
 	}
 
 	/**
@@ -40,24 +44,21 @@ export class DinoRateLimiter {
 	 * If the rate limit is reached, it executes the `onRateLimitExceeded` callback.
 	 *
 	 * @returns {boolean} - Returns true if the rate limit is exceeded, otherwise false.
-	 *
-	 * @callback onRateLimitExceeded
-	 * @description Callback function that is executed when the rate limit is exceeded.
 	 */
 	tick() {
 		const now = Date.now();
-		this.messageTimeQueue.push(now);
+		this.#messageTimeQueue.push(now);
 
 		// remove old message timestamps
-		while (this.messageTimeQueue.length > 0 && now - this.messageTimeQueue[0] > this.interval) {
-			this.messageTimeQueue.shift();
+		while (this.#messageTimeQueue.length > 0 && now - this.#messageTimeQueue[0] > this.#interval) {
+			this.#messageTimeQueue.shift();
 		}
 
 		// console.log(this.messageTimeQueue.length); // DEBUG
 
-		if (this.messageTimeQueue.length > this.maxMessages) {
-			if (this.onRateLimitExceeded) {
-				this.onRateLimitExceeded();
+		if (this.#messageTimeQueue.length > this.#maxMessages) {
+			if (this.#onRateLimitExceeded) {
+				this.#onRateLimitExceeded();
 			}
 			return true;
 		}
