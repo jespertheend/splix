@@ -5,7 +5,7 @@ import { fillRect } from "../../util/util.js";
 import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
 import { PlayerBoundsTracker } from "./PlayerBoundsTracker.js";
 import { getMinimapPart } from "./getMinimapPart.js";
-import { Perf } from "../../util/Perf.js";
+
 /**
  * Stores which tiles have been filled and by which player.
  * -1 = border
@@ -37,7 +37,6 @@ const arenaWorkerHandlers = {
 	 * @param {number} playerId
 	 */
 	fillPlayerSpawn(x, y, playerId) {
-		Perf.start("fillPlayerSpawn");
 		const center = new Vec2(x, y);
 		const rect = {
 			min: center.clone().subScalar(PLAYER_SPAWN_RADIUS),
@@ -45,7 +44,6 @@ const arenaWorkerHandlers = {
 		};
 		fillTilesRect(rect, playerId);
 		boundsTracker.initializePlayer(playerId, rect);
-		Perf.end("fillPlayerSpawn");
 	},
 	/**
 	 * Fills the tiles that are covered with a player trail.
@@ -53,7 +51,6 @@ const arenaWorkerHandlers = {
 	 * @param {number} playerId
 	 */
 	fillPlayerTrail(vertices, playerId) {
-		Perf.start("fillPlayerTrail");
 		const verticesVec2 = vertices.map((v) => new Vec2(v[0], v[1]));
 		if (verticesVec2.length === 1) {
 			const vertex = verticesVec2[0];
@@ -83,7 +80,6 @@ const arenaWorkerHandlers = {
 		for (const vertex of verticesVec2) {
 			boundsTracker.expandBoundsWithPoint(playerId, vertex);
 		}
-		Perf.end("fillPlayerTrail");
 	},
 	/**
 	 * Finds unfilled areas of the player and fills them.
@@ -91,7 +87,6 @@ const arenaWorkerHandlers = {
 	 * @param {[x: number, y: number][]} otherPlayerLocations
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
-		Perf.start("updateCapturedArea");
 		const bounds = boundsTracker.getBounds(playerId);
 		const { fillRects, totalFilledTileCount, newBounds } = updateCapturedArea(
 			arenaTiles,
@@ -103,18 +98,15 @@ const arenaWorkerHandlers = {
 		for (const { rect } of fillRects) {
 			fillTilesRect(rect, playerId);
 		}
-		Perf.end("updateCapturedArea");
 		return totalFilledTileCount;
 	},
 	/**
 	 * @param {number} playerId
 	 */
 	clearAllPlayerTiles(playerId) {
-		Perf.start("clearAllPlayerTiles");
 		const bounds = boundsTracker.getBounds(playerId);
 
 		const rects = compressTiles(bounds, (x, y) => {
-			Perf.end("clearAllPlayerTiles");
 			return arenaTiles[x][y] == playerId;
 		});
 
@@ -123,21 +115,14 @@ const arenaWorkerHandlers = {
 		}
 
 		boundsTracker.deletePlayer(playerId);
-		Perf.end("clearAllPlayerTiles");
 	},
 	/**
 	 * @param {number} part Which part of the client canvas to fill, value of 0, 1, 2, or 3
 	 */
 	getMinimapPart(part) {
-		Perf.start("getMinimapPart");
-		let minimap = getMinimapPart(part, arenaWidth, arenaHeight, arenaTiles);
-		Perf.end("getMinimapPart");
-		return minimap;
+		return getMinimapPart(part, arenaWidth, arenaHeight, arenaTiles);
 	},
-
 };
-
-Perf.scheduledPrint();
 
 /** @type {TypedMessenger<ArenaWorkerHandlers, import("../Arena.js").WorkerArenaHandlers>} */
 const messenger = new TypedMessenger();
