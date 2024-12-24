@@ -1,7 +1,7 @@
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 
-var GLOBAL_SPEED = 0.006;
+var GLOBAL_SPEED = 0.06;
 var VIEWPORT_RADIUS = 30;
 var MAX_ZOOM = 430;
 // var MAX_ZOOM = 10000;
