@@ -38,15 +38,11 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	// The reason for this is that we want to seed the flood fill algorithm at the top left corner of the bounds.
 	// We need to have at least one tile around the area that is not owned by the player that we try to fill for.
 	// That way the flood fill can wrap all the way around the players existing area.
-	Perf.start("boundAdd");
 	bounds.min.subScalar(1);
 	bounds.max.addScalar(1);
-	Perf.end("boundAdd");
 
 	// We clear the mask because it might still contain values from the last call.
-	Perf.start("fillRect");
 	fillRect(floodFillMask, maskWidth, maskHeight, bounds, 0);
-	Perf.end("fillRect");
 
 	/**
 	 * Tests whether a node should be marked as 1 (not filled by the player, outside their area)
@@ -67,9 +63,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 
 	// We could seed the flood fill along anywhere across the edge of the bounds really,
 	// but we'll just go with the top left corner.
-	Perf.start("cornerSeed");
 	const cornerSeed = bounds.min.clone();
-	Perf.end("cornerSeed");
 
 	// We do a quick assertion to make sure our seed is not outside the bounds or already owned by the player.
 	// There needs to be a border of one tile around the players area,
@@ -82,7 +76,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
-	Perf.start("unfillableLocations");
 	for (const location of unfillableLocations) {
 		const pos = new Vec2(location);
 		nodes.push(
@@ -96,23 +89,32 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		// They could lie outside the bounds for instance, or maybe this player is currently inside the
 		// captured area of the other player.
 	}
-	Perf.end("unfillableLocations");
 
-	Perf.start("while")
-	while (true) {
-		const node = nodes.pop();
-		if (!node) break;
-		if (testFillNode(node)) {
-			floodFillMask[node.x][node.y] = 1;
-			nodes.push(
-				node.clone().add(0, 1),
-				node.clone().add(0, -1),
-				node.clone().add(1, 0),
-				node.clone().add(-1, 0),
-			);
+	Perf.start("floodfill")
+	const queue = [cornerSeed];
+	floodFillMask[cornerSeed.x][cornerSeed.y] = 1;
+
+	while (queue.length > 0) {
+		Perf.count("iter");
+		const node = queue.shift();
+		if (!node) continue;
+
+		const neighbors = [
+			node.clone().add(0, 1),
+			node.clone().add(0, -1),
+			node.clone().add(1, 0),
+			node.clone().add(-1, 0),
+		];
+
+		for (const neighbor of neighbors) {
+			if (testFillNode(neighbor)) {
+				floodFillMask[neighbor.x][neighbor.y] = 1;
+				queue.push(neighbor);
+			}
 		}
 	}
-	Perf.end("while");
+	Perf.end("floodfill");
+	Perf.print();
 
 	/** @type {import("../../util/util.js").Rect} */
 	const newBounds = {
@@ -120,8 +122,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		max: new Vec2(-Infinity, -Infinity),
 	};
 	let totalFilledTileCount = 0;
-
-	Perf.start("secondForLoop")
 	for (let x = bounds.min.x; x < bounds.max.x; x++) {
 		for (let y = bounds.min.y; y < bounds.max.y; y++) {
 			if (floodFillMask[x][y] == 0 || arenaTiles[x][y] == playerId) {
@@ -133,16 +133,12 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 			}
 		}
 	}
-	Perf.end("secondForLoop");
 
 	// At this point, the floodFillMask contains `0` values for each tile that needs to be filled or has already been filled.
 	// We can filter out the ones that are already filled and only send rectangles of the tiles that need to be changed.
-	Perf.start("compressTiles");
 	const fillRects = compressTiles(bounds, (x, y) => {
 		return floodFillMask[x][y] == 0 && arenaTiles[x][y] != playerId;
 	});
-	Perf.end("compressTiles");
-	Perf.print();
 
 	return {
 		/** The rectangles that need to be filled with tiles from the player in order to fill all gaps in their area. */
