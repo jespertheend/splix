@@ -2,7 +2,7 @@ import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 
 var GLOBAL_SPEED = 0.06;
-var VIEWPORT_RADIUS = 30;
+var VIEWPORT_RADIUS = 50;
 var MAX_ZOOM = 430;
 // var MAX_ZOOM = 10000;
 var BLOCKS_ON_SCREEN = 1100;
@@ -3007,7 +3007,7 @@ function ctxApplyCamTransform(ctx, setSize, dontUseQuality) {
 		if (isMain) {
 			ctx.rotate(camRotOffset);
 		}
-		ctx.scale(zoom, zoom);
+		// ctx.scale(zoom, zoom);
 		if (isMain) {
 			ctx.translate(-camPosPrevFrame[0] * 10 - camPosOffset[0], -camPosPrevFrame[1] * 10 - camPosOffset[1]);
 		} else {
