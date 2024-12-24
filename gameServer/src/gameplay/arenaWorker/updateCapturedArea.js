@@ -11,6 +11,12 @@ import { Perf } from "../../util/Perf.js";
  * @type {number[][]}
  */
 let floodFillMask = [];
+
+/**
+ * @type {number[][]}
+ */
+let floodFillMask2 = [];
+
 let maskWidth = 0;
 let maskHeight = 0;
 
@@ -22,6 +28,7 @@ let maskHeight = 0;
  */
 export function initializeMask(width, height) {
 	floodFillMask = createArenaTiles(width, height);
+	floodFillMask2 = createArenaTiles(width, height);
 	maskWidth = width;
 	maskHeight = height;
 }
@@ -43,6 +50,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 
 	// We clear the mask because it might still contain values from the last call.
 	fillRect(floodFillMask, maskWidth, maskHeight, bounds, 0);
+	fillRect(floodFillMask2, maskWidth, maskHeight, bounds, 0);
 
 	/**
 	 * Tests whether a node should be marked as 1 (not filled by the player, outside their area)
@@ -54,6 +62,23 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		if (coord.x >= bounds.max.x || coord.y >= bounds.max.y) return false;
 
 		const alreadyFilled = floodFillMask[coord.x][coord.y];
+		// We've already seen this node, so we can skip it.
+		if (alreadyFilled) return false;
+
+		const arenaValue = arenaTiles[coord.x][coord.y];
+		return arenaValue != playerId;
+	}
+
+	/**
+	 * Tests whether a node should be marked as 1 (not filled by the player, outside their area)
+	 * or as 0 (filled by their player, or inside their area).
+	 * @param {Vec2} coord
+	 */
+	function testFillNode2(coord) {
+		if (coord.x < bounds.min.x || coord.y < bounds.min.y) return false;
+		if (coord.x >= bounds.max.x || coord.y >= bounds.max.y) return false;
+
+		const alreadyFilled = floodFillMask2[coord.x][coord.y];
 		// We've already seen this node, so we can skip it.
 		if (alreadyFilled) return false;
 
@@ -73,6 +98,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	}
 
 	const nodes = [cornerSeed];
+	const nodes2 = [cornerSeed];
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
@@ -84,18 +110,24 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 			pos.clone().add(1, 0),
 			pos.clone().add(-1, 0),
 		);
+		nodes2.push(
+			pos.clone().add(0, 1),
+			pos.clone().add(0, -1),
+			pos.clone().add(1, 0),
+			pos.clone().add(-1, 0),
+		);
 		// We don't need to do a `testFillNode` assertion for these seeds.
 		// There are actually good reasons why player positions might not be valid nodes.
 		// They could lie outside the bounds for instance, or maybe this player is currently inside the
 		// captured area of the other player.
 	}
 
-	Perf.start("floodfill")
+	Perf.start("dino floodfill");
 	const queue = [cornerSeed];
 	floodFillMask[cornerSeed.x][cornerSeed.y] = 1;
 
 	while (queue.length > 0) {
-		Perf.count("iter");
+		Perf.count("iterDino");
 		const node = queue.shift();
 		if (!node) continue;
 
@@ -113,7 +145,24 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 			}
 		}
 	}
-	Perf.end("floodfill");
+	Perf.end("dino floodfill");
+
+	Perf.start("old floodfill");
+	while (true) {
+		Perf.count("iterOld");
+		const node = nodes2.pop();
+		if (!node) break;
+		if (testFillNode2(node)) {
+			floodFillMask2[node.x][node.y] = 1;
+			nodes2.push(
+				node.clone().add(0, 1),
+				node.clone().add(0, -1),
+				node.clone().add(1, 0),
+				node.clone().add(-1, 0),
+			);
+		}
+	}
+	Perf.end("old floodfill");
 	Perf.print();
 
 	/** @type {import("../../util/util.js").Rect} */
