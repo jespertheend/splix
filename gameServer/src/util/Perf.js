@@ -60,4 +60,25 @@ export class Perf {
             console.log(this.counter);
         }
     }
+
+    /**
+     * @type {number | null}
+     */
+    static schedule = null;
+
+    static scheduledPrint() {
+        if (this.schedule !== null) {
+            return;
+        }
+        this.schedule = setInterval(() => {
+            this.print();
+        }, 1000);
+    }
+
+    static unschedule() {
+        if (this.schedule !== null) {
+            clearInterval(this.schedule);
+            this.schedule = null;
+        }
+    }
 }
