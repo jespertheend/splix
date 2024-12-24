@@ -699,13 +699,25 @@ export class Player {
 			}
 		}
 
-		// Check if we touch the edge of the map.
+		// aaaahhhh... walls are scaryyyy
 		if (
-			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
-			this.#currentPosition.x >= this.game.arena.width - 1 ||
-			this.#currentPosition.y >= this.game.arena.height - 1
+			this.#currentPosition.x <= 1 || this.#currentPosition.y <= 1 ||
+			this.#currentPosition.x >= this.game.arena.width - 2 ||
+			this.#currentPosition.y >= this.game.arena.height - 2
 		) {
-			this.#killPlayer(this, "arena-bounds");
+			let newx = this.#currentPosition.x <= 1
+				? 2
+				: this.#currentPosition.x >= this.game.arena.width - 2
+				? this.game.arena.width - 3
+				: this.#currentPosition.x;
+			let newy = this.#currentPosition.y <= 1
+				? 2
+				: this.#currentPosition.y >= this.game.arena.height - 2
+				? this.game.arena.height - 3
+				: this.#currentPosition.y;
+			this.#currentPosition.set(new Vec2(newx, newy));
+			this.#lastCertainClientPosition.set(new Vec2(newx, newy));
+			this.#currentDirection = "paused";
 		}
 
 		// Check if we are touching someone's trail.
@@ -715,7 +727,8 @@ export class Player {
 				const killedSelf = player == this;
 				if (player.dead) continue;
 
-				if (this.game.gameMode != "drawing") {
+				// dino no like dying
+				if (false) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
 						if (success) {
