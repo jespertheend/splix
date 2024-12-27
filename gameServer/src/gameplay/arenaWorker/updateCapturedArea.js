@@ -97,20 +97,20 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		throw new Error("Assertion failed, expected the top left corner to get filled");
 	}
 
-	const nodes = [cornerSeed];
-	const nodes2 = [cornerSeed];
+	const queue = [cornerSeed];
+	const stack = [cornerSeed];
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
 	for (const location of unfillableLocations) {
 		const pos = new Vec2(location);
-		nodes.push(
+		queue.push(
 			pos.clone().add(0, 1),
 			pos.clone().add(0, -1),
 			pos.clone().add(1, 0),
 			pos.clone().add(-1, 0),
 		);
-		nodes2.push(
+		stack.push(
 			pos.clone().add(0, 1),
 			pos.clone().add(0, -1),
 			pos.clone().add(1, 0),
@@ -123,7 +123,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	}
 
 	Perf.start("dino floodfill");
-	const queue = [cornerSeed];
 	floodFillMask[cornerSeed.x][cornerSeed.y] = 1;
 
 	while (queue.length > 0) {
@@ -150,11 +149,11 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	Perf.start("old floodfill");
 	while (true) {
 		Perf.count("iterOld");
-		const node = nodes2.pop();
+		const node = stack.pop();
 		if (!node) break;
 		if (testFillNode2(node)) {
 			floodFillMask2[node.x][node.y] = 1;
-			nodes2.push(
+			stack.push(
 				node.clone().add(0, 1),
 				node.clone().add(0, -1),
 				node.clone().add(1, 0),
