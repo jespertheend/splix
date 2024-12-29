@@ -86,6 +86,27 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		return arenaValue != playerId;
 	}
 
+
+	/**
+	 * 
+	 * @param {number} x 
+	 * @param {number} y 
+	 * @returns 
+	*/
+	const isInsideBounds = (x, y) => x >= bounds.min.x && x < bounds.max.x && y >= bounds.min.y && y < bounds.max.y;
+
+	const byteArray = new Uint8Array(maskWidth * maskHeight);
+	for (let i = 0; i < maskWidth; i++) {
+		for (let j = 0; j < maskHeight; j++) {
+			if (arenaTiles[i][j] == playerId) {
+				byteArray[i * maskHeight + j] = 1;
+			}
+		}
+	}
+
+	// outside bounds or filled already or own area -> skip
+
+
 	// We could seed the flood fill along anywhere across the edge of the bounds really,
 	// but we'll just go with the top left corner.
 	const cornerSeed = bounds.min.clone();
@@ -97,19 +118,31 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		throw new Error("Assertion failed, expected the top left corner to get filled");
 	}
 
-	const queue = [cornerSeed];
+	const queue = [[cornerSeed.x, cornerSeed.y]];
 	const stack = [cornerSeed];
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
 	for (const location of unfillableLocations) {
+		const [x, y] = location;
+		const neighbors = [
+			[x, y + 1],
+			[x, y - 1],
+			[x + 1, y],
+			[x - 1, y],
+		];
+		for (const neighbor of neighbors) {
+			const [nx, ny] = neighbor;
+			if (isInsideBounds(nx, ny)) {
+				const index = nx * maskHeight + ny;
+				if (byteArray[index] === 0) {
+					byteArray[index] = 1;
+					queue.push(neighbor);
+				}
+			}
+		}
+
 		const pos = new Vec2(location);
-		queue.push(
-			pos.clone().add(0, 1),
-			pos.clone().add(0, -1),
-			pos.clone().add(1, 0),
-			pos.clone().add(-1, 0),
-		);
 		stack.push(
 			pos.clone().add(0, 1),
 			pos.clone().add(0, -1),
@@ -122,25 +155,28 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		// captured area of the other player.
 	}
 
-	Perf.start("dino floodfill");
 	floodFillMask[cornerSeed.x][cornerSeed.y] = 1;
+	byteArray[cornerSeed.x * maskHeight + cornerSeed.y] = 1;
 
+	Perf.start("dino floodfill");
 	while (queue.length > 0) {
-		Perf.count("iterDino");
 		const node = queue.shift();
 		if (!node) continue;
-
+		const [x, y] = node;
 		const neighbors = [
-			node.clone().add(0, 1),
-			node.clone().add(0, -1),
-			node.clone().add(1, 0),
-			node.clone().add(-1, 0),
+			[x, y + 1],
+			[x, y - 1],
+			[x + 1, y],
+			[x - 1, y],
 		];
-
 		for (const neighbor of neighbors) {
-			if (testFillNode(neighbor)) {
-				floodFillMask[neighbor.x][neighbor.y] = 1;
-				queue.push(neighbor);
+			const [nx, ny] = neighbor;
+			if (isInsideBounds(nx, ny)) {
+				const index = nx * maskHeight + ny;
+				if (byteArray[index] === 0) {
+					byteArray[index] = 1;
+					queue.push(neighbor);
+				}
 			}
 		}
 	}
@@ -172,7 +208,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	let totalFilledTileCount = 0;
 	for (let x = bounds.min.x; x < bounds.max.x; x++) {
 		for (let y = bounds.min.y; y < bounds.max.y; y++) {
-			if (floodFillMask[x][y] == 0 || arenaTiles[x][y] == playerId) {
+			if (byteArray[x * maskHeight + y] == 0 || arenaTiles[x][y] == playerId) {
 				totalFilledTileCount++;
 				newBounds.min.x = Math.min(newBounds.min.x, x);
 				newBounds.min.y = Math.min(newBounds.min.y, y);
@@ -185,7 +221,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	// At this point, the floodFillMask contains `0` values for each tile that needs to be filled or has already been filled.
 	// We can filter out the ones that are already filled and only send rectangles of the tiles that need to be changed.
 	const fillRects = compressTiles(bounds, (x, y) => {
-		return floodFillMask[x][y] == 0 && arenaTiles[x][y] != playerId;
+		return byteArray[x * maskHeight + y] == 0 && arenaTiles[x][y] != playerId;
 	});
 
 	return {
