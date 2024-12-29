@@ -62,26 +62,31 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		return arenaValue != playerId;
 	}
 
-
 	/**
-	 * 
-	 * @param {number} x 
-	 * @param {number} y 
-	 * @returns 
-	*/
-	const isInsideBounds = (x, y) => x >= bounds.min.x && x < bounds.max.x && y >= bounds.min.y && y < bounds.max.y;
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} index
+	 * @returns
+	 */
+	function testFillNode(x, y, index) {
+		if (x < bounds.min.x || y < bounds.min.y) return false;
+		if (x >= bounds.max.x || y >= bounds.max.y) return false;
+
+		if (byteArray[index]) return false;
+		return true;
+	}
 
 	const byteArray = new Uint8Array(maskWidth * maskHeight);
 	for (let i = 0; i < maskWidth; i++) {
+		const offset = i * maskHeight;
 		for (let j = 0; j < maskHeight; j++) {
 			if (arenaTiles[i][j] == playerId) {
-				byteArray[i * maskHeight + j] = 1;
+				byteArray[offset + j] = 2;
 			}
 		}
 	}
 
 	// outside bounds or filled already or own area -> skip
-
 
 	// We could seed the flood fill along anywhere across the edge of the bounds really,
 	// but we'll just go with the top left corner.
@@ -109,12 +114,10 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		];
 		for (const neighbor of neighbors) {
 			const [nx, ny] = neighbor;
-			if (isInsideBounds(nx, ny)) {
-				const index = nx * maskHeight + ny;
-				if (byteArray[index] === 0) {
-					byteArray[index] = 1;
-					queue.push(neighbor);
-				}
+			const index = nx * maskHeight + ny;
+			if (testFillNode(nx, ny, index)) {
+				byteArray[index] = 1;
+				queue.push(neighbor);
 			}
 		}
 
@@ -146,12 +149,10 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		];
 		for (const neighbor of neighbors) {
 			const [nx, ny] = neighbor;
-			if (isInsideBounds(nx, ny)) {
-				const index = nx * maskHeight + ny;
-				if (byteArray[index] === 0) {
-					byteArray[index] = 1;
-					queue.push(neighbor);
-				}
+			const index = nx * maskHeight + ny;
+			if (testFillNode(nx, ny, index)) {
+				byteArray[index] = 1;
+				queue.push(neighbor);
 			}
 		}
 	}
