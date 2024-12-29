@@ -10,11 +10,6 @@ import { Perf } from "../../util/Perf.js";
  * We then take those tiles and inform the arena about which tiles it should change.
  * @type {number[][]}
  */
-let floodFillMask = [];
-
-/**
- * @type {number[][]}
- */
 let floodFillMask2 = [];
 
 let maskWidth = 0;
@@ -27,7 +22,6 @@ let maskHeight = 0;
  * @param {number} height
  */
 export function initializeMask(width, height) {
-	floodFillMask = createArenaTiles(width, height);
 	floodFillMask2 = createArenaTiles(width, height);
 	maskWidth = width;
 	maskHeight = height;
@@ -49,25 +43,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	bounds.max.addScalar(1);
 
 	// We clear the mask because it might still contain values from the last call.
-	fillRect(floodFillMask, maskWidth, maskHeight, bounds, 0);
 	fillRect(floodFillMask2, maskWidth, maskHeight, bounds, 0);
-
-	/**
-	 * Tests whether a node should be marked as 1 (not filled by the player, outside their area)
-	 * or as 0 (filled by their player, or inside their area).
-	 * @param {Vec2} coord
-	 */
-	function testFillNode(coord) {
-		if (coord.x < bounds.min.x || coord.y < bounds.min.y) return false;
-		if (coord.x >= bounds.max.x || coord.y >= bounds.max.y) return false;
-
-		const alreadyFilled = floodFillMask[coord.x][coord.y];
-		// We've already seen this node, so we can skip it.
-		if (alreadyFilled) return false;
-
-		const arenaValue = arenaTiles[coord.x][coord.y];
-		return arenaValue != playerId;
-	}
 
 	/**
 	 * Tests whether a node should be marked as 1 (not filled by the player, outside their area)
@@ -114,7 +90,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	// We do a quick assertion to make sure our seed is not outside the bounds or already owned by the player.
 	// There needs to be a border of one tile around the players area,
 	// otherwise the floodfill algorithm won't be able to fully wrap around the player area.
-	if (!testFillNode(cornerSeed)) {
+	if (!testFillNode2(cornerSeed)) {
 		throw new Error("Assertion failed, expected the top left corner to get filled");
 	}
 
@@ -155,7 +131,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 		// captured area of the other player.
 	}
 
-	floodFillMask[cornerSeed.x][cornerSeed.y] = 1;
 	byteArray[cornerSeed.x * maskHeight + cornerSeed.y] = 1;
 
 	Perf.start("dino floodfill");
@@ -184,7 +159,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 
 	Perf.start("old floodfill");
 	while (true) {
-		Perf.count("iterOld");
 		const node = stack.pop();
 		if (!node) break;
 		if (testFillNode2(node)) {
