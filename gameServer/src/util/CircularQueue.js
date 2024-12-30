@@ -22,18 +22,19 @@ export class CircularQueue {
 	}
 
 	/**
-	 * @param {number[]} pair
+	 * @param {number} x
+	 * @param {number} y
 	 */
-	enqueue(pair) {
+	enqueue(x, y) {
 		if (this.isFull()) {
 			throw new Error("Queue is full");
 		}
-		if (!Array.isArray(pair) || pair.length !== 2) {
+		if (x === undefined || y === undefined) {
 			throw new Error("The value must be a pair (array of two elements)");
 		}
 
-		this.buffer[this.tail] = pair[0];
-		this.buffer[(this.tail + 1) % (this.maxSize * 2)] = pair[1];
+		this.buffer[this.tail] = x;
+		this.buffer[(this.tail + 1) % (this.maxSize * 2)] = y;
 
 		this.tail = (this.tail + 2) % (this.maxSize * 2);
 		this.size++;
