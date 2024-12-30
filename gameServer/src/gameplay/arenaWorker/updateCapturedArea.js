@@ -102,46 +102,51 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 
 	// We also add seeds for all the player positions in the game,
 	// Since we don't want players to just fill a large area around another player.
-	for (const location of unfillableLocations) {
-		const [x, y] = location;
-		const neighbors = [
-			[x, y + 1],
-			[x, y - 1],
-			[x + 1, y],
-			[x - 1, y],
-		];
-		for (const neighbor of neighbors) {
-			const [nx, ny] = neighbor;
-			const index = nx * maskHeight + ny;
-			if (testFillNode(nx, ny, index)) {
-				byteArray[index] = 1;
-				queue.enqueue(neighbor);
-			}
+	for (const node of unfillableLocations) {
+		const offset = node[0] * maskHeight;
+		if (testFillNode(node[0], node[1] + 1, offset + node[1] + 1)) {
+			byteArray[offset + node[1] + 1] = 1;
+			queue.enqueue([node[0], node[1] + 1]);
 		}
-		// We don't need to do a `testFillNode` assertion for these seeds.
-		// There are actually good reasons why player positions might not be valid nodes.
-		// They could lie outside the bounds for instance, or maybe this player is currently inside the
-		// captured area of the other player.
+		if (testFillNode(node[0], node[1] - 1, offset + node[1] - 1)) {
+			byteArray[offset + node[1] - 1] = 1;
+			queue.enqueue([node[0], node[1] - 1]);
+		}
+		if (testFillNode(node[0] + 1, node[1], offset + maskHeight + node[1])) {
+			byteArray[offset + maskHeight + node[1]] = 1;
+			queue.enqueue([node[0] + 1, node[1]]);
+		}
+		if (testFillNode(node[0] - 1, node[1], offset - maskHeight + node[1])) {
+			byteArray[offset - maskHeight + node[1]] = 1;
+			queue.enqueue([node[0] - 1, node[1]]);
+		}
 	}
+	// We don't need to do a `testFillNode` assertion for these seeds.
+	// There are actually good reasons why player positions might not be valid nodes.
+	// They could lie outside the bounds for instance, or maybe this player is currently inside the
+	// captured area of the other player.
 
 	// dino flood fill
 	while (!queue.isEmpty()) {
 		const node = queue.dequeue();
 		if (!node) continue;
-		const [x, y] = node;
-		const neighbors = [
-			[x, y + 1],
-			[x, y - 1],
-			[x + 1, y],
-			[x - 1, y],
-		];
-		for (const neighbor of neighbors) {
-			const [nx, ny] = neighbor;
-			const index = nx * maskHeight + ny;
-			if (testFillNode(nx, ny, index)) {
-				byteArray[index] = 1;
-				queue.enqueue(neighbor);
-			}
+
+		const offset = node[0] * maskHeight;
+		if (testFillNode(node[0], node[1] + 1, offset + node[1] + 1)) {
+			byteArray[offset + node[1] + 1] = 1;
+			queue.enqueue([node[0], node[1] + 1]);
+		}
+		if (testFillNode(node[0], node[1] - 1, offset + node[1] - 1)) {
+			byteArray[offset + node[1] - 1] = 1;
+			queue.enqueue([node[0], node[1] - 1]);
+		}
+		if (testFillNode(node[0] + 1, node[1], offset + maskHeight + node[1])) {
+			byteArray[offset + maskHeight + node[1]] = 1;
+			queue.enqueue([node[0] + 1, node[1]]);
+		}
+		if (testFillNode(node[0] - 1, node[1], offset - maskHeight + node[1])) {
+			byteArray[offset - maskHeight + node[1]] = 1;
+			queue.enqueue([node[0] - 1, node[1]]);
 		}
 	}
 
