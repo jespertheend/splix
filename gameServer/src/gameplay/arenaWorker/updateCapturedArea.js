@@ -1,5 +1,6 @@
 import { Vec2 } from "renda";
 import { compressTiles } from "../../util/util.js";
+import { CircularQueue } from "../../util/CircularQueue.js";
 
 /**
  * Instead of performing the floodfill on the arena itself,
@@ -14,6 +15,9 @@ let maskHeight = 0;
 /** @type {Uint8Array} */
 let byteArray;
 
+/** @type {CircularQueue} */
+let queue;
+
 /**
  * Informs the flood fill algorithm how large of a mask should be allocated.
  * Updating captured player areas of a size larger than this will result in errors.
@@ -24,6 +28,7 @@ export function initializeMask(width, height) {
 	maskWidth = width;
 	maskHeight = height;
 	byteArray = new Uint8Array(maskWidth * maskHeight);
+	queue = new CircularQueue(maskWidth * maskHeight); // maskWidth + maskHeight would be enough, but for safety
 }
 
 /**
@@ -89,10 +94,10 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	}
 
 	/**
-	 * The queue of nodes
-	 * we fill the corner seed first and mark it as 1 as it's unfillable by the player
+	 * clear the queue and enqueue the corner seed and mark it as 1 as it's unfillable by the player
 	 */
-	const queue = [[cornerSeed.x, cornerSeed.y]];
+	queue.clear();
+	queue.enqueue([cornerSeed.x, cornerSeed.y]);
 	byteArray[cornerSeed.x * maskHeight + cornerSeed.y] = 1;
 
 	// We also add seeds for all the player positions in the game,
@@ -110,7 +115,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 			const index = nx * maskHeight + ny;
 			if (testFillNode(nx, ny, index)) {
 				byteArray[index] = 1;
-				queue.push(neighbor);
+				queue.enqueue(neighbor);
 			}
 		}
 		// We don't need to do a `testFillNode` assertion for these seeds.
@@ -120,8 +125,8 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	}
 
 	// dino flood fill
-	while (queue.length > 0) {
-		const node = queue.shift();
+	while (!queue.isEmpty()) {
+		const node = queue.dequeue();
 		if (!node) continue;
 		const [x, y] = node;
 		const neighbors = [
@@ -135,7 +140,7 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 			const index = nx * maskHeight + ny;
 			if (testFillNode(nx, ny, index)) {
 				byteArray[index] = 1;
-				queue.push(neighbor);
+				queue.enqueue(neighbor);
 			}
 		}
 	}
