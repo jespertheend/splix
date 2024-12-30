@@ -11,6 +11,9 @@ import { compressTiles } from "../../util/util.js";
 let maskWidth = 0;
 let maskHeight = 0;
 
+/** @type {Uint8Array} */
+let byteArray;
+
 /**
  * Informs the flood fill algorithm how large of a mask should be allocated.
  * Updating captured player areas of a size larger than this will result in errors.
@@ -20,6 +23,7 @@ let maskHeight = 0;
 export function initializeMask(width, height) {
 	maskWidth = width;
 	maskHeight = height;
+	byteArray = new Uint8Array(maskWidth * maskHeight);
 }
 
 /**
@@ -60,7 +64,6 @@ export function updateCapturedArea(arenaTiles, playerId, bounds, unfillableLocat
 	 *  1: area unfillable by the player
 	 *  2: already filled by the player
 	 */
-	const byteArray = new Uint8Array(maskWidth * maskHeight);
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
 		const offset = i * maskHeight;
 		for (let j = bounds.min.y; j < bounds.max.y; j++) {
