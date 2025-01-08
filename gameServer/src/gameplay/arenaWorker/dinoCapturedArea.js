@@ -61,6 +61,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	const path = [];
 	const stack = [start];
+	const parentMap = new Map();
 
 	// boundary walk
 	while (stack.length > 0) {
@@ -73,23 +74,37 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		if ($matrix(i, j) === BOUNDARY_VISITED) {
 			continue;
 		}
-	
-		path.push([i, j]);
+
 		$matrix(i, j, BOUNDARY_VISITED);
-	
+
 		// if path found
 		if (i === end[0] && j === end[1]) {
+
+			// get a direct path
+			let backtrackNode = node;
+			while (backtrackNode) {
+				path.push(backtrackNode);
+				backtrackNode = parentMap.get(backtrackNode.toString());
+			}
+
+			// Mark the selected path on the matrix
 			for (let [i, j] of path) {
 				$matrix(i, j, BOUNDARY_SELECTED_PATH);
 			}
 			break;
 		}
-	
-		// TODO: remove redundant path points
-	
-		let edges = getSignalEdge([i, j])
-		stack.push(...edges);
+
+		let edges = getSignalEdge([i, j]);
+		for (let edge of edges) {
+			if (!parentMap.has(edge.toString())) {
+				parentMap.set(edge.toString(), node);
+				stack.push(edge);
+			}
+		}
 	}
+
+	$matrix(start[0], start[1], PLAYER_TRAIL);
+	$matrix(end[0], end[1], PLAYER_TRAIL);
 
 	// print mask
 	printer();
