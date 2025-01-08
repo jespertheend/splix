@@ -5,6 +5,9 @@ let lineWidth = 0;
 /** @type {Uint8Array} */
 let matrix;
 
+/** @type {import("../../util/util.js").Rect} */
+let $bounds;
+
 /**
  * @param {number} width
  * @param {number} height
@@ -26,6 +29,8 @@ const PLAYER_BLOCK = 1;
  * @param {[x: number, y: number][]} unfillableLocations
  */
 export function dinoCapturedArea(arenaTiles, playerId, bounds, unfillableLocations) {
+	$bounds = bounds;
+
 	// dilate bounds
 	bounds.min.subScalar(1);
 	bounds.max.addScalar(1);
@@ -43,22 +48,35 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, unfillableLocatio
 	}
 
 	// print mask
-	printer(bounds);
+	printer();
 }
 
-/**
- * @param {import("../../util/util.js").Rect} bounds
- */
-function printer(bounds) {
-	for (let j = bounds.min.y; j < bounds.max.y; j++) {
+function printer() {
+	for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
 		let line = "";
-		for (let i = bounds.min.x; i < bounds.max.x; i++) {
-			if (matrix[i * lineWidth + j] == EMPTY_BLOCK) {
+		for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
+			if ($matrix(i, j) == EMPTY_BLOCK) {
 				line += "  ";
-			} else if (matrix[i * lineWidth + j] == PLAYER_BLOCK) {
+			} else if ($matrix(i, j) == PLAYER_BLOCK) {
 				line += "██";
 			}
 		}
 		console.log(line);
 	}
+}
+
+/**
+ * @param {number} i
+ * @param {number} j
+ * @param {number | undefined} val
+ * @returns
+ */
+function $matrix(i, j, val = undefined) {
+	if (i < $bounds.min.x || i >= $bounds.max.x || j < $bounds.min.y || j >= $bounds.max.y) {
+		return -1;
+	}
+	if (val !== undefined) {
+		matrix[i * maskWidth + j] = val;
+	}
+	return matrix[i * maskWidth + j];
 }
