@@ -3,8 +3,10 @@ import { compressTiles, createArenaTiles, serializeRect } from "../../util/util.
 import { PLAYER_SPAWN_RADIUS } from "../../config.js";
 import { fillRect } from "../../util/util.js";
 import { initializeMask, updateCapturedArea } from "./updateCapturedArea.js";
+import { dinoCapturedArea, dinoInitializeMask } from "./dinoCapturedArea.js";
 import { PlayerBoundsTracker } from "./PlayerBoundsTracker.js";
 import { getMinimapPart } from "./getMinimapPart.js";
+import { Perf } from "../../util/Perf.js";
 
 /**
  * Stores which tiles have been filled and by which player.
@@ -29,6 +31,7 @@ const arenaWorkerHandlers = {
 		arenaHeight = height;
 		arenaTiles = createArenaTiles(width, height);
 		initializeMask(width, height);
+		dinoInitializeMask(width, height);
 	},
 	/**
 	 * Fills the spawn area tiles around a player.
@@ -88,12 +91,26 @@ const arenaWorkerHandlers = {
 	 */
 	updateCapturedArea(playerId, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
+		Perf.start("updateCapturedArea");
 		const { fillRects, totalFilledTileCount, newBounds } = updateCapturedArea(
 			arenaTiles,
 			playerId,
 			bounds,
 			otherPlayerLocations,
 		);
+		Perf.end("updateCapturedArea");
+
+		Perf.start("dinoCapturedArea");
+		dinoCapturedArea(
+			arenaTiles,
+			playerId,
+			bounds,
+			otherPlayerLocations,
+		);
+		Perf.end("dinoCapturedArea");
+
+		Perf.print();
+
 		boundsTracker.updateBounds(playerId, newBounds);
 		for (const { rect } of fillRects) {
 			fillTilesRect(rect, playerId);

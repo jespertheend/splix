@@ -1,7 +1,7 @@
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 
-var GLOBAL_SPEED = 0.006;
+var GLOBAL_SPEED = 0.015;
 var VIEWPORT_RADIUS = 30;
 var MAX_ZOOM = 430;
 // var MAX_ZOOM = 10000;
@@ -431,9 +431,9 @@ function addSocketWrapper() {
 			var websocket = new RealWebSocket(url);
 			websocket.binaryType = "arraybuffer";
 
-			this.onclose = function () {};
-			this.onopen = function () {};
-			this.onmessage = function () {};
+			this.onclose = function () { };
+			this.onopen = function () { };
+			this.onmessage = function () { };
 
 			var me = this;
 			websocket.onclose = function () {
@@ -2132,7 +2132,7 @@ function resetAll() {
 		scoreStatTarget =
 		realScoreStat =
 		realScoreStatTarget =
-			25;
+		25;
 	myRankSent = false;
 	totalPlayers = 0;
 	playingAndReady = false;
@@ -2320,7 +2320,7 @@ function initVideoAdsScript() {
 					console.log("Ad: " + AD_TYPE + " Completed");
 					onAdFinish();
 				},
-				AIP_REMOVE: function () {},
+				AIP_REMOVE: function () { },
 			});
 		});
 	}
@@ -2482,7 +2482,7 @@ function popUp(url, w, h) {
 		url,
 		"_blank",
 		"toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=" +
-			w + ", height=" + h + ", top=" + top + ", left=" + left,
+		w + ", height=" + h + ", top=" + top + ", left=" + left,
 	);
 }
 
@@ -2877,7 +2877,7 @@ function checkPatreonQuery() {
 				setPatreonOverlay(true, "Logging in with patreon...");
 				simpleRequest(
 					"https://patreon.splix.io/login2.php?code=" + query.code + "&redirectUri=" +
-						encodeURIComponent(getPatreonRedirectUri()),
+					encodeURIComponent(getPatreonRedirectUri()),
 					function (data) {
 						lsSet("patreonDeviceId", data);
 						requestPatreonPledgeData(true);
@@ -5605,8 +5605,8 @@ function Utf8ArrayToStr(array) {
 				char3 = array[i++];
 				out += String.fromCharCode(
 					((c & 0x0F) << 12) |
-						((char2 & 0x3F) << 6) |
-						((char3 & 0x3F) << 0),
+					((char2 & 0x3F) << 6) |
+					((char3 & 0x3F) << 0),
 				);
 				break;
 		}
