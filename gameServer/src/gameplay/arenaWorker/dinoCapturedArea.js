@@ -22,12 +22,14 @@ export function dinoInitializeMask(width, height) {
 const EMPTY_BLOCK = 0;
 const PLAYER_BLOCK = 1;
 const PLAYER_TRAIL = 9;
+const BOUNDARY_VISITED = 2;
+const BOUNDARY_SELECTED_PATH = 3;
 
 /**
  * @param {number[][]} arenaTiles
  * @param {number} playerId
  * @param {import("../../util/util.js").Rect} bounds
- * @param {[x: number, y: number][]} vertices
+ * @param {number[][]} vertices
  * @param {[x: number, y: number][]} unfillableLocations
  */
 export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfillableLocations) {
@@ -52,13 +54,50 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// fill the trail vertices on the mask
 	fillPlayerTrail(vertices, PLAYER_TRAIL);
 
+	const start = vertices[0];
+	const end = vertices[vertices.length - 1];
+	$matrix(start[0], start[1], PLAYER_BLOCK);
+	$matrix(end[0], end[1], PLAYER_BLOCK);
+
+	const path = [];
+	const stack = [start];
+
+	// boundary walk
+	while (stack.length > 0) {
+		let node = stack.pop();
+		if (!node) {
+			continue;
+		}
+		let [i, j] = node;
+		
+		if ($matrix(i, j) === BOUNDARY_VISITED) {
+			continue;
+		}
+	
+		path.push([i, j]);
+		$matrix(i, j, BOUNDARY_VISITED);
+	
+		// if path found
+		if (i === end[0] && j === end[1]) {
+			for (let [i, j] of path) {
+				$matrix(i, j, BOUNDARY_SELECTED_PATH);
+			}
+			break;
+		}
+	
+		// TODO: remove redundant path points
+	
+		let edges = getSignalEdge([i, j])
+		stack.push(...edges);
+	}
+
 	// print mask
 	printer();
 }
 
 
 /** 
- * @param {[x: number, y: number][]} vertices
+ * @param {number[][]} vertices
  * @param {number} value
  */
 function fillPlayerTrail(vertices, value) {
@@ -87,22 +126,59 @@ function fillPlayerTrail(vertices, value) {
 		}
 }
 
+/**
+ * @param {number[]} center
+ */
+function getSignalEdge(center) {
+    const directions = [
+        [0, 1],   // right
+        [-1, 1],  // up-right
+        [-1, 0],  // up
+        [-1, -1], // up-left
+        [0, -1],  // left
+        [1, -1],  // down-left
+        [1, 0],   // down
+        [1, 1]    // down-right
+    ];
 
+    const [i, j] = center;
+
+    const ring = [];
+    for (let dir of directions) {
+        let ni = i + dir[0];
+        let nj = j + dir[1];
+        ring.push({ val: $matrix(ni, nj), coord: [ni, nj] });
+    }
+
+    const edges = [];
+    for (let i = 0; i < ring.length; i++) {
+        if (ring[i].val === EMPTY_BLOCK && ring[(i + 1) % ring.length].val === PLAYER_BLOCK) {
+            edges.push(ring[(i + 1) % ring.length].coord);
+        } else if (ring[i].val === PLAYER_BLOCK && ring[(i + 1) % ring.length].val === EMPTY_BLOCK) {
+            edges.push(ring[i].coord);
+        }
+    }
+    return edges;
+}
 
 function printer() {
-	for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
-		let line = "";
-		for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
-			if ($matrix(i, j) == EMPTY_BLOCK) {
-				line += "  ";
-			} else if ($matrix(i, j) == PLAYER_BLOCK) {
-				line += "██";
-			} else if ($matrix(i,j) == PLAYER_TRAIL) {
-				line += "▒▒"
+    for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
+        let line = "";
+        for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
+            if ($matrix(i, j) == EMPTY_BLOCK) {
+                line += "\x1b[37m  "; // White
+            } else if ($matrix(i, j) == PLAYER_BLOCK) {
+                line += "\x1b[31m██"; // Red
+            } else if ($matrix(i, j) == PLAYER_TRAIL) {
+                line += "\x1b[33m░░"; // Yellow
+            } else if ($matrix(i, j) == BOUNDARY_VISITED) {
+                line += "\x1b[34m▒▒"; // Blue
+            } else if ($matrix(i, j) == BOUNDARY_SELECTED_PATH) {
+				line += "\x1b[32m▓▓"; // Green
 			}
-		}
-		console.log(line);
-	}
+        }
+        console.log(line + "\x1b[0m");
+    }
 }
 
 /**
