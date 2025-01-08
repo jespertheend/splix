@@ -87,9 +87,10 @@ const arenaWorkerHandlers = {
 	/**
 	 * Finds unfilled areas of the player and fills them.
 	 * @param {number} playerId
+	 * @param {[x: number, y: number][]} vertices
 	 * @param {[x: number, y: number][]} otherPlayerLocations
 	 */
-	updateCapturedArea(playerId, otherPlayerLocations) {
+	updateCapturedArea(playerId, vertices, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
 		Perf.start("updateCapturedArea");
 		const { fillRects, totalFilledTileCount, newBounds } = updateCapturedArea(
@@ -105,6 +106,7 @@ const arenaWorkerHandlers = {
 			arenaTiles,
 			playerId,
 			bounds,
+			vertices,
 			otherPlayerLocations,
 		);
 		Perf.end("dinoCapturedArea");

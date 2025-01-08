@@ -26,14 +26,17 @@ const PLAYER_BLOCK = 1;
  * @param {number[][]} arenaTiles
  * @param {number} playerId
  * @param {import("../../util/util.js").Rect} bounds
+ * @param {[x: number, y: number][]} vertices
  * @param {[x: number, y: number][]} unfillableLocations
  */
-export function dinoCapturedArea(arenaTiles, playerId, bounds, unfillableLocations) {
+export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfillableLocations) {
 	$bounds = bounds;
 
 	// dilate bounds
 	bounds.min.subScalar(1);
 	bounds.max.addScalar(1);
+
+	console.log("vertices", vertices)
 
 	// generate mask
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
