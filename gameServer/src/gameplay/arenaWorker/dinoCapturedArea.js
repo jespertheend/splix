@@ -45,8 +45,8 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	$bounds = bounds;
 
 	// dilate bounds
-	bounds.min.subScalar(1);
-	bounds.max.addScalar(1);
+	// bounds.min.subScalar(1);
+	// bounds.max.addScalar(1);
 
 	// generate mask
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
@@ -88,8 +88,17 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	// floodfill the closed bounds
 	floodfill(closedBounds, unfillableLocations);
+	
+	// print mask
+	printer();
 
-	// fullBounds = merge bounds || closed bounds
+	// erode bounds
+	bounds.min.addScalar(1);
+	bounds.max.subScalar(1);
+	closedBounds.min.addScalar(1);
+	closedBounds.max.subScalar(1);
+
+	// merge bounds
 	const fullBounds = {
 		min: new Vec2(Math.min(closedBounds.min.x, bounds.min.x), Math.min(closedBounds.min.y, bounds.min.y)),
 		max: new Vec2(Math.max(closedBounds.max.x, bounds.max.x), Math.max(closedBounds.max.y, bounds.max.y)),
@@ -100,9 +109,6 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		const index = x * lineWidth + y;
 		return !(matrix[index] === FILLED_BLOCK || matrix[index] === PLAYER_TRAIL || matrix[index] === BOUNDARY_SELECTED_PATH);
 	});
-
-	// print mask
-	printer();
 
 	return {
 		fillRects,
