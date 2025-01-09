@@ -54,12 +54,15 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// bounds.max.x = maskWidth - 2
 	// bounds.max.y = maskHeight - 2
 
+	let totalFilledTileCount = 0;
+
 	// generate mask
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
 		const offset = i * lineWidth;
 		for (let j = bounds.min.y; j < bounds.max.y; j++) {
 			if (arenaTiles[i][j] == playerId) {
 				matrix[offset + j] = PLAYER_BLOCK;
+				totalFilledTileCount++;
 			} else {
 				matrix[offset + j] = EMPTY_BLOCK;
 			}
@@ -110,16 +113,20 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// pack the blocks that remains unfilled to rectangles
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
-		return !(
+		const status = !(
 			matrix[index] === FILLED_BLOCK ||
 			matrix[index] === PLAYER_TRAIL ||
 			matrix[index] === BOUNDARY_SELECTED_PATH
 		);
+		if (status) {
+			totalFilledTileCount++;
+		}
+		return status;
 	});
 
 	return {
 		fillRects,
-		totalFilledTileCount: 0, // TODO
+		totalFilledTileCount: totalFilledTileCount,
 		newBounds: fullBounds,
 	};
 }
