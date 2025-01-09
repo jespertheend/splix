@@ -1,3 +1,5 @@
+import { Vec2 } from "renda";
+
 let maskWidth = 0;
 let maskHeight = 0;
 let lineWidth = 0;
@@ -52,16 +54,49 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	}
 
 	// fill the trail vertices on the mask
-	fillPlayerTrail(vertices, PLAYER_TRAIL);
+	const trailBounds = fillPlayerTrail(vertices, PLAYER_TRAIL);
 
+	// walk the boundary and find a path
 	const start = vertices[0];
 	const end = vertices[vertices.length - 1];
 	$matrix(start[0], start[1], PLAYER_BLOCK);
 	$matrix(end[0], end[1], PLAYER_BLOCK);
+	const pathBounds = boundaryWalk(start, end);
+	$matrix(start[0], start[1], PLAYER_TRAIL);
+	$matrix(end[0], end[1], PLAYER_TRAIL);
 
+	// merge bounds
+	const closedBounds = {
+		min: new Vec2(Math.min(trailBounds.min.x, pathBounds.min.x), Math.min(trailBounds.min.y, pathBounds.min.y)),
+		max: new Vec2(Math.max(trailBounds.max.x, pathBounds.max.x), Math.max(trailBounds.max.y, pathBounds.max.y)),
+	};
+	
+	// dilate bounds
+	closedBounds.max.addScalar(1);
+	closedBounds.min.subScalar(1);
+
+	$matrix(closedBounds.min.x, closedBounds.min.y, 7);
+	$matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
+
+	// print mask
+	printer();
+}
+
+
+/**
+ * @param {number[]} start
+ * @param {number[]} end
+ */
+function boundaryWalk(start, end) {
 	const path = [];
 	const stack = [start];
 	const parentMap = new Map();
+
+	/** @param {import("../../util/util.js").Rect} bounds */
+	let pathBounds = {
+		min: new Vec2(Infinity, Infinity),
+		max: new Vec2(-Infinity, -Infinity),
+	};
 
 	// boundary walk
 	while (stack.length > 0) {
@@ -89,6 +124,10 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 			// Mark the selected path on the matrix
 			for (let [i, j] of path) {
+				pathBounds.min.x = Math.min(pathBounds.min.x, i);
+				pathBounds.min.y = Math.min(pathBounds.min.y, j);
+				pathBounds.max.x = Math.max(pathBounds.max.x, i + 1);
+				pathBounds.max.y = Math.max(pathBounds.max.y, j + 1);
 				$matrix(i, j, BOUNDARY_SELECTED_PATH);
 			}
 			break;
@@ -103,11 +142,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		}
 	}
 
-	$matrix(start[0], start[1], PLAYER_TRAIL);
-	$matrix(end[0], end[1], PLAYER_TRAIL);
-
-	// print mask
-	printer();
+	return pathBounds;
 }
 
 
@@ -116,9 +151,20 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
  * @param {number} value
  */
 function fillPlayerTrail(vertices, value) {
+		/** @param {import("../../util/util.js").Rect} bounds */
+		let trailBounds = {
+			min: new Vec2(Infinity, Infinity),
+			max: new Vec2(-Infinity, -Infinity),
+		};
+		
 		if (vertices.length === 1) {
 			const vertex = vertices[0];
 			$matrix(vertex[0] ,vertex[1],value);
+
+			trailBounds.min.x = Math.min(trailBounds.min.x, vertex[0]);
+			trailBounds.min.y = Math.min(trailBounds.min.y, vertex[1]);
+			trailBounds.max.x = Math.max(trailBounds.max.x, vertex[0] + 1);
+			trailBounds.max.y = Math.max(trailBounds.max.y, vertex[1] + 1);
 		}
 		for (let i = 0; i < vertices.length - 1; i++) {
 			const vertexA = vertices[i];
@@ -133,12 +179,18 @@ function fillPlayerTrail(vertices, value) {
 			const maxX = Math.max(vertexA[0], vertexB[0]) + 1;
 			const maxY = Math.max(vertexA[1], vertexB[1]) + 1;
 
+			trailBounds.min.x = Math.min(trailBounds.min.x, minX);
+			trailBounds.min.y = Math.min(trailBounds.min.y, minY);
+			trailBounds.max.x = Math.max(trailBounds.max.x, maxX);
+			trailBounds.max.y = Math.max(trailBounds.max.y, maxY);
+
 			for(let x = minX; x < maxX; x++){
 				for(let y = minY; y < maxY; y++){
 					$matrix(x,y,value);
 				}
 			}
 		}
+		return trailBounds;
 }
 
 /**
@@ -190,6 +242,8 @@ function printer() {
                 line += "\x1b[34m▒▒"; // Blue
             } else if ($matrix(i, j) == BOUNDARY_SELECTED_PATH) {
 				line += "\x1b[32m▓▓"; // Green
+			} else {
+				line += "\x1b[37m██"; // White
 			}
         }
         console.log(line + "\x1b[0m");
