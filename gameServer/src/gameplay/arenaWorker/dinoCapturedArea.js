@@ -1,4 +1,6 @@
 import { Vec2 } from "renda";
+import { compressTiles } from "../../util/util.js";
+import { CircularQueue } from "../../util/CircularQueue.js";
 
 let maskWidth = 0;
 let maskHeight = 0;
@@ -6,6 +8,9 @@ let lineWidth = 0;
 
 /** @type {Uint8Array} */
 let matrix;
+
+/** @type {CircularQueue} */
+let queue;
 
 /** @type {import("../../util/util.js").Rect} */
 let $bounds;
@@ -19,11 +24,13 @@ export function dinoInitializeMask(width, height) {
 	maskHeight = height;
 	lineWidth = maskHeight;
 	matrix = new Uint8Array(maskWidth * maskHeight);
+	queue = new CircularQueue(maskWidth * maskHeight);
 }
 
 const EMPTY_BLOCK = 0;
 const PLAYER_BLOCK = 1;
 const PLAYER_TRAIL = 9;
+const FILLED_BLOCK = 4;
 const BOUNDARY_VISITED = 2;
 const BOUNDARY_SELECTED_PATH = 3;
 
@@ -75,11 +82,91 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	closedBounds.max.addScalar(1);
 	closedBounds.min.subScalar(1);
 
-	$matrix(closedBounds.min.x, closedBounds.min.y, 7);
-	$matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
+	// viisualize bounds
+	// $matrix(closedBounds.min.x, closedBounds.min.y, 7);
+	// $matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
+
+	// floodfill the closed bounds
+	floodfill(closedBounds, unfillableLocations);
 
 	// print mask
 	printer();
+}
+
+
+/**
+ * @param {import("../../util/util.js").Rect} closedBounds
+ * @param {[x: number, y: number][]} unfillableLocations
+ */
+function floodfill(closedBounds, unfillableLocations){
+	queue.clear();
+
+	/**
+	 * Tests if a node can be filled.
+	 * @param {number} x coord x
+	 * @param {number} y coord y
+	 * @param {number} index linear index -> x * lineWidth + y
+	 * @returns {Boolean}
+	 */
+	function testFillNode(x, y, index) {
+		if (x < closedBounds.min.x || y < closedBounds.min.y) return false;
+		if (x >= closedBounds.max.x || y >= closedBounds.max.y) return false;
+
+		if (matrix[index] === FILLED_BLOCK || matrix[index] === PLAYER_TRAIL || matrix[index] === BOUNDARY_SELECTED_PATH) return false;
+		return true;
+	}
+
+	const cornerSeed = closedBounds.min.clone();
+
+	if (!testFillNode(cornerSeed.x, cornerSeed.y, cornerSeed.x * lineWidth + cornerSeed.y)) {
+		throw new Error("Assertion failed, expected the top left corner to get filled");
+	}
+
+	queue.enqueue(cornerSeed.x, cornerSeed.y);
+	matrix[cornerSeed.x * lineWidth + cornerSeed.y] = FILLED_BLOCK;
+
+	for (const node of unfillableLocations) {
+		const offset = node[0] * lineWidth;
+		if (testFillNode(node[0], node[1] + 1, offset + node[1] + 1)) {
+			matrix[offset + node[1] + 1] = FILLED_BLOCK;
+			queue.enqueue(node[0], node[1] + 1);
+		}
+		if (testFillNode(node[0], node[1] - 1, offset + node[1] - 1)) {
+			matrix[offset + node[1] - 1] = FILLED_BLOCK;
+			queue.enqueue(node[0], node[1] - 1);
+		}
+		if (testFillNode(node[0] + 1, node[1], offset + lineWidth + node[1])) {
+			matrix[offset + lineWidth + node[1]] = FILLED_BLOCK;
+			queue.enqueue(node[0] + 1, node[1]);
+		}
+		if (testFillNode(node[0] - 1, node[1], offset - lineWidth + node[1])) {
+			matrix[offset - lineWidth + node[1]] = FILLED_BLOCK;
+			queue.enqueue(node[0] - 1, node[1]);
+		}
+	}
+
+	while (!queue.isEmpty()) {
+		const node = queue.dequeue();
+		if (!node) continue;
+
+		const offset = node[0] * lineWidth;
+		if (testFillNode(node[0], node[1] + 1, offset + node[1] + 1)) {
+			matrix[offset + node[1] + 1] = FILLED_BLOCK;
+			queue.enqueue(node[0], node[1] + 1);
+		}
+		if (testFillNode(node[0], node[1] - 1, offset + node[1] - 1)) {
+			matrix[offset + node[1] - 1] = FILLED_BLOCK;
+			queue.enqueue(node[0], node[1] - 1);
+		}
+		if (testFillNode(node[0] + 1, node[1], offset + lineWidth + node[1])) {
+			matrix[offset + lineWidth + node[1]] = FILLED_BLOCK;
+			queue.enqueue(node[0] + 1, node[1]);
+		}
+		if (testFillNode(node[0] - 1, node[1], offset - lineWidth + node[1])) {
+			matrix[offset - lineWidth + node[1]] = FILLED_BLOCK;
+			queue.enqueue(node[0] - 1, node[1]);
+		}
+	}
 }
 
 
