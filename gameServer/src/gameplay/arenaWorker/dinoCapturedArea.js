@@ -88,42 +88,46 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
  * @param {number[]} end
  */
 function boundaryWalk(start, end) {
-	const path = [];
-	const stack = [start];
-	const parentMap = new Map();
 
 	/** @param {import("../../util/util.js").Rect} bounds */
-	let pathBounds = {
+	const pathBounds = {
 		min: new Vec2(Infinity, Infinity),
 		max: new Vec2(-Infinity, -Infinity),
 	};
 
-	// boundary walk
-	while (stack.length > 0) {
-		let node = stack.pop();
-		if (!node) {
+	/** @type {Array<[number[], number]>} */
+	const queue = [[start, 0]];
+
+	/** @type {Object<string, string | null>} */
+	const parentMap = {};
+
+	parentMap[`${start[0]},${start[1]}`] = null;
+
+	while (queue.length > 0) {
+		const element = queue.shift(); 
+		if (!element) {
 			continue;
 		}
-		let [i, j] = node;
-		
+		const [node, distance] = element;
+		const [i, j] = node;
+
 		if ($matrix(i, j) === BOUNDARY_VISITED) {
 			continue;
 		}
 
 		$matrix(i, j, BOUNDARY_VISITED);
 
-		// if path found
 		if (i === end[0] && j === end[1]) {
+			/** @type {number[][]} */
+			let path = [];
 
-			// get a direct path
-			let backtrackNode = node;
-			while (backtrackNode) {
-				path.push(backtrackNode);
-				backtrackNode = parentMap.get(backtrackNode.toString());
+			let currentKey = `${node[0]},${node[1]}`;
+			while (currentKey) {
+				let [ci, cj] = currentKey.split(',').map(Number);
+				path.push([ci, cj]);
+				currentKey = parentMap[currentKey] || '';
 			}
-
-			// Mark the selected path on the matrix
-			for (let [i, j] of path) {
+			for(let [i, j] of path){
 				pathBounds.min.x = Math.min(pathBounds.min.x, i);
 				pathBounds.min.y = Math.min(pathBounds.min.y, j);
 				pathBounds.max.x = Math.max(pathBounds.max.x, i + 1);
@@ -133,11 +137,14 @@ function boundaryWalk(start, end) {
 			break;
 		}
 
-		let edges = getSignalEdge([i, j]);
+		const edges = getSignalEdge([i, j]);
 		for (let edge of edges) {
-			if (!parentMap.has(edge.toString())) {
-				parentMap.set(edge.toString(), node);
-				stack.push(edge);
+			let edgeKey = `${edge[0]},${edge[1]}`;
+			if ($matrix(edge[0], edge[1]) !== BOUNDARY_VISITED) {
+				if (!parentMap[edgeKey]) {
+					queue.push([edge, distance + 1]);
+					parentMap[edgeKey] = `${node[0]},${node[1]}`;
+				}
 			}
 		}
 	}
