@@ -48,6 +48,12 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// bounds.min.subScalar(1);
 	// bounds.max.addScalar(1);
 
+	// simulate worst case scenario
+	// bounds.min.x = 1
+	// bounds.min.y = 1
+	// bounds.max.x = maskWidth - 2
+	// bounds.max.y = maskHeight - 2
+
 	// generate mask
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
 		const offset = i * lineWidth;
@@ -87,7 +93,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	floodfill(closedBounds, unfillableLocations);
 
 	// print mask
-	printer();
+	// printer();
 
 	// erode bounds
 	bounds.min.addScalar(1);
