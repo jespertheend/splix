@@ -137,8 +137,8 @@ export class Game {
 	 */
 	getNewSpawnPosition() {
 		const position = new Vec2(
-			4,
-			4,
+			40,
+			40,
 			// Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 			// Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random())),
 		);

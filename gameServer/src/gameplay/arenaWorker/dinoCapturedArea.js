@@ -89,8 +89,26 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// floodfill the closed bounds
 	floodfill(closedBounds, unfillableLocations);
 
+	// fullBounds = merge bounds || closed bounds
+	const fullBounds = {
+		min: new Vec2(Math.min(closedBounds.min.x, bounds.min.x), Math.min(closedBounds.min.y, bounds.min.y)),
+		max: new Vec2(Math.max(closedBounds.max.x, bounds.max.x), Math.max(closedBounds.max.y, bounds.max.y)),
+	};
+
+	// pack the blocks that remains unfilled to rectangles
+	const fillRects = compressTiles(closedBounds, (x, y) => {
+		const index = x * lineWidth + y;
+		return !(matrix[index] === FILLED_BLOCK || matrix[index] === PLAYER_TRAIL || matrix[index] === BOUNDARY_SELECTED_PATH);
+	});
+
 	// print mask
 	printer();
+
+	return {
+		fillRects,
+		totalFilledTileCount: 0, // TODO
+		newBounds: fullBounds,
+	}
 }
 
 

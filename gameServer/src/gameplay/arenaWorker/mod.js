@@ -93,7 +93,7 @@ const arenaWorkerHandlers = {
 	updateCapturedArea(playerId, vertices, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
 		Perf.start("updateCapturedArea");
-		const { fillRects, totalFilledTileCount, newBounds } = updateCapturedArea(
+		 updateCapturedArea(
 			arenaTiles,
 			playerId,
 			bounds,
@@ -102,7 +102,7 @@ const arenaWorkerHandlers = {
 		Perf.end("updateCapturedArea");
 
 		Perf.start("dinoCapturedArea");
-		dinoCapturedArea(
+		const { fillRects, totalFilledTileCount, newBounds } = dinoCapturedArea(
 			arenaTiles,
 			playerId,
 			bounds,
