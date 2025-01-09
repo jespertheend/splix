@@ -63,14 +63,11 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// fill the trail vertices on the mask
 	const trailBounds = fillPlayerTrail(vertices, PLAYER_TRAIL);
 
+	// find a points at which the trail touches the player's land
+	const [start, end] = findTouchingPoints(vertices[0], vertices[vertices.length - 1]);
+	
 	// walk the boundary and find a path
-	const start = vertices[0];
-	const end = vertices[vertices.length - 1];
-	$matrix(start[0], start[1], PLAYER_BLOCK);
-	$matrix(end[0], end[1], PLAYER_BLOCK);
 	const pathBounds = boundaryWalk(start, end);
-	$matrix(start[0], start[1], PLAYER_TRAIL);
-	$matrix(end[0], end[1], PLAYER_TRAIL);
 
 	// merge bounds
 	const closedBounds = {
@@ -344,6 +341,40 @@ function getSignalEdge(center) {
         }
     }
     return edges;
+}
+
+/**
+ * @param {number[]} start
+ * @param {number[]} end
+ */
+function findTouchingPoints(start, end){
+	let startTouch;
+	if($matrix(start[0], start[1]+1) === PLAYER_BLOCK){
+		startTouch = [start[0], start[1]+1];
+	} else if ($matrix(start[0], start[1]-1) === PLAYER_BLOCK){
+		startTouch = [start[0], start[1]-1];
+	} else if ($matrix(start[0]+1, start[1]) === PLAYER_BLOCK){
+		startTouch = [start[0]+1, start[1]];
+	} else if ($matrix(start[0]-1, start[1]) === PLAYER_BLOCK){
+		startTouch = [start[0]-1, start[1]];
+	} else {
+		startTouch = [start[0], start[1]];
+	}
+
+	let endTouch;
+	if($matrix(end[0], end[1]+1) === PLAYER_BLOCK){
+		endTouch = [end[0], end[1]+1];
+	} else if ($matrix(end[0], end[1]-1) === PLAYER_BLOCK){
+		endTouch = [end[0], end[1]-1];
+	} else if ($matrix(end[0]+1, end[1]) === PLAYER_BLOCK){
+		endTouch = [end[0]+1, end[1]];
+	} else if ($matrix(end[0]-1, end[1]) === PLAYER_BLOCK){
+		endTouch = [end[0]-1, end[1]];
+	} else {
+		endTouch = [end[0], end[1]];
+	}
+
+	return [startTouch, endTouch];
 }
 
 function printer() {
