@@ -129,7 +129,7 @@ export class Arena {
 	/**
 	 * Finds unfilled areas of the player and fills them.
 	 * @param {number} playerId
- 	 * @param {[x: number, y: number][]} vertices
+	 * @param {[x: number, y: number][]} vertices
 	 * @param {Vec2[]} otherPlayerLocations
 	 */
 	updateCapturedArea(playerId, vertices, otherPlayerLocations) {

@@ -65,7 +65,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	// find a points at which the trail touches the player's land
 	const [start, end] = findTouchingPoints(vertices[0], vertices[vertices.length - 1]);
-	
+
 	// walk the boundary and find a path
 	const pathBounds = boundaryWalk(start, end);
 
@@ -74,7 +74,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		min: new Vec2(Math.min(trailBounds.min.x, pathBounds.min.x), Math.min(trailBounds.min.y, pathBounds.min.y)),
 		max: new Vec2(Math.max(trailBounds.max.x, pathBounds.max.x), Math.max(trailBounds.max.y, pathBounds.max.y)),
 	};
-	
+
 	// dilate bounds
 	closedBounds.max.addScalar(1);
 	closedBounds.min.subScalar(1);
@@ -85,7 +85,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	// floodfill the closed bounds
 	floodfill(closedBounds, unfillableLocations);
-	
+
 	// print mask
 	printer();
 
@@ -104,22 +104,25 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// pack the blocks that remains unfilled to rectangles
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
-		return !(matrix[index] === FILLED_BLOCK || matrix[index] === PLAYER_TRAIL || matrix[index] === BOUNDARY_SELECTED_PATH);
+		return !(
+			matrix[index] === FILLED_BLOCK ||
+			matrix[index] === PLAYER_TRAIL ||
+			matrix[index] === BOUNDARY_SELECTED_PATH
+		);
 	});
 
 	return {
 		fillRects,
 		totalFilledTileCount: 0, // TODO
 		newBounds: fullBounds,
-	}
+	};
 }
-
 
 /**
  * @param {import("../../util/util.js").Rect} closedBounds
  * @param {[x: number, y: number][]} unfillableLocations
  */
-function floodfill(closedBounds, unfillableLocations){
+function floodfill(closedBounds, unfillableLocations) {
 	queue.clear();
 
 	/**
@@ -133,7 +136,14 @@ function floodfill(closedBounds, unfillableLocations){
 		if (x < closedBounds.min.x || y < closedBounds.min.y) return false;
 		if (x >= closedBounds.max.x || y >= closedBounds.max.y) return false;
 
-		if (matrix[index] === FILLED_BLOCK || matrix[index] === PLAYER_TRAIL || matrix[index] === BOUNDARY_SELECTED_PATH) return false;
+		if (
+			matrix[index] === FILLED_BLOCK ||
+			matrix[index] === PLAYER_TRAIL ||
+			matrix[index] === BOUNDARY_SELECTED_PATH
+		) {
+			return false;
+		}
+
 		return true;
 	}
 
@@ -190,13 +200,11 @@ function floodfill(closedBounds, unfillableLocations){
 	}
 }
 
-
 /**
  * @param {number[]} start
  * @param {number[]} end
  */
 function boundaryWalk(start, end) {
-
 	/** @param {import("../../util/util.js").Rect} bounds */
 	const pathBounds = {
 		min: new Vec2(Infinity, Infinity),
@@ -212,7 +220,7 @@ function boundaryWalk(start, end) {
 	parentMap[`${start[0]},${start[1]}`] = null;
 
 	while (queue.length > 0) {
-		const element = queue.shift(); 
+		const element = queue.shift();
 		if (!element) {
 			continue;
 		}
@@ -231,11 +239,11 @@ function boundaryWalk(start, end) {
 
 			let currentKey = `${node[0]},${node[1]}`;
 			while (currentKey) {
-				let [ci, cj] = currentKey.split(',').map(Number);
+				let [ci, cj] = currentKey.split(",").map(Number);
 				path.push([ci, cj]);
-				currentKey = parentMap[currentKey] || '';
+				currentKey = parentMap[currentKey] || "";
 			}
-			for(let [i, j] of path){
+			for (let [i, j] of path) {
 				pathBounds.min.x = Math.min(pathBounds.min.x, i);
 				pathBounds.min.y = Math.min(pathBounds.min.y, j);
 				pathBounds.max.x = Math.max(pathBounds.max.x, i + 1);
@@ -260,116 +268,122 @@ function boundaryWalk(start, end) {
 	return pathBounds;
 }
 
-
-/** 
+/**
  * @param {number[][]} vertices
  * @param {number} value
  */
 function fillPlayerTrail(vertices, value) {
-		/** @param {import("../../util/util.js").Rect} bounds */
-		let trailBounds = {
-			min: new Vec2(Infinity, Infinity),
-			max: new Vec2(-Infinity, -Infinity),
-		};
-		
-		if (vertices.length === 1) {
-			const vertex = vertices[0];
-			$matrix(vertex[0] ,vertex[1],value);
+	/** @param {import("../../util/util.js").Rect} bounds */
+	let trailBounds = {
+		min: new Vec2(Infinity, Infinity),
+		max: new Vec2(-Infinity, -Infinity),
+	};
 
-			trailBounds.min.x = Math.min(trailBounds.min.x, vertex[0]);
-			trailBounds.min.y = Math.min(trailBounds.min.y, vertex[1]);
-			trailBounds.max.x = Math.max(trailBounds.max.x, vertex[0] + 1);
-			trailBounds.max.y = Math.max(trailBounds.max.y, vertex[1] + 1);
+	if (vertices.length === 1) {
+		const vertex = vertices[0];
+		$matrix(vertex[0], vertex[1], value);
+
+		trailBounds.min.x = Math.min(trailBounds.min.x, vertex[0]);
+		trailBounds.min.y = Math.min(trailBounds.min.y, vertex[1]);
+		trailBounds.max.x = Math.max(trailBounds.max.x, vertex[0] + 1);
+		trailBounds.max.y = Math.max(trailBounds.max.y, vertex[1] + 1);
+	}
+
+	for (let i = 0; i < vertices.length - 1; i++) {
+		const vertexA = vertices[i];
+		const vertexB = vertices[i + 1];
+		if (vertexA[0] != vertexB[0] && vertexA[1] != vertexB[1]) {
+			throw new Error("Assertion failed, tried to fill a player trail with a diagonal edge.");
 		}
-		for (let i = 0; i < vertices.length - 1; i++) {
-			const vertexA = vertices[i];
-			const vertexB = vertices[i + 1];
-			if (vertexA[0] != vertexB[0] && vertexA[1] != vertexB[1]) {
-				throw new Error("Assertion failed, tried to fill a player trail with a diagonal edge.");
-			}
 
-			// Sort the two corners so that `min` is always in the top left.
-			const minX = Math.min(vertexA[0], vertexB[0]);
-			const minY = Math.min(vertexA[1], vertexB[1]);
-			const maxX = Math.max(vertexA[0], vertexB[0]) + 1;
-			const maxY = Math.max(vertexA[1], vertexB[1]) + 1;
+		// Sort the two corners so that `min` is always in the top left.
+		const minX = Math.min(vertexA[0], vertexB[0]);
+		const minY = Math.min(vertexA[1], vertexB[1]);
+		const maxX = Math.max(vertexA[0], vertexB[0]) + 1;
+		const maxY = Math.max(vertexA[1], vertexB[1]) + 1;
 
-			trailBounds.min.x = Math.min(trailBounds.min.x, minX);
-			trailBounds.min.y = Math.min(trailBounds.min.y, minY);
-			trailBounds.max.x = Math.max(trailBounds.max.x, maxX);
-			trailBounds.max.y = Math.max(trailBounds.max.y, maxY);
+		trailBounds.min.x = Math.min(trailBounds.min.x, minX);
+		trailBounds.min.y = Math.min(trailBounds.min.y, minY);
+		trailBounds.max.x = Math.max(trailBounds.max.x, maxX);
+		trailBounds.max.y = Math.max(trailBounds.max.y, maxY);
 
-			for(let x = minX; x < maxX; x++){
-				for(let y = minY; y < maxY; y++){
-					$matrix(x,y,value);
-				}
+		for (let x = minX; x < maxX; x++) {
+			for (let y = minY; y < maxY; y++) {
+				$matrix(x, y, value);
 			}
 		}
-		return trailBounds;
+	}
+	return trailBounds;
 }
 
 /**
  * @param {number[]} center
  */
 function getSignalEdge(center) {
-    const directions = [
-        [0, 1],   // right
-        [-1, 1],  // up-right
-        [-1, 0],  // up
-        [-1, -1], // up-left
-        [0, -1],  // left
-        [1, -1],  // down-left
-        [1, 0],   // down
-        [1, 1]    // down-right
-    ];
+	const directions = [
+		[0, 1], // right
+		[-1, 1], // up-right
+		[-1, 0], // up
+		[-1, -1], // up-left
+		[0, -1], // left
+		[1, -1], // down-left
+		[1, 0], // down
+		[1, 1], // down-right
+	];
 
-    const [i, j] = center;
+	const [i, j] = center;
 
-    const ring = [];
-    for (let dir of directions) {
-        let ni = i + dir[0];
-        let nj = j + dir[1];
-        ring.push({ val: $matrix(ni, nj), coord: [ni, nj] });
-    }
+	const ring = [];
+	for (let dir of directions) {
+		let ni = i + dir[0];
+		let nj = j + dir[1];
+		ring.push({ val: $matrix(ni, nj), coord: [ni, nj] });
+	}
 
-    const edges = [];
-    for (let i = 0; i < ring.length; i++) {
-        if ((ring[i].val === EMPTY_BLOCK || ring[i].val === PLAYER_TRAIL ) && ring[(i + 1) % ring.length].val === PLAYER_BLOCK) {
-            edges.push(ring[(i + 1) % ring.length].coord);
-        } else if (ring[i].val === PLAYER_BLOCK && (ring[(i + 1) % ring.length].val === EMPTY_BLOCK || ring[(i + 1) % ring.length].val === PLAYER_TRAIL)) {
-            edges.push(ring[i].coord);
-        }
-    }
-    return edges;
+	const edges = [];
+	for (let i = 0; i < ring.length; i++) {
+		if (
+			(ring[i].val === EMPTY_BLOCK || ring[i].val === PLAYER_TRAIL) &&
+			ring[(i + 1) % ring.length].val === PLAYER_BLOCK
+		) {
+			edges.push(ring[(i + 1) % ring.length].coord);
+		} else if (
+			ring[i].val === PLAYER_BLOCK &&
+			(ring[(i + 1) % ring.length].val === EMPTY_BLOCK || ring[(i + 1) % ring.length].val === PLAYER_TRAIL)
+		) {
+			edges.push(ring[i].coord);
+		}
+	}
+	return edges;
 }
 
 /**
  * @param {number[]} start
  * @param {number[]} end
  */
-function findTouchingPoints(start, end){
+function findTouchingPoints(start, end) {
 	let startTouch;
-	if($matrix(start[0], start[1]+1) === PLAYER_BLOCK){
-		startTouch = [start[0], start[1]+1];
-	} else if ($matrix(start[0], start[1]-1) === PLAYER_BLOCK){
-		startTouch = [start[0], start[1]-1];
-	} else if ($matrix(start[0]+1, start[1]) === PLAYER_BLOCK){
-		startTouch = [start[0]+1, start[1]];
-	} else if ($matrix(start[0]-1, start[1]) === PLAYER_BLOCK){
-		startTouch = [start[0]-1, start[1]];
+	if ($matrix(start[0], start[1] + 1) === PLAYER_BLOCK) {
+		startTouch = [start[0], start[1] + 1];
+	} else if ($matrix(start[0], start[1] - 1) === PLAYER_BLOCK) {
+		startTouch = [start[0], start[1] - 1];
+	} else if ($matrix(start[0] + 1, start[1]) === PLAYER_BLOCK) {
+		startTouch = [start[0] + 1, start[1]];
+	} else if ($matrix(start[0] - 1, start[1]) === PLAYER_BLOCK) {
+		startTouch = [start[0] - 1, start[1]];
 	} else {
 		startTouch = [start[0], start[1]];
 	}
 
 	let endTouch;
-	if($matrix(end[0], end[1]+1) === PLAYER_BLOCK){
-		endTouch = [end[0], end[1]+1];
-	} else if ($matrix(end[0], end[1]-1) === PLAYER_BLOCK){
-		endTouch = [end[0], end[1]-1];
-	} else if ($matrix(end[0]+1, end[1]) === PLAYER_BLOCK){
-		endTouch = [end[0]+1, end[1]];
-	} else if ($matrix(end[0]-1, end[1]) === PLAYER_BLOCK){
-		endTouch = [end[0]-1, end[1]];
+	if ($matrix(end[0], end[1] + 1) === PLAYER_BLOCK) {
+		endTouch = [end[0], end[1] + 1];
+	} else if ($matrix(end[0], end[1] - 1) === PLAYER_BLOCK) {
+		endTouch = [end[0], end[1] - 1];
+	} else if ($matrix(end[0] + 1, end[1]) === PLAYER_BLOCK) {
+		endTouch = [end[0] + 1, end[1]];
+	} else if ($matrix(end[0] - 1, end[1]) === PLAYER_BLOCK) {
+		endTouch = [end[0] - 1, end[1]];
 	} else {
 		endTouch = [end[0], end[1]];
 	}
@@ -378,25 +392,25 @@ function findTouchingPoints(start, end){
 }
 
 function printer() {
-    for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
-        let line = "";
-        for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
-            if ($matrix(i, j) == EMPTY_BLOCK) {
-                line += "\x1b[37m  "; // White
-            } else if ($matrix(i, j) == PLAYER_BLOCK) {
-                line += "\x1b[31m██"; // Red
-            } else if ($matrix(i, j) == PLAYER_TRAIL) {
-                line += "\x1b[33m░░"; // Yellow
-            } else if ($matrix(i, j) == BOUNDARY_VISITED) {
-                line += "\x1b[34m▒▒"; // Blue
-            } else if ($matrix(i, j) == BOUNDARY_SELECTED_PATH) {
+	for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
+		let line = "";
+		for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
+			if ($matrix(i, j) == EMPTY_BLOCK) {
+				line += "\x1b[37m  "; // White
+			} else if ($matrix(i, j) == PLAYER_BLOCK) {
+				line += "\x1b[31m██"; // Red
+			} else if ($matrix(i, j) == PLAYER_TRAIL) {
+				line += "\x1b[33m░░"; // Yellow
+			} else if ($matrix(i, j) == BOUNDARY_VISITED) {
+				line += "\x1b[34m▒▒"; // Blue
+			} else if ($matrix(i, j) == BOUNDARY_SELECTED_PATH) {
 				line += "\x1b[32m▓▓"; // Green
 			} else {
 				line += "\x1b[37m██"; // White
 			}
-        }
-        console.log(line + "\x1b[0m");
-    }
+		}
+		console.log(line + "\x1b[0m");
+	}
 }
 
 /**
