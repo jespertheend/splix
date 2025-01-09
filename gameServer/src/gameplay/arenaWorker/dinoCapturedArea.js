@@ -226,9 +226,9 @@ function getSignalEdge(center) {
 
     const edges = [];
     for (let i = 0; i < ring.length; i++) {
-        if (ring[i].val === EMPTY_BLOCK && ring[(i + 1) % ring.length].val === PLAYER_BLOCK) {
+        if ((ring[i].val === EMPTY_BLOCK || ring[i].val === PLAYER_TRAIL ) && ring[(i + 1) % ring.length].val === PLAYER_BLOCK) {
             edges.push(ring[(i + 1) % ring.length].coord);
-        } else if (ring[i].val === PLAYER_BLOCK && ring[(i + 1) % ring.length].val === EMPTY_BLOCK) {
+        } else if (ring[i].val === PLAYER_BLOCK && (ring[(i + 1) % ring.length].val === EMPTY_BLOCK || ring[(i + 1) % ring.length].val === PLAYER_TRAIL)) {
             edges.push(ring[i].coord);
         }
     }
