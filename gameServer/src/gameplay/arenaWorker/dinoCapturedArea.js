@@ -42,19 +42,17 @@ const BOUNDARY_SELECTED_PATH = 3;
  * @param {[x: number, y: number][]} unfillableLocations
  */
 export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfillableLocations) {
-	$bounds = bounds;
-
+	
 	// dilate bounds
-	// bounds.min.subScalar(1);
-	// bounds.max.addScalar(1);
-
-	// simulate worst case scenario
-	// bounds.min.x = 1
-	// bounds.min.y = 1
-	// bounds.max.x = maskWidth - 2
-	// bounds.max.y = maskHeight - 2
+	bounds.min.subScalar(1);
+	bounds.max.addScalar(1);
 
 	let totalFilledTileCount = 0;
+	
+	$bounds = {
+		min: new Vec2(Infinity, Infinity),
+		max: new Vec2(-Infinity, -Infinity),
+	};
 
 	// generate mask
 	for (let i = bounds.min.x; i < bounds.max.x; i++) {
@@ -62,12 +60,26 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		for (let j = bounds.min.y; j < bounds.max.y; j++) {
 			if (arenaTiles[i][j] == playerId) {
 				matrix[offset + j] = PLAYER_BLOCK;
+				$bounds.min.x = Math.min($bounds.min.x, i);
+				$bounds.min.y = Math.min($bounds.min.y, j);
+				$bounds.max.x = Math.max($bounds.max.x, i + 1);
+				$bounds.max.y = Math.max($bounds.max.y, j + 1);
 				totalFilledTileCount++;
 			} else {
 				matrix[offset + j] = EMPTY_BLOCK;
 			}
 		}
 	}
+
+	// dilate new bounds
+	$bounds.min.subScalar(1);
+	$bounds.max.addScalar(1);
+
+	// simulate worst case scenario
+	// $bounds.min.x = 0;
+	// $bounds.min.y = 0;
+	// $bounds.max.x = maskHeight;
+	// $bounds.max.y = maskHeight;
 
 	// fill the trail vertices on the mask
 	const trailBounds = fillPlayerTrail(vertices, PLAYER_TRAIL);
@@ -88,7 +100,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	closedBounds.max.addScalar(1);
 	closedBounds.min.subScalar(1);
 
-	// viisualize bounds
+	// visualize bounds (visualising may interrupt floodfill)
 	// $matrix(closedBounds.min.x, closedBounds.min.y, 7);
 	// $matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
 
@@ -96,20 +108,8 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	floodfill(closedBounds, unfillableLocations);
 
 	// print mask
-	// printer();
-
-	// erode bounds
-	bounds.min.addScalar(1);
-	bounds.max.subScalar(1);
-	closedBounds.min.addScalar(1);
-	closedBounds.max.subScalar(1);
-
-	// merge bounds
-	const fullBounds = {
-		min: new Vec2(Math.min(closedBounds.min.x, bounds.min.x), Math.min(closedBounds.min.y, bounds.min.y)),
-		max: new Vec2(Math.max(closedBounds.max.x, bounds.max.x), Math.max(closedBounds.max.y, bounds.max.y)),
-	};
-
+	// printer($bounds);
+	
 	// pack the blocks that remains unfilled to rectangles
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
@@ -124,10 +124,14 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 		return status;
 	});
 
+	// erode new bounds
+	$bounds.min.addScalar(1);
+	$bounds.max.subScalar(1);
+
 	return {
 		fillRects,
 		totalFilledTileCount: totalFilledTileCount,
-		newBounds: fullBounds,
+		newBounds: $bounds,
 	};
 }
 
@@ -404,10 +408,13 @@ function findTouchingPoints(start, end) {
 	return [startTouch, endTouch];
 }
 
-function printer() {
-	for (let j = $bounds.min.y; j < $bounds.max.y; j++) {
+/** 
+ * @param {import("../../util/util.js").Rect} bounds
+ */
+function printer(bounds) {
+	for (let j = bounds.min.y; j < bounds.max.y; j++) {
 		let line = "";
-		for (let i = $bounds.min.x; i < $bounds.max.x; i++) {
+		for (let i = bounds.min.x; i < bounds.max.x; i++) {
 			if ($matrix(i, j) == EMPTY_BLOCK) {
 				line += "\x1b[37m  "; // White
 			} else if ($matrix(i, j) == PLAYER_BLOCK) {
