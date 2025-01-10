@@ -51,14 +51,29 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	$bounds.min.subScalar(1);
 	$bounds.max.addScalar(1);
 
-	// fill the trail vertices on the mask
-	const trailBounds = fillPlayerTrail(vertices, PLAYER_TRAIL);
+	// TODO: trailPath and shortestPath should be set of points
 
+	// fill the trail vertices on the mask
+	const {trailPath, trailBounds} = getTrailPoints(vertices);
+
+	// TEMP
+	for (const point of trailPath) {
+		$matrix(point[0], point[1], PLAYER_TRAIL);
+	}
+	
 	// find a points at which the trail touches the player's land
-	const [start, end] = findTouchingPoints(vertices[0], vertices[vertices.length - 1]);
+	const [start, end] = findTouchingPoints(arenaTiles, playerId, trailPath, vertices[0], vertices[vertices.length - 1]);
 
 	// walk the boundary and find a path
-	const pathBounds = boundaryWalk(start, end);
+	const {shortestPath, pathBounds} = boundaryWalk(start, end);
+
+	// TEMP
+	for (const point of shortestPath) {
+		$matrix(point[0], point[1], BOUNDARY_SELECTED_PATH);
+	}
+
+	// TEMP
+	printer($bounds);
 
 	// merge bounds
 	const closedBounds = {
@@ -204,6 +219,11 @@ function boundaryWalk(start, end) {
 	/** @type {Object<string, string | null>} */
 	const parentMap = {};
 
+	/** @type {Set<string>} */
+	const visitedSet = new Set();
+
+	const shortestPath = [];
+
 	parentMap[`${start[0]},${start[1]}`] = null;
 
 	while (queue.length > 0) {
@@ -214,11 +234,11 @@ function boundaryWalk(start, end) {
 		const [node, distance] = element;
 		const [i, j] = node;
 
-		if ($matrix(i, j) === BOUNDARY_VISITED) {
+		if (visitedSet.has(`${i},${j}`)) {
 			continue;
 		}
 
-		$matrix(i, j, BOUNDARY_VISITED);
+		visitedSet.add(`${i},${j}`);
 
 		if (i === end[0] && j === end[1]) {
 			/** @type {number[][]} */
@@ -235,7 +255,7 @@ function boundaryWalk(start, end) {
 				pathBounds.min.y = Math.min(pathBounds.min.y, j);
 				pathBounds.max.x = Math.max(pathBounds.max.x, i + 1);
 				pathBounds.max.y = Math.max(pathBounds.max.y, j + 1);
-				$matrix(i, j, BOUNDARY_SELECTED_PATH);
+				shortestPath.push([i, j]);
 			}
 			break;
 		}
@@ -243,7 +263,7 @@ function boundaryWalk(start, end) {
 		const edges = getSignalEdge([i, j]);
 		for (let edge of edges) {
 			let edgeKey = `${edge[0]},${edge[1]}`;
-			if ($matrix(edge[0], edge[1]) !== BOUNDARY_VISITED) {
+			if (!visitedSet.has(edgeKey)) {
 				if (!parentMap[edgeKey]) {
 					queue.push([edge, distance + 1]);
 					parentMap[edgeKey] = `${node[0]},${node[1]}`;
@@ -252,23 +272,24 @@ function boundaryWalk(start, end) {
 		}
 	}
 
-	return pathBounds;
+	return {shortestPath, pathBounds};
 }
 
 /**
  * @param {number[][]} vertices
- * @param {number} value
  */
-function fillPlayerTrail(vertices, value) {
+function getTrailPoints(vertices) {
 	/** @param {import("../../util/util.js").Rect} bounds */
 	let trailBounds = {
 		min: new Vec2(Infinity, Infinity),
 		max: new Vec2(-Infinity, -Infinity),
 	};
 
+	const trailPath = [];
+
 	if (vertices.length === 1) {
 		const vertex = vertices[0];
-		$matrix(vertex[0], vertex[1], value);
+		trailPath.push(vertex);
 
 		trailBounds.min.x = Math.min(trailBounds.min.x, vertex[0]);
 		trailBounds.min.y = Math.min(trailBounds.min.y, vertex[1]);
@@ -296,11 +317,11 @@ function fillPlayerTrail(vertices, value) {
 
 		for (let x = minX; x < maxX; x++) {
 			for (let y = minY; y < maxY; y++) {
-				$matrix(x, y, value);
+				trailPath.push([x, y]);
 			}
 		}
 	}
-	return trailBounds;
+	return {trailPath, trailBounds};
 }
 
 /**
@@ -345,10 +366,22 @@ function getSignalEdge(center) {
 }
 
 /**
+ * @param {number} i
+ * @param {number} j
+ * @returns {boolean}
+ */
+function isInsideArena(i, j) {
+	return i >= 0 && i < maskWidth && j >= 0 && j < maskHeight;
+}
+
+/**
+ * @param {number[][]} arenaTiles
+ * @param {number} playerId
+ * @param {number[][]} trailPath
  * @param {number[]} start
  * @param {number[]} end
  */
-function findTouchingPoints(start, end) {
+function findTouchingPoints(arenaTiles, playerId, trailPath, start, end) {
 	let startNeighbors = [];
 	let endNeighbors = [];
 
@@ -364,10 +397,25 @@ function findTouchingPoints(start, end) {
 		let sj = start[1] + dir[1];
 		let ei = end[0] + dir[0];
 		let ej = end[1] + dir[1];
-		if ($matrix(si, sj) === PLAYER_BLOCK) {
+
+		if (
+			isInsideArena(si,sj) &&
+			arenaTiles[si][sj] === playerId &&
+			!trailPath.some(
+				/**@param {number[]} point */
+				(point) => point[0] === si && point[1] === sj
+			)
+		) {
 			startNeighbors.push([si, sj]);
 		}
-		if ($matrix(ei, ej) === PLAYER_BLOCK) {
+		if (
+			isInsideArena(ei,ej) &&
+			arenaTiles[ei][ej] === playerId &&
+			!trailPath.some(
+				/**@param {number[]} point */
+				(point) => point[0] === ei && point[1] === ej
+			)
+		) {
 			endNeighbors.push([ei, ej]);
 		}
 	}
