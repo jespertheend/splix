@@ -355,33 +355,40 @@ function getSignalEdge(center) {
  * @param {number[]} end
  */
 function findTouchingPoints(start, end) {
-	let startTouch;
-	if ($matrix(start[0], start[1] + 1) === PLAYER_BLOCK) {
-		startTouch = [start[0], start[1] + 1];
-	} else if ($matrix(start[0], start[1] - 1) === PLAYER_BLOCK) {
-		startTouch = [start[0], start[1] - 1];
-	} else if ($matrix(start[0] + 1, start[1]) === PLAYER_BLOCK) {
-		startTouch = [start[0] + 1, start[1]];
-	} else if ($matrix(start[0] - 1, start[1]) === PLAYER_BLOCK) {
-		startTouch = [start[0] - 1, start[1]];
-	} else {
-		startTouch = [start[0], start[1]];
+	let startNeighbors = [];
+	let endNeighbors = [];
+
+	const directions = [
+		[0, 1], // right
+		[-1, 0], // up
+		[0, -1], // left
+		[1, 0], // down
+	];
+
+	for (const dir of directions) {
+		let si = start[0] + dir[0];
+		let sj = start[1] + dir[1];
+		let ei = end[0] + dir[0];
+		let ej = end[1] + dir[1];
+		if ($matrix(si, sj) === PLAYER_BLOCK) {
+			startNeighbors.push([si, sj]);
+		}
+		if ($matrix(ei, ej) === PLAYER_BLOCK) {
+			endNeighbors.push([ei, ej]);
+		}
 	}
 
-	let endTouch;
-	if ($matrix(end[0], end[1] + 1) === PLAYER_BLOCK) {
-		endTouch = [end[0], end[1] + 1];
-	} else if ($matrix(end[0], end[1] - 1) === PLAYER_BLOCK) {
-		endTouch = [end[0], end[1] - 1];
-	} else if ($matrix(end[0] + 1, end[1]) === PLAYER_BLOCK) {
-		endTouch = [end[0] + 1, end[1]];
-	} else if ($matrix(end[0] - 1, end[1]) === PLAYER_BLOCK) {
-		endTouch = [end[0] - 1, end[1]];
-	} else {
-		endTouch = [end[0], end[1]];
+	startNeighbors.push(start);
+
+	for (const startPoint of startNeighbors) {
+		for (const endPoint of endNeighbors) {
+			if (startPoint[0] !== endPoint[0] || startPoint[1] !== endPoint[1]) {
+				return [startPoint, endPoint];
+			}
+		}
 	}
 
-	return [startTouch, endTouch];
+	return [start, end];
 }
 
 /**
