@@ -100,7 +100,7 @@ const arenaWorkerHandlers = {
 			otherPlayerLocations,
 		);
 		Perf.end("updateCapturedArea");
-		
+
 		// erode bounds (because updateCapturedArea dilates the bounds)
 		bounds.min.addScalar(1);
 		bounds.max.subScalar(1);

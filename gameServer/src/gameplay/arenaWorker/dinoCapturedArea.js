@@ -42,34 +42,10 @@ const BOUNDARY_SELECTED_PATH = 3;
  * @param {[x: number, y: number][]} unfillableLocations
  */
 export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfillableLocations) {
-	
-	// dilate bounds
-	bounds.min.subScalar(1);
-	bounds.max.addScalar(1);
+	let filledTileCount = 0;
 
-	let totalFilledTileCount = 0;
-	
-	$bounds = {
-		min: new Vec2(Infinity, Infinity),
-		max: new Vec2(-Infinity, -Infinity),
-	};
-
-	// generate mask
-	for (let i = bounds.min.x; i < bounds.max.x; i++) {
-		const offset = i * lineWidth;
-		for (let j = bounds.min.y; j < bounds.max.y; j++) {
-			if (arenaTiles[i][j] == playerId) {
-				matrix[offset + j] = PLAYER_BLOCK;
-				$bounds.min.x = Math.min($bounds.min.x, i);
-				$bounds.min.y = Math.min($bounds.min.y, j);
-				$bounds.max.x = Math.max($bounds.max.x, i + 1);
-				$bounds.max.y = Math.max($bounds.max.y, j + 1);
-				totalFilledTileCount++;
-			} else {
-				matrix[offset + j] = EMPTY_BLOCK;
-			}
-		}
-	}
+	// initializeMask
+	[$bounds, filledTileCount] = initializeMask(bounds, arenaTiles, playerId);
 
 	// dilate new bounds
 	$bounds.min.subScalar(1);
@@ -109,7 +85,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	// print mask
 	// printer($bounds);
-	
+
 	// pack the blocks that remains unfilled to rectangles
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
@@ -119,7 +95,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 			matrix[index] === BOUNDARY_SELECTED_PATH
 		);
 		if (status) {
-			totalFilledTileCount++;
+			filledTileCount++;
 		}
 		return status;
 	});
@@ -130,7 +106,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	return {
 		fillRects,
-		totalFilledTileCount: totalFilledTileCount,
+		totalFilledTileCount: filledTileCount,
 		newBounds: $bounds,
 	};
 }
@@ -408,7 +384,53 @@ function findTouchingPoints(start, end) {
 	return [startTouch, endTouch];
 }
 
-/** 
+/**
+ * @param {import("../../util/util.js").Rect} bounds
+ * @param {number[][]} arenaTiles
+ * @param {number} playerId
+ * @returns {[import("../../util/util.js").Rect, number]}
+ */
+function initializeMask(bounds, arenaTiles, playerId) {
+	// dilate bounds
+	bounds.min.subScalar(1);
+	bounds.max.addScalar(1);
+	
+	let totalFilledTileCount = 0;
+	
+	let newBounds = {
+		min: new Vec2(Infinity, Infinity),
+		max: new Vec2(-Infinity, -Infinity),
+	};
+	
+	// generate mask
+	for (let i = bounds.min.x; i < bounds.max.x; i++) {
+		const offset = i * lineWidth;
+		for (let j = bounds.min.y; j < bounds.max.y; j++) {
+			if (arenaTiles[i][j] == playerId) {
+				if(i < newBounds.min.x) {
+					newBounds.min.x = i;
+				}
+				if (j < newBounds.min.y) {
+					newBounds.min.y = j;
+				}
+				if (i + 1 > newBounds.max.x) {
+					newBounds.max.x = i + 1;
+				}
+				if (j + 1 > newBounds.max.y) {
+					newBounds.max.y = j + 1;
+				}
+				totalFilledTileCount++;
+				matrix[offset + j] = PLAYER_BLOCK;
+			} else {
+				matrix[offset + j] = EMPTY_BLOCK;
+			}
+		}
+	}
+	
+	return [newBounds, totalFilledTileCount];
+}
+
+/**
  * @param {import("../../util/util.js").Rect} bounds
  */
 function printer(bounds) {
