@@ -92,8 +92,15 @@ const arenaWorkerHandlers = {
 	 */
 	updateCapturedArea(playerId, vertices, otherPlayerLocations) {
 		const bounds = boundsTracker.getBounds(playerId);
+
+		// simulate worst case scenario
+		// bounds.min.x = 1;
+		// bounds.min.y = 1;
+		// bounds.max.x = arenaHeight - 1;
+		// bounds.max.y = arenaHeight - 1;
+
 		Perf.start("updateCapturedArea");
-		updateCapturedArea(
+		const tmp = updateCapturedArea(
 			arenaTiles,
 			playerId,
 			bounds,

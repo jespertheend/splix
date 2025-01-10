@@ -51,12 +51,6 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	$bounds.min.subScalar(1);
 	$bounds.max.addScalar(1);
 
-	// simulate worst case scenario
-	// $bounds.min.x = 0;
-	// $bounds.min.y = 0;
-	// $bounds.max.x = maskHeight;
-	// $bounds.max.y = maskHeight;
-
 	// fill the trail vertices on the mask
 	const trailBounds = fillPlayerTrail(vertices, PLAYER_TRAIL);
 
