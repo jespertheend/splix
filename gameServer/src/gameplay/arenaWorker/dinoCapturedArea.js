@@ -63,7 +63,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	const [start, end] = findTouchingPoints(arenaTiles, playerId, trailPath, vertices[0], vertices[vertices.length - 1]);
 
 	// walk the boundary and find a path
-	const {shortestPath, pathBounds} = boundaryWalk(start, end);
+	const {shortestPath, pathBounds} = boundaryWalk(start, end, playerId, arenaTiles, trailPath);
 
 	// TEMP
 	for (const point of shortestPath) {
@@ -203,8 +203,11 @@ function floodfill(closedBounds, unfillableLocations) {
 /**
  * @param {number[]} start
  * @param {number[]} end
+ * @param {number} playerId
+ * @param {number[][]} arenaTiles
+ * @param {Set<number>} trailPath
  */
-function boundaryWalk(start, end) {
+function boundaryWalk(start, end, playerId, arenaTiles, trailPath) {
 	/** @param {import("../../util/util.js").Rect} bounds */
 	const pathBounds = {
 		min: new Vec2(Infinity, Infinity),
@@ -258,7 +261,7 @@ function boundaryWalk(start, end) {
 			break;
 		}
 
-		const edges = getSignalEdge([i, j]);
+		const edges = getSignalEdge([i, j], playerId, arenaTiles, trailPath);
 		for (let edge of edges) {
 			let edgeKey = `${edge[0]},${edge[1]}`;
 			if (!visitedSet.has(edgeKey)) {
@@ -324,8 +327,11 @@ function getTrailPoints(vertices) {
 
 /**
  * @param {number[]} center
+ * @param {number} playerId
+ * @param {number[][]} arenaTiles
+ * @param {Set<number>} trailPath
  */
-function getSignalEdge(center) {
+function getSignalEdge(center, playerId, arenaTiles, trailPath) {
 	const directions = [
 		[0, 1], // right
 		[-1, 1], // up-right
@@ -343,20 +349,18 @@ function getSignalEdge(center) {
 	for (let dir of directions) {
 		let ni = i + dir[0];
 		let nj = j + dir[1];
-		ring.push({ val: $matrix(ni, nj), coord: [ni, nj] });
+		let status = false;
+		if (isInsideArena(ni, nj)) {
+			status = arenaTiles[ni][nj] === playerId && !trailPath.has(ni * lineWidth + nj);
+		}
+		ring.push({ status: status, coord: [ni, nj] });
 	}
 
 	const edges = [];
 	for (let i = 0; i < ring.length; i++) {
-		if (
-			(ring[i].val === EMPTY_BLOCK || ring[i].val === PLAYER_TRAIL) &&
-			ring[(i + 1) % ring.length].val === PLAYER_BLOCK
-		) {
+		if (!ring[i].status && ring[(i + 1) % ring.length].status) {
 			edges.push(ring[(i + 1) % ring.length].coord);
-		} else if (
-			ring[i].val === PLAYER_BLOCK &&
-			(ring[(i + 1) % ring.length].val === EMPTY_BLOCK || ring[(i + 1) % ring.length].val === PLAYER_TRAIL)
-		) {
+		} else if (ring[i].status && !ring[(i + 1) % ring.length].status) {
 			edges.push(ring[i].coord);
 		}
 	}
