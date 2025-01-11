@@ -2,8 +2,8 @@ import { Vec2 } from "renda";
 import { compressTiles } from "../../util/util.js";
 import { CircularQueue } from "../../util/CircularQueue.js";
 
-let maskWidth = 0;
-let maskHeight = 0;
+let arenaWidth = 0;
+let arenaHeight = 0;
 let lineWidth = 0;
 
 /** @type {Uint8Array} */
@@ -20,11 +20,11 @@ let $bounds;
  * @param {number} height
  */
 export function dinoInitializeMask(width, height) {
-	maskWidth = width;
-	maskHeight = height;
-	lineWidth = maskHeight;
-	matrix = new Uint8Array(maskWidth * maskHeight);
-	queue = new CircularQueue(maskWidth * maskHeight);
+	arenaWidth = width;
+	arenaHeight = height;
+	lineWidth = arenaHeight;
+	matrix = new Uint8Array(arenaWidth * arenaHeight);
+	queue = new CircularQueue(arenaWidth * arenaHeight);
 }
 
 const EMPTY_BLOCK = 0;
@@ -371,7 +371,7 @@ function getSignalEdge(center) {
  * @returns {boolean}
  */
 function isInsideArena(i, j) {
-	return i >= 0 && i < maskWidth && j >= 0 && j < maskHeight;
+	return i >= 0 && i < arenaWidth && j >= 0 && j < arenaHeight;
 }
 
 /**
@@ -515,7 +515,7 @@ function $matrix(i, j, val = undefined) {
 		return -1;
 	}
 	if (val !== undefined) {
-		matrix[i * maskWidth + j] = val;
+		matrix[i * lineWidth + j] = val;
 	}
-	return matrix[i * maskWidth + j];
+	return matrix[i * lineWidth + j];
 }
