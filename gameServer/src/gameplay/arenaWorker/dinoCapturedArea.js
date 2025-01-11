@@ -28,11 +28,7 @@ export function dinoInitializeMask(width, height) {
 }
 
 const EMPTY_BLOCK = 0;
-const PLAYER_BLOCK = 1;
-const PLAYER_TRAIL = 9;
 const FILLED_BLOCK = 4;
-const BOUNDARY_VISITED = 2;
-const BOUNDARY_SELECTED_PATH = 3;
 
 /**
  * @param {number[][]} arenaTiles
@@ -70,32 +66,19 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	closedBounds.max.addScalar(1);
 	closedBounds.min.subScalar(1);
 	
+	// merge paths
+	const path = new Set([...trailPath, ...shortestPath]);
+
+	// clear the mask
 	for(let i = closedBounds.min.x; i < closedBounds.max.x; i++) {
+		const offset = i * lineWidth;
 		for(let j = closedBounds.min.y; j < closedBounds.max.y; j++) {
-			$matrix(i, j, EMPTY_BLOCK);
+			matrix[offset + j] = EMPTY_BLOCK;
 		}
 	}
 	
-	// TEMP
-	for (const point of trailPath) {
-		matrix[point] = FILLED_BLOCK;
-	}
-	
-	// TEMP
-	for (const point of shortestPath) {
-		matrix[point] = FILLED_BLOCK;
-	}
-	
-	// TEMP
-	// printer(closedBounds);
-	
-	
-	// visualize bounds (visualising may interrupt floodfill)
-	// $matrix(closedBounds.min.x, closedBounds.min.y, 7);
-	// $matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
-
 	// floodfill the closed bounds
-	floodfill(closedBounds, unfillableLocations);
+	floodfill(closedBounds, path, unfillableLocations);
 
 	// print mask
 	// printer($bounds);
@@ -103,9 +86,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// pack the blocks that remains unfilled to rectangles
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
-		const status = !(
-			matrix[index] === FILLED_BLOCK
-		);
+		const status = matrix[index] !== FILLED_BLOCK && !path.has(index);
 		if (status) {
 			filledTileCount++;
 		}
@@ -125,9 +106,10 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 /**
  * @param {import("../../util/util.js").Rect} closedBounds
+ * @param {Set<number>} path
  * @param {[x: number, y: number][]} unfillableLocations
  */
-function floodfill(closedBounds, unfillableLocations) {
+function floodfill(closedBounds, path, unfillableLocations) {
 	queue.clear();
 
 	/**
@@ -145,7 +127,7 @@ function floodfill(closedBounds, unfillableLocations) {
 			y >= closedBounds.max.y
 		) return false;
 
-		if (matrix[index] === FILLED_BLOCK) {
+		if (path.has(index) || matrix[index] === FILLED_BLOCK) {
 			return false;
 		}
 
@@ -441,36 +423,12 @@ function printer(bounds) {
 	for (let j = bounds.min.y; j < bounds.max.y; j++) {
 		let line = "";
 		for (let i = bounds.min.x; i < bounds.max.x; i++) {
-			if ($matrix(i, j) == EMPTY_BLOCK) {
-				line += "\x1b[37m  "; // White
-			} else if ($matrix(i, j) == PLAYER_BLOCK) {
-				line += "\x1b[31m██"; // Red
-			} else if ($matrix(i, j) == PLAYER_TRAIL) {
-				line += "\x1b[33m░░"; // Yellow
-			} else if ($matrix(i, j) == BOUNDARY_VISITED) {
-				line += "\x1b[34m▒▒"; // Blue
-			} else if ($matrix(i, j) == BOUNDARY_SELECTED_PATH) {
-				line += "\x1b[32m▓▓"; // Green
+			if (matrix[i * lineWidth + j] == EMPTY_BLOCK) {
+				line += "  "; // White
 			} else {
-				line += "\x1b[37m██"; // White
+				line += "██"; // White
 			}
 		}
-		console.log(line + "\x1b[0m");
+		console.log(line);
 	}
-}
-
-/**
- * @param {number} i
- * @param {number} j
- * @param {number | undefined} val
- * @returns
- */
-function $matrix(i, j, val = undefined) {
-	if (i < $bounds.min.x || i >= $bounds.max.x || j < $bounds.min.y || j >= $bounds.max.y) {
-		return -1;
-	}
-	if (val !== undefined) {
-		matrix[i * lineWidth + j] = val;
-	}
-	return matrix[i * lineWidth + j];
 }
