@@ -44,8 +44,8 @@ const BOUNDARY_SELECTED_PATH = 3;
 export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfillableLocations) {
 	let filledTileCount = 0;
 
+	$bounds = bounds;
 	// initializeMask
-	[$bounds, filledTileCount] = initializeMask(bounds, arenaTiles, playerId);
 
 	// dilate new bounds
 	$bounds.min.subScalar(1);
@@ -54,35 +54,42 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	// fill the trail vertices on the mask
 	const {trailPath, trailBounds} = getTrailPoints(vertices);
 
-	// TEMP
-	for (const point of trailPath) {
-		matrix[point] = PLAYER_TRAIL;
-	}
-	
 	// find a points at which the trail touches the player's land
 	const [start, end] = findTouchingPoints(arenaTiles, playerId, trailPath, vertices[0], vertices[vertices.length - 1]);
-
+	
 	// walk the boundary and find a path
 	const {shortestPath, pathBounds} = boundaryWalk(start, end, playerId, arenaTiles, trailPath);
-
-	// TEMP
-	for (const point of shortestPath) {
-		matrix[point] = BOUNDARY_SELECTED_PATH;
-	}
-
-	// TEMP
-	printer($bounds);
-
+	
 	// merge bounds
 	const closedBounds = {
 		min: new Vec2(Math.min(trailBounds.min.x, pathBounds.min.x), Math.min(trailBounds.min.y, pathBounds.min.y)),
 		max: new Vec2(Math.max(trailBounds.max.x, pathBounds.max.x), Math.max(trailBounds.max.y, pathBounds.max.y)),
 	};
-
+	
 	// dilate bounds
 	closedBounds.max.addScalar(1);
 	closedBounds.min.subScalar(1);
-
+	
+	for(let i = closedBounds.min.x; i < closedBounds.max.x; i++) {
+		for(let j = closedBounds.min.y; j < closedBounds.max.y; j++) {
+			$matrix(i, j, EMPTY_BLOCK);
+		}
+	}
+	
+	// TEMP
+	for (const point of trailPath) {
+		matrix[point] = FILLED_BLOCK;
+	}
+	
+	// TEMP
+	for (const point of shortestPath) {
+		matrix[point] = FILLED_BLOCK;
+	}
+	
+	// TEMP
+	// printer(closedBounds);
+	
+	
 	// visualize bounds (visualising may interrupt floodfill)
 	// $matrix(closedBounds.min.x, closedBounds.min.y, 7);
 	// $matrix(closedBounds.max.x - 1, closedBounds.max.y - 1, 7);
@@ -97,9 +104,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	const fillRects = compressTiles(closedBounds, (x, y) => {
 		const index = x * lineWidth + y;
 		const status = !(
-			matrix[index] === FILLED_BLOCK ||
-			matrix[index] === PLAYER_TRAIL ||
-			matrix[index] === BOUNDARY_SELECTED_PATH
+			matrix[index] === FILLED_BLOCK
 		);
 		if (status) {
 			filledTileCount++;
@@ -133,14 +138,14 @@ function floodfill(closedBounds, unfillableLocations) {
 	 * @returns {Boolean}
 	 */
 	function testFillNode(x, y, index) {
-		if (x < closedBounds.min.x || y < closedBounds.min.y) return false;
-		if (x >= closedBounds.max.x || y >= closedBounds.max.y) return false;
-
 		if (
-			matrix[index] === FILLED_BLOCK ||
-			matrix[index] === PLAYER_TRAIL ||
-			matrix[index] === BOUNDARY_SELECTED_PATH
-		) {
+			x < closedBounds.min.x ||
+			y < closedBounds.min.y ||
+			x >= closedBounds.max.x ||
+			y >= closedBounds.max.y
+		) return false;
+
+		if (matrix[index] === FILLED_BLOCK) {
 			return false;
 		}
 
@@ -427,52 +432,6 @@ function findTouchingPoints(arenaTiles, playerId, trailPath, start, end) {
 	}
 
 	return [start, end];
-}
-
-/**
- * @param {import("../../util/util.js").Rect} bounds
- * @param {number[][]} arenaTiles
- * @param {number} playerId
- * @returns {[import("../../util/util.js").Rect, number]}
- */
-function initializeMask(bounds, arenaTiles, playerId) {
-	// dilate bounds
-	bounds.min.subScalar(1);
-	bounds.max.addScalar(1);
-	
-	let totalFilledTileCount = 0;
-	
-	let newBounds = {
-		min: new Vec2(Infinity, Infinity),
-		max: new Vec2(-Infinity, -Infinity),
-	};
-	
-	// generate mask
-	for (let i = bounds.min.x; i < bounds.max.x; i++) {
-		const offset = i * lineWidth;
-		for (let j = bounds.min.y; j < bounds.max.y; j++) {
-			if (arenaTiles[i][j] == playerId) {
-				if(i < newBounds.min.x) {
-					newBounds.min.x = i;
-				}
-				if (j < newBounds.min.y) {
-					newBounds.min.y = j;
-				}
-				if (i + 1 > newBounds.max.x) {
-					newBounds.max.x = i + 1;
-				}
-				if (j + 1 > newBounds.max.y) {
-					newBounds.max.y = j + 1;
-				}
-				totalFilledTileCount++;
-				matrix[offset + j] = PLAYER_BLOCK;
-			} else {
-				matrix[offset + j] = EMPTY_BLOCK;
-			}
-		}
-	}
-	
-	return [newBounds, totalFilledTileCount];
 }
 
 /**
