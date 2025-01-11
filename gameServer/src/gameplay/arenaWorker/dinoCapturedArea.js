@@ -51,14 +51,12 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 	$bounds.min.subScalar(1);
 	$bounds.max.addScalar(1);
 
-	// TODO: trailPath and shortestPath should be set of points
-
 	// fill the trail vertices on the mask
 	const {trailPath, trailBounds} = getTrailPoints(vertices);
 
 	// TEMP
 	for (const point of trailPath) {
-		$matrix(point[0], point[1], PLAYER_TRAIL);
+		matrix[point] = PLAYER_TRAIL;
 	}
 	
 	// find a points at which the trail touches the player's land
@@ -69,7 +67,7 @@ export function dinoCapturedArea(arenaTiles, playerId, bounds, vertices, unfilla
 
 	// TEMP
 	for (const point of shortestPath) {
-		$matrix(point[0], point[1], BOUNDARY_SELECTED_PATH);
+		matrix[point] = BOUNDARY_SELECTED_PATH;
 	}
 
 	// TEMP
@@ -222,7 +220,7 @@ function boundaryWalk(start, end) {
 	/** @type {Set<string>} */
 	const visitedSet = new Set();
 
-	const shortestPath = [];
+	const shortestPath = new Set();
 
 	parentMap[`${start[0]},${start[1]}`] = null;
 
@@ -255,7 +253,7 @@ function boundaryWalk(start, end) {
 				pathBounds.min.y = Math.min(pathBounds.min.y, j);
 				pathBounds.max.x = Math.max(pathBounds.max.x, i + 1);
 				pathBounds.max.y = Math.max(pathBounds.max.y, j + 1);
-				shortestPath.push([i, j]);
+				shortestPath.add(i * lineWidth + j);
 			}
 			break;
 		}
@@ -285,11 +283,11 @@ function getTrailPoints(vertices) {
 		max: new Vec2(-Infinity, -Infinity),
 	};
 
-	const trailPath = [];
+	const trailPath = new Set();
 
 	if (vertices.length === 1) {
 		const vertex = vertices[0];
-		trailPath.push(vertex);
+		trailPath.add(vertex[0] * lineWidth + vertex[1]);
 
 		trailBounds.min.x = Math.min(trailBounds.min.x, vertex[0]);
 		trailBounds.min.y = Math.min(trailBounds.min.y, vertex[1]);
@@ -317,7 +315,7 @@ function getTrailPoints(vertices) {
 
 		for (let x = minX; x < maxX; x++) {
 			for (let y = minY; y < maxY; y++) {
-				trailPath.push([x, y]);
+				trailPath.add(x * lineWidth + y);
 			}
 		}
 	}
@@ -377,7 +375,7 @@ function isInsideArena(i, j) {
 /**
  * @param {number[][]} arenaTiles
  * @param {number} playerId
- * @param {number[][]} trailPath
+ * @param {Set<number>} trailPath
  * @param {number[]} start
  * @param {number[]} end
  */
@@ -401,20 +399,14 @@ function findTouchingPoints(arenaTiles, playerId, trailPath, start, end) {
 		if (
 			isInsideArena(si,sj) &&
 			arenaTiles[si][sj] === playerId &&
-			!trailPath.some(
-				/**@param {number[]} point */
-				(point) => point[0] === si && point[1] === sj
-			)
+			!trailPath.has(si * lineWidth + sj)
 		) {
 			startNeighbors.push([si, sj]);
 		}
 		if (
 			isInsideArena(ei,ej) &&
 			arenaTiles[ei][ej] === playerId &&
-			!trailPath.some(
-				/**@param {number[]} point */
-				(point) => point[0] === ei && point[1] === ej
-			)
+			!trailPath.has(ei * lineWidth + ej)
 		) {
 			endNeighbors.push([ei, ej]);
 		}
