@@ -1,206 +1,19 @@
-import "./globals.js";
-import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+"use strict";
+//#region constants
+const GLOBAL_SPEED = 0.006;
+const VIEWPORT_RADIUS = 30;
+const MAX_ZOOM = 10000;
+window.BLOCKS_ON_SCREEN = 1100; // Global for zoom mode
+// const BLOCKS_ON_SCREEN = 20000;
+const WAIT_FOR_DISCONNECTED_MS = 1000;
+const USERNAME_SIZE = 6;
+const SKIN_BLOCK_COUNT = 13;
+const SKIN_PATTERN_COUNT = 28;
 
-var GLOBAL_SPEED = 0.006;
-var VIEWPORT_RADIUS = 30;
-var MAX_ZOOM = 430;
-// var MAX_ZOOM = 10000;
-var BLOCKS_ON_SCREEN = 1100;
-// var BLOCKS_ON_SCREEN = 20000;
-var WAIT_FOR_DISCONNECTED_MS = 1000;
-var USERNAME_SIZE = 6;
-
-//stackoverflow.com/a/15666143/3625298
-var MAX_PIXEL_RATIO = (function () {
-	var ctx = document.createElement("canvas").getContext("2d"),
-		dpr = window.devicePixelRatio || 1,
-		bsr = ctx.webkitBackingStorePixelRatio ||
-			ctx.mozBackingStorePixelRatio ||
-			ctx.msBackingStorePixelRatio ||
-			ctx.oBackingStorePixelRatio ||
-			ctx.backingStorePixelRatio || 1;
-
-	return dpr / bsr;
-})();
-
-var DeviceTypes = {
-	DESKTOP: 0,
-	IOS: 1,
-	ANDROID: 2,
-};
-
-var deviceType = (function () {
-	if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-		return DeviceTypes.IOS;
-	}
-	if (navigator.userAgent.toLowerCase().indexOf("android") > -1) {
-		return DeviceTypes.ANDROID;
-	}
-	return DeviceTypes.DESKTOP;
-})();
-testHashForMobile();
-
-var patreonQueryWasFound = checkPatreonQuery();
-
-function redirectQuery() {
-	var hashIndex = location.href.indexOf("#");
-	var queryIndex = location.href.indexOf("?");
-	if ((queryIndex >= 0 && (hashIndex == -1 || queryIndex < hashIndex)) || isIframe()) {
-		if (!patreonQueryWasFound || isIframe()) {
-			var allowedSearchParams = ["gp", "siteId", "channelId", "siteLocale", "storageId"];
-			var query = parseQuery(location.href);
-			for (var key in query) {
-				if (query.hasOwnProperty(key)) {
-					if (allowedSearchParams.indexOf(key) == -1) {
-						delete query[key];
-					}
-				}
-			}
-
-			if (isIframe()) {
-				query["gp"] = "1";
-				query["siteId"] = window.location.hostname;
-				query["channelId"] = "1";
-				query["siteLocale"] = "en_EN";
-				query["storageId"] = "72167631167";
-			}
-
-			var queryArr = [];
-			for (var key in query) {
-				if (query.hasOwnProperty(key)) {
-					queryArr.push(window.encodeURIComponent(key) + "=" + window.encodeURIComponent(query[key]));
-				}
-			}
-			var queryString = queryArr.join("&");
-			if (queryString) queryString = "?" + queryString;
-			var newLocation = location.href.split("?")[0] + queryString;
-			if (newLocation != location.href) {
-				location.href = newLocation;
-			}
-		}
-	}
-}
-redirectQuery();
-
-function isIframe() {
-	try {
-		return window.self !== window.top;
-	} catch (e) {
-		return true;
-	}
-}
-
-// Some dated code is using these in places like `for(i = 0`.
-// While ideally these variables should all be made local,
-// I'm worried some locations actually rely on them not being local.
-// So for now these are all global, but we should slowly try to get rid of these.
-var i, w;
-
-var IS_SECURE = location.protocol.indexOf("https") >= 0;
-// if(IS_SECURE && (["#nohttpsredirect", "#pledged"].indexOf(location.hash) < 0) && !isIframe() && !patreonQueryWasFound){
-// 	location.protocol = "http:";
-// }
-var SECURE_WS = IS_SECURE ? "wss://" : "ws://";
-
-// var flashIsInstalled = false;
-// try {
-// 	flashIsInstalled = Boolean(new ActiveXObject('ShockwaveFlash.ShockwaveFlash'));
-// } catch(exception) {
-// 	flashIsInstalled = ('undefined' != typeof navigator.mimeTypes['application/x-shockwave-flash']);
-// }
-// ga('set', 'dimension1', flashIsInstalled ? 'yes': 'no');
-var SKIN_BLOCK_COUNT = 13;
-var SKIN_PATTERN_COUNT = 28;
-var ws = null, mainCanvas, ctx, prevTimeStamp = null, blocks = [], players = [];
-var camPos = [0, 0], camPosSet = false, camPosPrevFrame = [0, 0], myNameAlphaTimer = 0;
-var myPos = null,
-	myPlayer = null,
-	changeDirAt = null,
-	changeDirAtIsHorizontal = false,
-	myNextDir = 0,
-	lastChangedDirPos = null;
-var lastClientsideMoves = [],
-	trailPushesDuringRequest = [],
-	isRequestingMyTrail = false,
-	skipTrailRequestResponse = false;
-var mapSize = 2000, closedBecauseOfDeath = false, minimapCtx, beginScreenVisible = true, wsOnOpenTime;
-var minimapCanvas;
-var canvasQuality = 1,
-	currentDtCap = 0,
-	totalDeltaTimeFromCap = 0,
-	deltaTime = 16.66,
-	lerpedDeltaTime = 16.66,
-	missedFrames = [],
-	gainedFrames = [];
-var myScoreElem,
-	myKillsElem,
-	myRealScoreElem,
-	myRankElem,
-	myRank = 0,
-	myRankSent = false,
-	totalPlayersElem,
-	totalPlayers = 0;
-var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
-var miniMapPlayer,
-	playUI,
-	beginScreen,
-	notificationElem,
-	formElem,
-	nameInput,
-	lastNameValue = "",
-	lastNameChangeCheck = 0;
-var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
-var linesCanvas, linesCtx, tempCanvas, tempCtx;
-var showCouldntConnectAfterTransition = false, playingAndReady = false, canRunAds = false;
-var transitionCanvas,
-	tCtx,
-	transitionTimer = 0,
-	transitionPrevTimer = 0,
-	transitionDirection = 1,
-	transitionText = "GAME OVER";
-var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = null, transitionReverseOnHalf = false;
-var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
-var touchControlsElem;
-var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
-var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
-var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
-var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
-var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
-var honkStartTime, lastHonkTime = 0, honkSfx = null;
-var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
-var thisServerAvgPing = 0,
-	thisServerDiffPing = 0,
-	thisServerLastPing = 0,
-	lastPingTime = 0,
-	waitingForPing = false;
-var closeNotification = null, connectionLostNotification = null;
-var lastMyPosSetClientSideTime = 0,
-	lastMyPosServerSideTime = 0,
-	lastMyPosSetValidClientSideTime = 0,
-	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode = false;
-var hasReceivedChunkThisGame = false, didSendSecondReady = false;
-var lastStatBlocks = 0,
-	lastStatKills = 0,
-	lastStatLbRank = 0,
-	lastStatAlive = 0,
-	lastStatNo1Time = 0,
-	lastStatDeathType = 0,
-	lastStatKiller = "";
-var bestStatBlocks = 0, bestStatKills = 0, bestStatLbRank = 0, bestStatAlive = 0, bestStatNo1Time = 0;
-var lastStatTimer = 0, lastStatCounter = 0, lastStatValueElem, bestStatValueElem;
-var lastMousePos = [0, 0], mouseHidePos = [0, 0];
-var joinButton,
-	gamemodeDropDownEl;
-var didConfirmOpenInApp = false;
-
-//adinplay banner ads
-var aiptag = window["aiptag"] = window["aiptag"] || {};
-aiptag.cmd = aiptag.cmd || [];
-aiptag.cmd.display = aiptag.cmd.display || [];
-aiptag.cmd.player = aiptag.cmd.player || [];
-
-var receiveAction = {
+/**
+ * @enum {number} Actions received from the server.
+ */
+const receiveAction = Object.freeze({
 	UPDATE_BLOCKS: 1,
 	PLAYER_POS: 2,
 	FILL_AREA: 3,
@@ -224,9 +37,12 @@ var receiveAction = {
 	PONG: 21,
 	UNDO_PLAYER_DIE: 22,
 	TEAM_LIFE_COUNT: 23,
-};
+});
 
-var sendAction = {
+/**
+ * @enum {number} Actions sent to the server.
+ */
+const sendAction = Object.freeze({
 	UPDATE_DIR: 1,
 	SET_USERNAME: 2,
 	SKIN: 3,
@@ -239,9 +55,20 @@ var sendAction = {
 	SET_TEAM_USERNAME: 10,
 	VERSION: 11,
 	PATREON_CODE: 12,
-};
+});
 
-var colors = {
+/**
+ * Possible move directions.
+ */
+const Direction = {
+    RIGHT: 0,
+    DOWN: 1,
+    LEFT: 2,
+    UP: 3,
+    PAUSE: 4,
+}
+
+const colors = {
 	grey: {
 		BG: "#3a342f",
 		brighter: "#4e463f",
@@ -343,8 +170,83 @@ var colors = {
 		bevelBright: "#F9D485",
 	},
 };
+/** gets color object for a player skin id
+ * @param {number} id
+ */
+const getColorForBlockSkinId = id => {
+	switch (id) {
+		case 0:
+			return colors.red;
+		case 1:
+			return colors.red2;
+		case 2:
+			return colors.pink;
+		case 3:
+			return colors.pink2;
+		case 4:
+			return colors.purple;
+		case 5:
+			return colors.blue;
+		case 6:
+			return colors.blue2;
+		case 7:
+			return colors.green;
+		case 8:
+			return colors.green2;
+		case 9:
+			return colors.leaf;
+		case 10:
+			return colors.yellow;
+		case 11:
+			return colors.orange;
+		case 12:
+			return colors.gold;
+		default:
+			return {
+				brighter: "#000000",
+				darker: "#000000",
+				slightlyBrighter: "#000000",
+			};
+	}
+}
 
-var titleLines = [
+/** styles an element with mainColor and edgeColor;
+ * @param {HTMLElement} elem
+ * @param {string} mainColor
+ * @param {string} edgeColor
+ */
+const colorBox = (elem, mainColor, edgeColor) => {
+	elem.style.backgroundColor = mainColor;
+	elem.style.boxShadow = "1px 1px " + edgeColor + "," +
+		"2px 2px " + edgeColor + "," +
+		"3px 3px " + edgeColor + "," +
+		"4px 4px " + edgeColor + "," +
+		"5px 5px " + edgeColor + "," +
+		"10px 30px 80px rgba(0,0,0,0.3)";
+}
+
+/**
+ * Add a style section
+ * @param {string} styleStr A CSS document
+ */
+const addStyle = styleStr => {
+    const style = document.createElement('style');
+    style.textContent = styleStr;
+    document.head.append(style);
+}
+
+/**
+ * Add some content to the first match of the selector.
+ * @param {string} htmlStr content
+ * @param {string} selector css selector
+ */
+const addHTML = (htmlStr, selector) => {
+    var template = document.createElement('template');
+    template.innerHTML = htmlStr.trim();
+    document.querySelector(selector).appendChild(template.content);
+}
+
+const titleLines = [
 	{ //S
 		line: [[86, 82], [50, 57, 25, 99, 65, 105], [110, 110, 80, 158, 42, 129]],
 		speed: 1,
@@ -419,56 +321,47 @@ var titleLines = [
 	},
 ];
 
-function addSocketWrapper() {
-	if (typeof WebSocket == "undefined") {
-		return;
+const DeviceTypes = Object.freeze({
+	DESKTOP: 0,
+	IOS: 1,
+	ANDROID: 2,
+});
+
+const canvasTransformTypes = Object.freeze({
+	MAIN: 1,
+	TUTORIAL: 2,
+	SKIN: 3,
+	SKIN_BUTTON: 4,
+	TITLE: 5,
+	LIFE: 6,
+});
+
+const honkSfx = new Audio("static/honk.mp3");
+
+const filter = str => {
+	str = str.replace(/[卐卍]/g, "❤");
+	const words = str.split(" ");
+	for (let i = 0; i < words.length; i++) {
+		let word = words[i];
+		const wasAllUpper = word.toUpperCase() == word;
+		for (const swear of swearArr) {
+			if (word.toLowerCase().indexOf(swear) >= 0) {
+				if (word.length < swear.length + 2) {
+					word = swearRepl;
+				} else {
+					word = word.toLowerCase().replace(swear, swearRepl);
+				}
+			}
+		}
+		if (wasAllUpper) {
+			word = word.toUpperCase();
+		}
+		words[i] = word;
 	}
-
-	var simulatedLatency = parseInt(localStorage.simulatedLatency) / 2;
-	if (simulatedLatency > 0) {
-		const RealWebSocket = WebSocket;
-		const WrappedWebSocket = function (url) {
-			var websocket = new RealWebSocket(url);
-			websocket.binaryType = "arraybuffer";
-
-			this.onclose = function () {};
-			this.onopen = function () {};
-			this.onmessage = function () {};
-
-			var me = this;
-			websocket.onclose = function () {
-				window.setTimeout(function () {
-					me.onclose();
-				}, simulatedLatency);
-			};
-			websocket.onopen = function () {
-				window.setTimeout(function () {
-					me.onopen();
-				}, simulatedLatency);
-			};
-			websocket.onmessage = function (data) {
-				window.setTimeout(function () {
-					me.onmessage(data);
-				}, simulatedLatency);
-			};
-			this.send = function (data) {
-				window.setTimeout(function () {
-					websocket.send(data);
-				}, simulatedLatency);
-			};
-			this.close = function () {
-				window.setTimeout(function () {
-					websocket.close();
-				}, simulatedLatency);
-			};
-		};
-		window.WebSocket = WrappedWebSocket.bind();
-	}
+	return words.join(" ");
 }
-addSocketWrapper();
-
-function simpleRequest(url, cb) {
-	var req = new XMLHttpRequest();
+const simpleRequest = (url, cb) => {
+	const req = new XMLHttpRequest();
 	req.onreadystatechange = function () {
 		if (req.readyState == XMLHttpRequest.DONE) {
 			if (req.status == 200) {
@@ -480,29 +373,4166 @@ function simpleRequest(url, cb) {
 	};
 	req.open("GET", url, true);
 	req.send();
+};
+
+const swearArr = [];
+simpleRequest("./static/swearList.txt", result => {
+	swearArr.push(...(result.split("\n").filter(n => n)));
+});
+const swearRepl = "balaboo";
+
+const custom_gamepad_mappings = [
+	{
+		name: "Generic USB Joystick", //https://twitter.com/Mat2095/status/765566729812598784
+		buttonMap: {
+			0: 2,
+			1: 1,
+			2: 3,
+			3: 0,
+			4: 4,
+			5: 5,
+			6: 6,
+			7: 7,
+			8: 8,
+			9: 9,
+			10: 10,
+			11: 11,
+			12: 13,
+			13: 14,
+			14: 15,
+			15: 16,
+		},
+		axesMap: { 0: 0, 1: 1, 2: 2, 3: 4 },
+	},
+	{
+		name: "Bluetooth Gamepad", //https://twitter.com/2zqa_MC/status/765933750416994304 https://twitter.com/2zqa_MC/status/765606843339182084
+		buttonMap: {
+			0: 0,
+			1: 1,
+			2: 3,
+			3: 4,
+			4: 6,
+			5: 7,
+			6: 8,
+			7: 9,
+			8: 10,
+			9: 11,
+			10: 13,
+			11: 14,
+			12: 12,
+			13: 13,
+			14: 14,
+			15: 15,
+		},
+		axesMap: { 0: 0, 1: 1, 2: 2, 3: 5 },
+		//12 = axis 9 (-1.0)
+		//13 = axis 9 (0.142857)
+		//14 = axis 9 (0.714286)
+		//15 = axis 9 (-0.428571)
+	},
+	{
+		name: "USB DancePad",
+		buttonMap: {
+			0: 6,
+			1: 7,
+			2: 2,
+			3: 3,
+			4: 4,
+			5: 5,
+			6: 6,
+			7: 7,
+			8: 8,
+			9: 9,
+			10: 10,
+			11: 11,
+			12: 0,
+			13: 1,
+			14: 2,
+			15: 3,
+		},
+		axesMap: { 0: 0, 1: 1, 2: 2, 3: 4 },
+	},
+]
+
+
+//#endregion constants
+
+
+
+
+
+
+
+
+
+//#region utils
+
+
+
+//http://stackoverflow.com/a/7124052/3625298
+const htmlEscape = str => {
+	return String(str)
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
 }
 
-function trackGameStart() {
-	// var idString = "";
-	// if(localStorage.playId){
-	// 	idString = "&id="+localStorage.playId;
-	// }else{
-	// 	//test if local storage is available
-	// 	lsSet("playId","test");
-	// 	if(localStorage.playId != "test"){
-	// 		//doesn't work, set playId to do not track
-	// 		idString = "&id=donottrack";
-	// 	}
-	// }
-	// simpleRequest("http://stats.splix.io/play.php?type=0"+idString, function(response){
-	// 	if(response){
-	// 		lsSet("playId", response);
-	// 	}
-	// });
+/** easing functions */ 
+const ease = {
+	in: t => t * t * t * t,
+	out: t =>  1 - Math.pow(1 - t, 4),
+	inout: t => t < 0.5 ?
+		8 * t * t * t * t
+		:
+		1 - 8 * Math.pow(-1 * t + 1, 4),
+};
+
+/* Basic lerp.
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t */
+const lerp = (a, b, t) => {
+	return a + t * (b - a);
 }
+
+/** inverse lerp
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t */
+const iLerp = (a, b, t) => {
+	return (t - a) / (b - a);
+}
+
+/** fixed lerp, calls lerp() multiple times when having a lower framerate
+ * 
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t
+ * @param {number} deltaTime
+ */
+const lerpt = (a, b, t, deltaTime) => {
+	return lerptt(a, b, t, deltaTime / 16.6666);
+}
+
+/** lerps between a and b over t, where tt is the amount of times that lerp 
+ * should be called
+ * 
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t
+ * @param {number} tt */
+const lerptt = (a, b, t, tt) => {
+	const newT = 1 - Math.pow(1 - t, tt);
+	return lerp(a, b, newT);
+}
+
+/** lerps an array
+ * @param {number[]} a
+ * @param {number[]} b
+ * @param {number} t 
+*/
+const lerpA = (a, b, t) => {
+	const newArray = [];
+	for (let i = 0; i < a.length; i++) {
+		newArray.push(lerp(a[i], b[i], t));
+	}
+	return newArray;
+}
+
+/** fixed modulo
+ * @param {number} n
+ * @param {number} m
+ * @returns {number} r such that 0<=r<m and n=qm+r for some q*/
+const mod = (n, m) => {
+	return ((n % m) + m) % m;
+}
+
+/** clamp
+ * @param {number} v
+ * @param {number} min 
+ * @param {number} max
+*/
+const clamp = (v, min, max) => {
+	return Math.max(min, Math.min(max, v));
+}
+
+/** clamp in the [0;1] interval.
+ * @param {number} v */
+const clamp01 = (v) => {
+	return clamp(v, 0, 1);
+}
+
+/** returns random item from array
+ * @template {Item}
+ * @param {Item[]}
+ * @return {Item} */
+const randFromArray = (array) => {
+	return array[Math.floor(Math.random() * array.length)];
+}
+
+/** limits a value between -1 and 1 without clamping,
+ * smoothLimit(v) will gradually move towards 1/-1 as v goes away from zero
+ * but will never actually reach it
+ * @param {number} v
+ * @returns {number} the smoothed value */
+const smoothLimit = (v) => {
+	const negative = v < 0;
+	if (negative) {
+		v *= -1;
+	}
+	v = 1 - Math.pow(2, -v);
+	if (negative) {
+		v *= -1;
+	}
+	return v;
+}
+
+/** orders two positions so that pos1 is in the top left and pos2 in the bottom right
+ * @param {Vec2} pos1
+ * @param {Vec2} pos2
+ * @returns {[Vec2,Vec2]}
+ */
+const orderTwoPos = (pos1, pos2) => {
+	const x1 = Math.min(pos1[0], pos2[0]);
+	const y1 = Math.min(pos1[1], pos2[1]);
+	const x2 = Math.max(pos1[0], pos2[0]);
+	const y2 = Math.max(pos1[1], pos2[1]);
+	return [[x1, y1], [x2, y2]];
+}
+
+/** random number between 0 and 1 using a seed
+ * @param {number} seed
+ * @returns {number}
+ */
+const rndSeed = seed => {
+	const x = Math.sin(seed) * 10000;
+	return x - Math.floor(x);
+}
+
+
+//stackoverflow.com/a/22373135/3625298
+// http://www.onicos.com/staff/iz/amuse/javascript/expert/utf.txt
+/* utf.js - UTF-8 <=> UTF-16 convertion
+ *
+ * Copyright (C) 1999 Masanao Izumo <iz@onicos.co.jp>
+ * Version: 1.0
+ * LastModified: Dec 25 1999
+ * This library is free.  You can redistribute it and/or modify it.
+ */
+
+const Utf8ArrayToStr = (array) => {
+	let out, i, len, c;
+	let char2, char3;
+
+	out = "";
+	len = array.length;
+	i = 0;
+	while (i < len) {
+		c = array[i++];
+		switch (c >> 4) {
+			case 0:
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+				// 0xxxxxxx
+				out += String.fromCharCode(c);
+				break;
+			case 12:
+			case 13:
+				// 110x xxxx   10xx xxxx
+				char2 = array[i++];
+				out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+				break;
+			case 14:
+				// 1110 xxxx  10xx xxxx  10xx xxxx
+				char2 = array[i++];
+				char3 = array[i++];
+				out += String.fromCharCode(
+					((c & 0x0F) << 12) |
+						((char2 & 0x3F) << 6) |
+						((char3 & 0x3F) << 0),
+				);
+				break;
+		}
+	}
+	return out;
+}
+
+//stackoverflow.com/a/18729931/3625298
+const toUTF8Array = str => {
+	const utf8 = [];
+	for (let i = 0; i < str.length; i++) {
+		let charcode = str.charCodeAt(i);
+		if (charcode < 0x80) utf8.push(charcode);
+		else if (charcode < 0x800) {
+			utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
+		} else if (charcode < 0xd800 || charcode >= 0xe000) {
+			utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
+		} // surrogate pair
+		else {
+			i++;
+			// UTF-16 encodes 0x10000-0x10FFFF by
+			// subtracting 0x10000 and splitting the
+			// 20 bits of 0x0-0xFFFFF into two halves
+			charcode = 0x10000 + (((charcode & 0x3ff) << 10) |
+				(str.charCodeAt(i) & 0x3ff));
+			utf8.push(
+				0xf0 | (charcode >> 18),
+				0x80 | ((charcode >> 12) & 0x3f),
+				0x80 | ((charcode >> 6) & 0x3f),
+				0x80 | (charcode & 0x3f),
+			);
+		}
+	}
+	return utf8;
+}
+
+/** Convert bytes to integers (numbers).
+ * @param {...number} bytes
+ * @returns {number}
+ */
+const bytesToInt = (...bytes) => {
+	let integer = 0;
+	let multiplier = 0;
+	for (let i = bytes.length - 1; i >= 0; i--) {
+		let thisArg = bytes[i];
+		integer = (integer | (((thisArg & 0xff) << multiplier) >>> 0)) >>> 0;
+		multiplier += 8;
+	}
+	return integer;
+}
+
+/**
+ * Converts an integer into a binary representation with `byteCount` bytes.
+ * @param {number} integer 
+ * @param {number} byteCount 
+ * @returns {number}
+ */
+const intToBytes = (integer, byteCount) => {
+	const bytes = [];
+	for (let i = 0; i < byteCount; i++) {
+		const byte = integer & 0xff;
+		bytes[byteCount - i - 1] = byte;
+		integer = (integer - byte) / 256;
+	}
+	return bytes;
+}
+
+/**
+ * Prints a UNIX time stamp in hh:mm:ss.
+ * @param {number} seconds
+ * @returns {string}
+ */
+const parseTimeToString = seconds => {
+	let hours = Math.floor(seconds / 3600);
+	let minutes = Math.floor((seconds - (hours * 3600)) / 60);
+	seconds = seconds - (hours * 3600) - (minutes * 60);
+	if (hours <= 0) {
+		const secondsS = seconds == 1 ? "" : "s";
+		if (minutes <= 0) {
+			return seconds + " second" + secondsS;
+		} else {
+			const minutesS = minutes == 1 ? "" : "s";
+			return minutes + " minute" + minutesS + " and " + seconds + " second" + secondsS;
+		}
+	} else {
+
+		if (hours < 10) hours = "0" + hours;
+		if (minutes < 10) minutes = "0" + minutes;
+		if (seconds < 10) seconds = "0" + seconds;
+		return hours + ":" + minutes + ":" + seconds;
+	}
+}
+
+/**
+ * Parse query in URL
+ * @param {string} url
+ * @returns {Record<string,string>}
+ */
+const parseQuery = url => {
+	const startIndex = url.indexOf("?");
+	if (startIndex < 0) {
+		return {};
+	}
+	const queryString = url.substr(startIndex + 1);
+	const queryItems = queryString.split("&");
+	let query = {};
+	for (const item of queryItems) {
+		const split = item.split("=");
+		if (split.length == 2) {
+			query[split[0]] = split[1];
+		}
+	}
+	return query;
+}
+
+//#endregion
+
+
+//stackoverflow.com/a/15666143/3625298
+const MAX_PIXEL_RATIO = (function () {
+	const ctx = document.createElement("canvas").getContext("2d"),
+		dpr = window.devicePixelRatio || 1,
+		bsr = ctx.webkitBackingStorePixelRatio ||
+			ctx.mozBackingStorePixelRatio ||
+			ctx.msBackingStorePixelRatio ||
+			ctx.oBackingStorePixelRatio ||
+			ctx.backingStorePixelRatio || 1;
+
+	return dpr / bsr;
+})();
+
+const deviceType = (function () {
+	if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+		return DeviceTypes.IOS;
+	}
+	if (navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+		return DeviceTypes.ANDROID;
+	}
+	return DeviceTypes.DESKTOP;
+})();
+testHashForMobile();
+
+const patreonQueryWasFound = checkPatreonQuery();
+
+function redirectQuery() {
+	const hashIndex = location.href.indexOf("#");
+	const queryIndex = location.href.indexOf("?");
+	if ((queryIndex >= 0 && (hashIndex == -1 || queryIndex < hashIndex)) || isIframe()) {
+		if (!patreonQueryWasFound || isIframe()) {
+			const allowedSearchParams = ["gp", "siteId", "channelId", "siteLocale", "storageId"];
+			const query = parseQuery(location.href);
+			for (const key in query) {
+				if (query.hasOwnProperty(key)) {
+					if (allowedSearchParams.indexOf(key) == -1) {
+						delete query[key];
+					}
+				}
+			}
+
+			if (isIframe()) {
+				query["gp"] = "1";
+				query["siteId"] = window.location.hostname;
+				query["channelId"] = "1";
+				query["siteLocale"] = "en_EN";
+				query["storageId"] = "72167631167";
+			}
+
+			const queryArr = [];
+			for (const key in query) {
+				if (query.hasOwnProperty(key)) {
+					queryArr.push(window.encodeURIComponent(key) + "=" + window.encodeURIComponent(query[key]));
+				}
+			}
+			const queryString = queryArr.join("&");
+			if (queryString) queryString = "?" + queryString;
+			const newLocation = location.href.split("?")[0] + queryString;
+			if (newLocation != location.href) {
+				location.href = newLocation;
+			}
+		}
+	}
+}
+redirectQuery();
+
+function isIframe() {
+	try {
+		return window.self !== window.top;
+	} catch (e) {
+		return true;
+	}
+}
+
+function addSocketWrapper() {
+	if (typeof WebSocket == "undefined") {
+		return;
+	}
+
+	const simulatedLatency = parseInt(localStorage.simulatedLatency) / 2;
+	if (simulatedLatency > 0) {
+		const RealWebSocket = WebSocket;
+		const WrappedWebSocket = function (url) {
+			const websocket = new RealWebSocket(url);
+			websocket.binaryType = "arraybuffer";
+
+			this.onclose = function () {};
+			this.onopen = function () {};
+			this.onmessage = function () {};
+
+			const me = this;
+			websocket.onclose = () => window.setTimeout(() => me.onclose(), simulatedLatency);
+			websocket.onopen = () => window.setTimeout(() => me.onopen(), simulatedLatency);
+			websocket.onmessage = (data) => window.setTimeout(() => me.onmessage(data), simulatedLatency);
+			this.send = (data) => window.setTimeout(() => websocket.send(data), simulatedLatency);
+			this.close = () => window.setTimeout(() => websocket.close(), simulatedLatency);
+		};
+		window.WebSocket = WrappedWebSocket.bind();
+	}
+}
+addSocketWrapper(); // TODO Unwrap WebSocket ?
+
+class Stats {
+	blocks = 0;
+	kills = 0;
+	leaderboard_rank = 0;
+	alive = 0;
+	no1_time = 0;
+}
+
+//#region Canvases
+/**
+ * @typedef {{
+ * 	ctx: CanvasRenderingContext2D,
+ * 	offset: number,
+ * 	color: string | CanvasGradient | CanvasPattern,
+ * }} DrawCall
+ */
+
+class SplixBaseCanvas {
+	/**@type {HTMLCanvasElement} */
+	canvas;
+	/**@type {CanvasRenderingContext2D} */
+	ctx;
+	/**@type {canvasTransformTypes} */ // TODO: this should be removed in the end
+	canvasTransformType;
+	/**@type {number} */
+	current_width;
+	/**@type {number} */
+	current_height;
+	/**@type {number} */
+	current_style_ratio;
+	constructor(canvas){
+		if(canvas === undefined){
+			canvas = document.createElement('canvas');
+			console.warn("The canvas is not attached. See trace :");
+			console.trace();
+		}
+		this.canvas = canvas;
+		this.ctx = this.canvas.getContext("2d");
+	}
+
+	/**
+	 * sets the with/height of a full screen canvas, takes retina displays into account
+	 * @param {boolean} [dontUseQuality]
+	 */
+	setCanvasSize(dontUseQuality,canvas) { // TODO: Clean up this arguments and their order.
+		if(canvas === undefined){
+			canvas = this.canvas;
+		}
+		const quality = dontUseQuality ? 1 : canvasQuality;
+		const w = this.w, h = this.h;
+		if(w !== this.current_width || h !== this.current_height || canvas !== this.canvas){
+			this.current_width = w;
+			this.current_height = h;
+			this.current_style_ratio = this.styleRatio;
+			// PIXEL_RATIO = 1;
+			canvas.width = w * MAX_PIXEL_RATIO * quality;
+			canvas.height = h * MAX_PIXEL_RATIO * quality;
+			canvas.style.width = w * this.styleRatio + "px";
+			canvas.style.height = h * this.styleRatio + "px";
+		} else if(this.styleRatio !== this.current_style_ratio) {
+			this.current_style_ratio = this.styleRatio;
+			canvas.style.width = w * this.styleRatio + "px";
+			canvas.style.height = h * this.styleRatio + "px";
+		}
+	}
+
+	get w(){
+		let w = window.innerWidth;
+		if (this.canvasTransformType == canvasTransformTypes.SKIN_BUTTON) {
+			w = 30;
+		}
+		else if (this.canvasTransformType == canvasTransformTypes.LIFE) {
+			w = 60;
+		}
+
+		return w;
+	}
+
+	get h(){
+		let h = window.innerHeight;
+		if (this.canvasTransformType == canvasTransformTypes.SKIN_BUTTON) {
+			h = 30;
+		}
+		else if (this.canvasTransformType == canvasTransformTypes.LIFE) {
+			h = 60;
+		}
+		return h;
+	}
+
+	get styleRatio(){
+		return 1;
+	}
+
+	/**
+	 * 
+	 * @param {boolean} setSize if true sets the size of the canvas
+	 * @param {boolean} dontUseQuality
+	 */
+	ctxApplyCamTransform(setSize, dontUseQuality,ctx) {
+		if(ctx === undefined){
+			ctx = this.ctx;
+		}
+		if (setSize) {
+			this.setCanvasSize(dontUseQuality,ctx.canvas);
+			ctx.reset();
+		}
+		ctx.save();
+		if (this.canvasTransformType != canvasTransformTypes.MAIN && this.canvasTransformType != canvasTransformTypes.SKIN) {
+			const quality = dontUseQuality ? 1 : canvasQuality;
+			ctx.setTransform(MAX_PIXEL_RATIO * quality, 0, 0, MAX_PIXEL_RATIO * quality, 0, 0);
+		}
+		if (this.canvasTransformType == canvasTransformTypes.MAIN || this.canvasTransformType == canvasTransformTypes.SKIN) {
+			const isMain = this.canvasTransformType == canvasTransformTypes.MAIN;
+			ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+			const biggest = Math.max(this.canvas.width, this.canvas.height);
+			const zoomEdge = biggest / MAX_ZOOM;
+			const pixelsAvailable = this.canvas.width * this.canvas.height;
+			const pixelsPerBlock = pixelsAvailable / BLOCKS_ON_SCREEN;
+			const zoomBlocks = Math.sqrt(pixelsPerBlock) / 10;
+			zoom = Math.max(zoomBlocks, zoomEdge);
+			if (isMain) {
+				ctx.rotate(this.camRotOffset);
+			}
+			ctx.scale(zoom, zoom);
+			if (isMain) {
+				ctx.translate(-this.camPosPrevFrame[0] * 10 - this.camPosOffset[0], -this.camPosPrevFrame[1] * 10 - this.camPosOffset[1]);
+			} else {
+				ctx.translate(-VIEWPORT_RADIUS * 10, -VIEWPORT_RADIUS * 10);
+			}
+		} else if (
+			this.canvasTransformType == canvasTransformTypes.TUTORIAL || this.canvasTransformType == canvasTransformTypes.SKIN_BUTTON
+		) {
+			ctx.scale(3, 3);
+		}
+	}
+}
+
+
+class SplixBaseCamera extends SplixBaseCanvas {
+
+	/**@type {canvasTransformTypes} */ // TODO: this should be removed in the end
+	canvasTransformType = canvasTransformTypes.MAIN;
+	/**@type {CanvasRenderingContext2D} */
+	tempCtx;
+	/**@type {CanvasRenderingContext2D} */
+	linesCtx;
+	/**@type {HTMLCanvasElement} */
+	linesCanvas;
+	camPosPrevFrame = null;
+
+	constructor(canvas){
+		super(canvas);
+		this.linesCanvas = document.createElement('canvas');
+		this.linesCtx = this.linesCanvas.getContext('2d'); // TODO If possible, remove these contexts
+		this.tempCtx = document.createElement('canvas').getContext('2d'); // TODO use OffscreenCanvas if possible
+	}
+	/**
+	 * draws diagonal lines on a canvas, can be used as mask and stuff like that
+	 * @param {CanvasRenderingContext2D} ctx 
+	 * @param {string | CanvasGradient | CanvasPattern} color 
+	 * @param {number} thickness
+	 * @param {number} spaceBetween 
+	 * @param {number} offset
+	 */
+	drawDiagonalLines(ctx, color, thickness, spaceBetween, offset) {
+		if (thickness > 0) {
+			ctx.lineCap = "butt";
+			ctx.strokeStyle = color;
+			ctx.lineWidth = thickness;
+			const minSize = VIEWPORT_RADIUS * 20;
+			let xOffset = 0;
+			let yOffset = 0;
+			if (this.camPosPrevFrame !== null) {
+				xOffset = Math.round((this.camPosPrevFrame[0] * 10 - minSize / 2) / spaceBetween) * spaceBetween;
+				yOffset = Math.round((this.camPosPrevFrame[1] * 10 - minSize / 2) / spaceBetween) * spaceBetween;
+			}
+			xOffset += offset % spaceBetween;
+			for (let i = -minSize; i < minSize; i += spaceBetween) {
+				const thisXOffset = xOffset + i;
+				ctx.beginPath();
+				ctx.moveTo(thisXOffset, yOffset);
+				ctx.lineTo(thisXOffset + minSize, yOffset + minSize);
+				ctx.stroke();
+			}
+		}
+	}
+	/** draws blocks on ctx
+	 * Uses linesCtx
+	 * @param {Map<Vec2,Block>} blocks
+	 */
+	drawBlocks(deltaTime,blocks, checkViewport) {
+		for (const block of blocks.values()) { // TODO: in non ugly mode, consider reusing the generated block
+			if (
+				checkViewport &&
+				(
+					block.x < this.camPos[0] - VIEWPORT_RADIUS ||
+					block.x > this.camPos[0] + VIEWPORT_RADIUS ||
+					block.y < this.camPos[1] - VIEWPORT_RADIUS ||
+					block.y > this.camPos[1] + VIEWPORT_RADIUS
+				)
+			) {
+				//outside viewport, don't render this block
+			} else {
+				if (block.animDelay > 0) {
+					block.animDelay -= deltaTime;
+				} else {
+					block.animProgress += deltaTime * block.animDirection * 0.003;
+				}
+				if (block.animProgress > 1) {
+					block.animDirection = 0;
+					block.animProgress = 1;
+				}
+				if (block.animProgress < 0) {
+					block.currentBlock = block.nextBlock;
+					block.animDirection = 1;
+					block.animProgress = 0;
+				} else {
+					const t = block.animProgress;
+
+					//edge
+					if (block.currentBlock === 0) {
+						this.ctx.fillStyle = colors.red.boundsDark;
+						this.ctx.fillRect(block.x * 10, block.y * 10, 10, 10);
+						if (!uglyMode) {
+							this.linesCtx.fillStyle = colors.grey.diagonalLines;
+							this.linesCtx.fillRect(block.x * 10, block.y * 10, 10, 10);
+						}
+					}
+					//empty block
+					if (block.currentBlock == 1) {
+						//shadow edge
+						if (t > 0.8 && !uglyMode) {
+							this.ctx.fillStyle = colors.grey.darker;
+							this.ctx.fillRect(block.x * 10 + 2, block.y * 10 + 2, 7, 7);
+						}
+
+						//bright surface
+						this.ctx.fillStyle = colors.grey.brighter;
+						if (t == 1 || uglyMode) {
+							// ctx.fillStyle = colors.grey.darker; //shadow edge
+							// ctx.beginPath();
+							// ctx.moveTo(block.x*10 + 1, block.y*10 + 8);
+							// ctx.lineTo(block.x*10 + 2, block.y*10 + 9);
+							// ctx.lineTo(block.x*10 + 9, block.y*10 + 9);
+							// ctx.lineTo(block.x*10 + 9, block.y*10 + 2);
+							// ctx.lineTo(block.x*10 + 8, block.y*10 + 1);
+							// ctx.fill();
+							this.ctx.fillRect(block.x * 10 + 1, block.y * 10 + 1, 7, 7);
+						} else if (t < 0.4) {
+							const t2 = t * 2.5;
+							this.ctx.beginPath();
+							this.ctx.moveTo(block.x * 10 + 2, block.y * 10 + lerp(9, 2, t2));
+							this.ctx.lineTo(block.x * 10 + 2, block.y * 10 + 9);
+							this.ctx.lineTo(block.x * 10 + lerp(2, 9, t2), block.y * 10 + 9);
+							this.ctx.fill();
+						} else if (t < 0.8) {
+							const t2 = t * 2.5 - 1;
+							this.ctx.beginPath();
+							this.ctx.moveTo(block.x * 10 + 2, block.y * 10 + 2);
+							this.ctx.lineTo(block.x * 10 + 2, block.y * 10 + 9);
+							this.ctx.lineTo(block.x * 10 + 9, block.y * 10 + 9);
+							this.ctx.lineTo(block.x * 10 + 9, block.y * 10 + lerp(9, 2, t2));
+							this.ctx.lineTo(block.x * 10 + lerp(2, 9, t2), block.y * 10 + 2);
+							this.ctx.fill();
+						} else {
+							const t2 = t * 5 - 4;
+							// ctx.fillStyle = colors.grey.darker; //shadow edge
+							// ctx.beginPath();
+							// ctx.moveTo(block.x*10 + lerp(2,1,t2), block.y*10 + lerp(9,8,t2));
+							// ctx.lineTo(block.x*10 + 2, block.y*10 + 9);
+							// ctx.lineTo(block.x*10 + 9, block.y*10 + 9);
+							// ctx.lineTo(block.x*10 + 9, block.y*10 + 2);
+							// ctx.lineTo(block.x*10 + lerp(9,8,t2), block.y*10 + lerp(2,1,t2));
+							// ctx.fill();
+							this.ctx.fillRect(
+								block.x * 10 + lerp(2, 1, t2),
+								block.y * 10 + lerp(2, 1, t2), 7, 7);
+						}
+					}
+					//regular colors
+					if (block.currentBlock >= 2) {
+						const idForBlockSkinId = (block.currentBlock - 2) % SKIN_BLOCK_COUNT;
+						const thisColor = getColorForBlockSkinId(idForBlockSkinId);
+
+						const isPatternBlock = block.currentBlock > SKIN_BLOCK_COUNT + 1;
+
+						const brightColor = isPatternBlock ? thisColor.pattern : thisColor.brighter;
+						const darkColor = isPatternBlock ? thisColor.patternEdge : thisColor.darker;
+
+						//shadow edge
+						if (t > 0.8 && !uglyMode) {
+							this.ctx.fillStyle = darkColor;
+							this.ctx.fillRect(block.x * 10 + 1, block.y * 10 + 1, 9, 9);
+						}
+
+						//bright surface
+						this.ctx.fillStyle = brightColor;
+						if (t == 1 || uglyMode) {
+							// ctx.fillStyle = thisColor.darker; //shadow edge
+							// ctx.beginPath();
+							// ctx.moveTo(block.x*10     , block.y*10 + 9 );
+							// ctx.lineTo(block.x*10 + 1 , block.y*10 + 10);
+							// ctx.lineTo(block.x*10 + 10, block.y*10 + 10);
+							// ctx.lineTo(block.x*10 + 10, block.y*10 + 1 );
+							// ctx.lineTo(block.x*10 + 9 , block.y*10     );
+							// ctx.fill();
+
+							this.ctx.fillRect(block.x * 10, block.y * 10, 9, 9);
+							if (idForBlockSkinId == 12 && !uglyMode) {
+								this.ctx.fillStyle = colors.gold.bevelBright;
+								this.ctx.fillRect(block.x * 10 + 3, block.y * 10 + 0.1, 6, 0.1);
+							}
+						} else if (t < 0.4) {
+							const t2 = t * 2.5;
+							this.ctx.beginPath();
+							this.ctx.moveTo(block.x * 10 + 1, block.y * 10 + lerp(10, 1, t2));
+							this.ctx.lineTo(block.x * 10 + 1, block.y * 10 + 10);
+							this.ctx.lineTo(block.x * 10 + lerp(1, 10, t2), block.y * 10 + 10);
+							this.ctx.fill();
+						} else if (t < 0.8) {
+							const t2 = t * 2.5 - 1;
+							this.ctx.beginPath();
+							this.ctx.moveTo(block.x * 10 + 1, block.y * 10 + 1);
+							this.ctx.lineTo(block.x * 10 + 1, block.y * 10 + 10);
+							this.ctx.lineTo(block.x * 10 + 10, block.y * 10 + 10);
+							this.ctx.lineTo(block.x * 10 + 10, block.y * 10 + lerp(10, 1, t2));
+							this.ctx.lineTo(block.x * 10 + lerp(1, 10, t2), block.y * 10 + 1);
+							this.ctx.fill();
+						} else {
+							const t2 = t * 5 - 4;
+							// ctx.fillStyle = thisColor.darker; //shadow edge
+							// ctx.beginPath();
+							// ctx.moveTo(block.x*10 + lerp(1,0,t2) , block.y*10 + lerp(10,9,t2) );
+							// ctx.lineTo(block.x*10 + 1 , block.y*10 + 10);
+							// ctx.lineTo(block.x*10 + 10, block.y*10 + 10);
+							// ctx.lineTo(block.x*10 + 10, block.y*10 + 1 );
+							// ctx.lineTo(block.x*10 + lerp(10,9,t2) , block.y*10 + lerp(1,0,t2)  );
+							// ctx.fill();
+
+							this.ctx.fillRect(block.x * 10 + lerp(1, 0, t2), block.y * 10 + lerp(1, 0, t2), 9, 9);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Draws a player.
+	 * 
+	 * Requires tempCtx and lineCtx
+	 * @param {Player} player 
+	 * @param {number} timeStamp 
+	 * @param {number} deltaTime 
+	 */
+	drawPlayer(player, timeStamp, deltaTime) {
+		const ctx = this.ctx;
+		if (player.hasReceivedPosition) {
+			/** @type {number} */
+			let x, y;
+
+			/** player color */
+			const pc = getColorForBlockSkinId(player.skinBlock); //player color
+
+			//draw trail
+			if (player.trails.length > 0) {
+				//iterate over each trail
+				for (let trailI = player.trails.length - 1; trailI >= 0; trailI--) {
+					const trail = player.trails[trailI];
+
+					//increase vanish timer
+					const last = trailI == player.trails.length - 1;
+					if (!last || player.isDead) {
+						if (uglyMode) {
+							trail.vanishTimer = 10;
+						} else {
+							let speed = (player.isDead && last) ? 0.006 : 0.02;
+							trail.vanishTimer += deltaTime * speed;
+						}
+						if (!last && (trail.vanishTimer > 10)) {
+							player.trails.splice(trailI, 1);
+						}
+					}
+
+					//if there's no trail, don't draw anything
+					if (trail.trail.length > 0) {
+						const lastPos = last ? player.drawPos : null;
+						if (trail.vanishTimer > 0 && !uglyMode) {
+							this.ctxApplyCamTransform(true, false, this.tempCtx);
+							drawTrailOnCtx(
+								[{
+									ctx: this.tempCtx,
+									color: pc.darker,
+									offset: 5,
+								}, {
+									ctx: this.tempCtx,
+									color: pc.brighter,
+									offset: 4,
+								}],
+								trail.trail,
+								lastPos,
+							);
+
+							this.tempCtx.globalCompositeOperation = "destination-out";
+							this.drawDiagonalLines(this.tempCtx, "white", trail.vanishTimer, 10, timeStamp * 0.003);
+
+							ctx.restore();
+							this.tempCtx.restore();
+							this.linesCtx.restore();
+
+							ctx.drawImage(this.tempCtx.canvas, 0, 0);
+							this.tempCtx.fillStyle = colors.grey.diagonalLines;
+							this.tempCtx.globalCompositeOperation = "source-in";
+							this.tempCtx.fillRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
+							this.linesCtx.drawImage(this.tempCtx.canvas, 0, 0);
+							this.ctxApplyCamTransform(false,false,ctx);
+							this.ctxApplyCamTransform(false,false,this.linesCtx);
+						} else if (trail.vanishTimer < 10) {
+							if (uglyMode) {
+								drawTrailOnCtx(
+									[{
+										ctx: ctx,
+										color: pc.darker,
+										offset: 5,
+									}, {
+										ctx: ctx,
+										color: pc.brighter,
+										offset: 4,
+									}],
+									trail.trail,
+									lastPos,
+								);
+							} else {
+								drawTrailOnCtx(
+									[{
+										ctx: ctx,
+										color: pc.darker,
+										offset: 5,
+									}, {
+										ctx: ctx,
+										color: pc.brighter,
+										offset: 4,
+									}, {
+										ctx: this.linesCtx,
+										color: colors.grey.diagonalLines,
+										offset: 4,
+									}],
+									trail.trail,
+									lastPos,
+								);
+							}
+						}
+					}
+				}
+			}
+
+			//draw player
+			const dp = [player.drawPos[0] * 10 + 4.5, player.drawPos[1] * 10 + 4.5]; //draw position
+			const pr = 6; //player radius
+			const so = 0.3; //shadow offset
+			const gradient = ctx.createRadialGradient(dp[0] - 3, dp[1] - 3, 0, dp[0], dp[1], pr);
+			gradient.addColorStop(0, pc.slightlyBrighter);
+			gradient.addColorStop(1, pc.brighter);
+			this.linesCtx.fillStyle = "white";
+			if (player.isDead) {
+				player.isDeadTimer += deltaTime * 0.003;
+				ctx.fillStyle = gradient;
+
+				for (let i = 0; i < player.deadAnimParts.length - 1; i++) {
+					const arcStart = player.deadAnimParts[i];
+					const arcEnd = player.deadAnimParts[i + 1];
+					const arcAvg = lerp(arcStart, arcEnd, 0.5);
+					const dir = player.dir * Math.PI / 2 - Math.PI;
+					const distanceModifier = Math.min(
+						Math.abs(dir - arcAvg),
+						Math.abs((dir - Math.PI * 2) - arcAvg),
+						Math.abs((dir + Math.PI * 2) - arcAvg),
+					);
+					const rand = player.deadAnimPartsRandDist[i];
+					const distance = (1 - Math.pow(2, -2 * player.isDeadTimer)) * distanceModifier * 5 * (rand + 1);
+					const pOffset = [Math.cos(arcAvg) * distance, Math.sin(arcAvg) * distance]; //piece offset
+					ctx.globalAlpha = this.linesCtx.globalAlpha = Math.max(0, 1 - (player.isDeadTimer * 0.2));
+					ctx.beginPath();
+					ctx.arc(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1], pr, arcStart, arcEnd, false);
+					ctx.lineTo(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1]);
+					ctx.fill();
+					if (!uglyMode) {
+						this.linesCtx.beginPath();
+						this.linesCtx.arc(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1], pr, arcStart, arcEnd, false);
+						this.linesCtx.lineTo(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1]);
+						this.linesCtx.fill();
+					}
+				}
+				ctx.globalAlpha = this.linesCtx.globalAlpha = 1;
+			} else {
+				ctx.fillStyle = pc.darker;
+				ctx.beginPath();
+				ctx.arc(dp[0] + so, dp[1] + so, pr, 0, 2 * Math.PI, false);
+				ctx.fill();
+				ctx.fillStyle = gradient;
+				ctx.beginPath();
+				ctx.arc(dp[0] - so, dp[1] - so, pr, 0, 2 * Math.PI, false);
+				ctx.fill();
+				if (player.mydata && localStorage.drawWhiteDot == "true") {
+					ctx.fillStyle = "white";
+					ctx.beginPath();
+					ctx.arc(dp[0] - so, dp[1] - so, 1, 0, 2 * Math.PI, false);
+					ctx.fill();
+				}
+
+				//lines canvas (remove lines)
+				if (!uglyMode) {
+					this.linesCtx.beginPath();
+					this.linesCtx.arc(dp[0] + so, dp[1] + so, pr, 0, 2 * Math.PI, false);
+					this.linesCtx.fill();
+					this.linesCtx.beginPath();
+					this.linesCtx.arc(dp[0] - so, dp[1] - so, pr, 0, 2 * Math.PI, false);
+					this.linesCtx.fill();
+				}
+			}
+			if (player.mydata && localStorage.drawActualPlayerPos == "true") {
+				ctx.fillStyle = "#FF0000";
+				ctx.beginPath();
+				ctx.arc(player.mydata.serverPos[0] * 10 + 5, player.mydata.serverPos[1] * 10 + 5, pr, 0, 2 * Math.PI, false);
+				ctx.fill();
+			}
+
+			//draw hitlines
+			if (player.hitLines.length > 0) {
+				for (let hitlineI = player.hitLines.length - 1; hitlineI >= 0; hitlineI--) {
+					const thisHit = player.hitLines[hitlineI];
+
+					//increase vanish timer
+					thisHit.vanishTimer += deltaTime * 0.004;
+					const t = thisHit.vanishTimer;
+					if (t > 4) {
+						player.hitLines.splice(hitlineI, 1);
+					}
+
+					const x = thisHit.pos[0] * 10 + 5;
+					const y = thisHit.pos[1] * 10 + 5;
+
+					//draw circle
+					if (t < 2) {
+						const radius1 = Math.max(0, ease.out(iLerp(0, 2, t)) * 18);
+						const radius2 = Math.max(0, ease.out(iLerp(0.5, 2, t)) * 18);
+						ctx.fillStyle = pc.brighter;
+						ctx.beginPath();
+						ctx.arc(x, y, radius1, 0, 2 * Math.PI, false);
+						ctx.arc(x, y, radius2, 0, 2 * Math.PI, false);
+						ctx.fill("evenodd");
+
+						if (!uglyMode) {
+							//lines canvas (remove lines)
+							this.linesCtx.beginPath();
+							this.linesCtx.arc(x, y, radius1, 0, 2 * Math.PI, false);
+							this.linesCtx.arc(x, y, radius2, 0, 2 * Math.PI, false);
+							this.linesCtx.fill("evenodd");
+						}
+					}
+
+					//draw 500+
+					if (thisHit.color !== undefined && player.mydata) {
+						ctx.save();
+						ctx.font = this.linesCtx.font = "6px Arial, Helvetica, sans-serif";
+						ctx.fillStyle = thisHit.color.brighter;
+						ctx.shadowColor = thisHit.color.darker;
+						ctx.shadowOffsetX = ctx.shadowOffsetY = 0.4 * MAX_PIXEL_RATIO * zoom * canvasQuality;
+						const w = ctx.measureText("+500").width;
+						let opacity;
+						if (t < 0.5) {
+							opacity = iLerp(0, 0.5, t);
+						} else if (t < 3.5) {
+							opacity = 1;
+						} else {
+							opacity = iLerp(4, 3.5, t);
+						}
+						opacity = clamp01(opacity);
+						let hOffset;
+						if (t < 2) {
+							hOffset = ease.out(t / 2) * 20;
+						} else {
+							hOffset = 20;
+						}
+						ctx.globalAlpha = opacity;
+						ctx.fillText("+500", x - w / 2, y - hOffset);
+						ctx.restore();
+					}
+				}
+			}
+
+			//draw honk
+			if (player.honkTimer < player.honkMaxTime) {
+				player.honkTimer += deltaTime * 0.255;
+				ctx.fillStyle = pc.brighter;
+				ctx.globalAlpha = clamp01(iLerp(player.honkMaxTime, 0, player.honkTimer));
+				ctx.beginPath();
+				ctx.arc(
+					player.drawPos[0] * 10 + 4.5 + so,
+					player.drawPos[1] * 10 + 4.5 + so,
+					pr + player.honkTimer * 0.1,
+					0,
+					2 * Math.PI,
+					false,
+				);
+				ctx.fill();
+				ctx.globalAlpha = 1;
+
+				if (!uglyMode) {
+					this.linesCtx.globalAlpha = clamp01(iLerp(player.honkMaxTime, 0, player.honkTimer));
+					this.linesCtx.beginPath();
+					this.linesCtx.arc(
+						player.drawPos[0] * 10 + 4.5 + so,
+						player.drawPos[1] * 10 + 4.5 + so,
+						pr + player.honkTimer * 0.1,
+						0,
+						2 * Math.PI,
+						false,
+					);
+					this.linesCtx.fill();
+					this.linesCtx.globalAlpha = 1;
+				}
+			}
+
+			//draw name
+			if (localStorage.hidePlayerNames != "true") {
+				this.myNameAlphaTimer += deltaTime * 0.001;
+				ctx.font = this.linesCtx.font = USERNAME_SIZE + "px Arial, Helvetica, sans-serif";
+				if (player.name) {
+					let myAlpha = 1;
+					if (player.mydata) {
+						myAlpha = 9 - this.myNameAlphaTimer;
+					}
+					let deadAlpha = 1;
+					if (player.isDead) {
+						deadAlpha = 1 - player.isDeadTimer;
+					}
+					const alpha = Math.min(deadAlpha, myAlpha);
+					if (alpha > 0) {
+						ctx.save();
+						if (!uglyMode) {
+							this.linesCtx.save();
+						}
+						ctx.globalAlpha = clamp01(alpha);
+						let width = ctx.measureText(player.name).width;
+						width = Math.min(100, width);
+						const x = player.drawPos[0] * 10 + 5 - width / 2;
+						const y = player.drawPos[1] * 10 - 5;
+
+						ctx.rect(x - 4, y - USERNAME_SIZE * 1.2, width + 8, USERNAME_SIZE * 2);
+						ctx.clip();
+						if (!uglyMode) {
+							this.linesCtx.rect(x - 4, y - USERNAME_SIZE * 1.2, width + 8, USERNAME_SIZE * 2);
+							this.linesCtx.clip();
+							this.linesCtx.fillText(player.name, x, y);
+						}
+
+						ctx.shadowColor = "rgba(0,0,0,0.9)";
+						ctx.shadowBlur = 10;
+						ctx.shadowOffsetX = ctx.shadowOffsetY = 2;
+						ctx.fillStyle = pc.brighter;
+						ctx.fillText(player.name, x, y);
+
+						ctx.shadowColor = pc.darker;
+						ctx.shadowBlur = 0;
+						ctx.shadowOffsetX = ctx.shadowOffsetY = 0.8;
+						ctx.fillText(player.name, x, y);
+
+						ctx.restore();
+						if (!uglyMode) {
+							this.linesCtx.restore();
+						}
+					}
+				}
+			}
+
+			//draw cool shades
+			if (player.name == "Jesper" && !player.isDead) {
+				ctx.fillStyle = "black";
+				ctx.fillRect(dp[0] - 6.5, dp[1] - 2, 13, 1);
+				ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
+				ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
+				ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
+			}
+		}
+	}
+}
+
+/**
+ * @typedef {[number, number]} Vec2
+ */
+
+class SplixCanvas extends SplixBaseCamera {
+	/**@type {canvasTransformTypes} */ // TODO: this should be removed in the end
+	canvasTransformType = canvasTransformTypes.MAIN;
+
+	//// DATA
+	/**@type {Vec2} */
+	camPos = [0,0];
+	camPosSet = false;
+	/**@type {Vec2} */
+	camPosPrevFrame = [0,0];
+	/**@type {[number,number,number][]} */
+	camShakeForces = [];
+	/**@type {Vec2} */
+	camPosOffset = [0,0];
+	/**@type {Vec2} */
+	camRotOffset = 0;
+	myNameAlphaTimer = 0;
+	/**@type {SplixState} */
+	state;
+	constructor(canvas,state){
+		super(canvas);
+		this.state=state;
+	}
+
+	show(){
+		this.canvas.style.display = null;
+		this.myNameAlphaTimer = 0;
+	}
+
+	hide(){
+		this.canvas.style.display = 'none';
+	}
+
+	reset(){
+		this.camPosSet = false;
+		this.camShakeForces = [];
+	}
+
+	get w (){ return window.innerWidth }
+	get h (){ return window.innerHeight }
+
+	/**
+	 * Render the main canvas.
+	 * @param {number} deltaTime 
+	 */
+	render(timeStamp,deltaTime){
+		debugging.frames += 1;
+		const ctx = this.ctx;
+		this.setCanvasSize();
+		this.ctx.reset()
+		if (!uglyMode) {
+			this.setCanvasSize(false,this.linesCanvas);
+			this.linesCtx.reset();
+		}
+
+		//BG
+		ctx.fillStyle = colors.grey.BG;
+		ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		if (!uglyMode) {
+			this.linesCtx.fillStyle = "white";
+			this.linesCtx.fillRect(0, 0, this.linesCanvas.width, this.linesCanvas.height);
+		}
+
+		//cam transforms
+		this.camPosPrevFrame = [this.camPos[0], this.camPos[1]];
+		this.calcCamOffset(deltaTime);
+		this.ctxApplyCamTransform(false,false,ctx);
+		if (!uglyMode) {
+			this.ctxApplyCamTransform(false,false,this.linesCtx);
+		}
+
+		//draw blocks
+		this.drawBlocks(deltaTime,this.state.blocks, true);
+
+		//players
+		for (const player of this.state.players.values()) {
+			this.drawPlayer(player, timeStamp, deltaTime);
+		}
+
+		if (!uglyMode) {
+			this.drawDiagonalLines(this.linesCtx, "white", 5, 10, timeStamp * 0.008);
+		}
+
+		//restore cam transforms
+		ctx.restore();
+
+		if (!uglyMode) {
+			this.linesCtx.restore();
+			ctx.globalCompositeOperation = "multiply";
+			// ctx.clearRect(0,0,mainCanvas.width, mainCanvas.height)
+			ctx.drawImage(this.linesCanvas, 0, 0);
+			ctx.globalCompositeOperation = "source-over";
+		}
+	}
+	
+	/** applies camShakeForces */
+	calcCamOffset(deltaTime){
+		this.camPosOffset = [0, 0];
+		this.camRotOffset = 0;
+		for (let i = this.camShakeForces.length - 1; i >= 0; i--) {
+			const force = this.camShakeForces[i];
+			force[2] += deltaTime * 0.003;
+			const t = force[2];
+			let t3 = 0, t2 = 0;
+			if (t < 1) {
+				t2 = ease.out(t);
+				t3 = ease.inout(t);
+			} else if (t < 8) {
+				t2 = ease.inout(iLerp(8, 1, t));
+				t3 = ease.in(iLerp(8, 1, t));
+			} else {
+				this.camShakeForces.splice(i, 1);
+			}
+			this.camPosOffset[0] += force[0] * t2;
+			this.camPosOffset[1] += force[1] * t2;
+
+			this.camPosOffset[0] += force[0] * Math.cos(t * 8) * 0.04 * t3;
+			this.camPosOffset[1] += force[1] * Math.cos(t * 7) * 0.04 * t3;
+			if (force[3]) {
+				this.camRotOffset += Math.cos(t * 9) * 0.003 * t3;
+			}
+		}
+		if(this.camPosOffset[0] != 0 && this.camPosOffset[1] != 0) console.log(this.camPosOffset);
+		const limit = 80;
+		this.camPosOffset[0] /= limit;
+		this.camPosOffset[1] /= limit;
+		this.camPosOffset[0] = smoothLimit(this.camPosOffset[0]);
+		this.camPosOffset[1] = smoothLimit(this.camPosOffset[1]);
+		this.camPosOffset[0] *= limit;
+		this.camPosOffset[1] *= limit;
+	}
+
+	//shakes the camera but uses a dir (ranges from 0-3) as input
+	doCamShakeDir(dir, amount, doRotate) { // BUG
+		if (amount === undefined) {
+			amount = 6;
+		}
+		if (doRotate === undefined) {
+			doRotate = true;
+		}
+		let x = 0, y = 0;
+		switch (dir) {
+			case 0:
+				x = amount;
+				break;
+			case 1:
+				y = amount;
+				break;
+			case 2:
+				x = -amount;
+				break;
+			case 3:
+				y = -amount;
+				break;
+		}
+		this.camShakeForces.push([x, y, 0, !!doRotate]);
+	}
+
+	/** display the ping information */
+	display_ping(avg,last,diff){
+		avg = avg ? Math.round(avg) : "";
+		last = last ? Math.round(last) : "";
+		diff = diff ? Math.round(diff) : "";
+		const str = "avg:" + avg + " last:" + last + " diff:" + diff;
+		this.ctx.font = "14px Arial, Helvetica, sans-serif";
+		this.ctx.fillStyle = colors.red.brighter;
+		const textWidth = this.ctx.measureText(str).width;
+		this.ctx.fillText(str, this.canvas.width - textWidth - 10, this.canvas.height - 10);
+	}
+
+	move_camera(pos,deltaTime){
+		if (this.camPosSet) {
+			this.camPos[0] = lerpt(this.camPos[0], pos[0], 0.03, deltaTime);
+			this.camPos[1] = lerpt(this.camPos[1], pos[1], 0.03, deltaTime);
+		} else {
+			this.camPos = [pos[0], pos[1]];
+			this.camPosSet = true;
+		}
+	}
+}
+
+class SplixLogoCanvas extends SplixBaseCanvas {
+	timer = -1;
+	resetNextFrame = true;
+	lastRender = 0;
+	canvasTransformType = canvasTransformTypes.TITLE;
+	w = 520;
+	h = 180;
+	constructor(canvas){
+		super(canvas);
+		for (const line of titleLines) {
+			for (const subline of line.line) {
+				for (let coordI = 0; coordI < subline.length; coordI += 2) {
+					subline[coordI] += line.posOffset[0] - 40;
+					subline[coordI + 1] += line.posOffset[1] - 20;
+				}
+			}
+		}
+	}
+
+	get styleRatio(){
+		return Math.min(1, (window.innerWidth - 30) / this.w)
+	}
+	
+	/**
+	 * draws main title
+	 * @param {boolean} [isShadow]
+	 * @param {number} [maxExtrude]
+	 * @param {boolean} [extraShadow]
+	 */
+	drawTitle(isShadow, maxExtrude, extraShadow) {
+		this.ctx.strokeStyle = (!!isShadow) ? colors.red.patternEdge : colors.red.brighter;
+		this.ctx.lineWidth = 16;
+		this.ctx.lineJoin = "round";
+		this.ctx.lineCap = "round";
+
+		if (extraShadow) {
+			this.ctx.shadowBlur = 40 * MAX_PIXEL_RATIO;
+			this.ctx.shadowColor = "rgba(0,0,0,0.4)";
+			this.ctx.shadowOffsetX = this.ctx.shadowOffsetY = 10 * MAX_PIXEL_RATIO;
+		} else {
+			this.ctx.shadowColor = "rgba(0,0,0,0)";
+		}
+
+		const t = this.timer;
+		for (const line of titleLines) {
+			const lineT = clamp01(t * line.speed - line.offset);
+			let extrude = clamp01(t) * 5;
+			if (maxExtrude !== undefined) {
+				extrude = Math.min(extrude, maxExtrude);
+			}
+			this.ctx.beginPath();
+			for (let subLineI = 0; subLineI < line.line.length; subLineI++) {
+				const subline = line.line[subLineI];
+				const sublineT = clamp01(lineT * (line.line.length - 1) - subLineI + 1);
+				if (sublineT > 0) {
+					if (sublineT == 1) {
+						if (subLineI === 0 && subline.length == 2) {
+							this.ctx.moveTo(subline[0] - extrude, subline[1] - extrude);
+						} else if (subline.length == 2) {
+							this.ctx.lineTo(subline[0] - extrude, subline[1] - extrude);
+						} else if (subline.length == 6) {
+							this.ctx.bezierCurveTo(
+								subline[0] - extrude,
+								subline[1] - extrude,
+								subline[2] - extrude,
+								subline[3] - extrude,
+								subline[4] - extrude,
+								subline[5] - extrude,
+							);
+						}
+					} else {
+						const lastLine = line.line[subLineI - 1];
+						const lastPos = [lastLine[lastLine.length - 2], lastLine[lastLine.length - 1]];
+						if (subline.length == 2) {
+							this.ctx.lineTo(
+								lerp(lastPos[0], subline[0], sublineT) - extrude,
+								lerp(lastPos[1], subline[1], sublineT) - extrude,
+							);
+						} else if (subline.length == 6) {
+							const p0 = lastPos;
+							const p1 = [subline[0], subline[1]];
+							const p2 = [subline[2], subline[3]];
+							const p3 = [subline[4], subline[5]];
+							const p4 = lerpA(p0, p1, sublineT);
+							const p5 = lerpA(p1, p2, sublineT);
+							const p6 = lerpA(p2, p3, sublineT);
+							const p7 = lerpA(p4, p5, sublineT);
+							const p8 = lerpA(p5, p6, sublineT);
+							const p9 = lerpA(p7, p8, sublineT);
+							this.ctx.bezierCurveTo(
+								p4[0] - extrude,
+								p4[1] - extrude,
+								p7[0] - extrude,
+								p7[1] - extrude,
+								p9[0] - extrude,
+								p9[1] - extrude,
+							);
+						}
+					}
+				}
+			}
+			this.ctx.stroke();
+		}
+	}
+
+	render(timeStamp){
+		if (this.resetNextFrame) {
+			this.resetNextFrame = false;
+			this.timer = -1;
+			this.lastRender = timeStamp;
+		}
+		this.timer += (timeStamp - this.lastRender) * 0.002;
+		this.lastRender = timeStamp;
+
+		this.setCanvasSize(true);
+		this.ctx.reset();
+		this.ctxApplyCamTransform(false, true);
+
+		this.drawTitle(true, 0, true);
+		this.drawTitle(true, 2.5);
+		this.drawTitle();
+		this.ctx.restore();
+	}
+}
+
+class TransitionCanvas extends SplixBaseCanvas {
+	/**@type {HTMLCanvasElement} */
+	tempCanvas;
+	/**@type {CanvasRenderingContext2D} */
+	tempCtx;
+	/**@type {canvasTransformTypes} */
+	canvasTransformType = canvasTransformTypes.MAIN;
+	/** @type {number} */
+	timer = 0;
+	/** @type {number} */
+	prevTimer = 0;
+	/** @type {number} */
+	direction = 1;
+	/** @type {(()=>void)?}*/
+	callback1 = null;
+	/** @type {(()=>void)?}*/
+	callback2 = null;
+	/** @type {boolean}*/
+	reverseOnHalf = false;
+	/** @type {string}*/
+	text = "GAME OVER";
+	constructor(canvas){
+		super(canvas);
+		this.tempCanvas = document.createElement("canvas");
+		this.tempCtx = this.tempCanvas.getContext("2d");
+	}
+
+	render(deltaTime){
+		let DARK_EDGE_SIZE = 10, TITLE_HEIGHT = 60, TITLE_DURATION = 2, TITLE_PADDING = 10, TEXT_EXTRUDE = 5;
+		TITLE_HEIGHT *= MAX_PIXEL_RATIO;
+		TEXT_EXTRUDE *= MAX_PIXEL_RATIO;
+		this.timer += deltaTime * this.direction * 0.001;
+
+		if (
+			this.direction == 1 && this.callback1 !== null && this.timer >= 0.5 &&
+			this.prevTimer < 0.5
+		) {
+			this.timer = 0.5;
+			this.callback1();
+		}
+
+		if (
+			this.direction == -1 && this.callback2 !== null && this.timer <= 0.5 &&
+			this.prevTimer > 0.5
+		) {
+			this.timer = 0.5;
+			this.callback2();
+		}
+
+		if (
+			this.reverseOnHalf && this.direction == 1 && this.timer >= 1 + TITLE_DURATION &&
+			this.prevTimer < 1 + TITLE_DURATION
+		) {
+			this.direction = -1;
+			this.timer = 1;
+		}
+
+		this.prevTimer = this.timer;
+		if (
+			(this.timer <= 0 && this.reverseOnHalf) ||
+			(this.timer >= TITLE_DURATION + 1.5 && !this.reverseOnHalf)
+		) {
+			this.direction = 0;
+			isTransitioning = false;
+			this.canvas.style.display = "none";
+		} else {
+			this.setCanvasSize(true);
+			this.ctx.reset();
+
+			const w = this.w, h = this.h;
+			const t = this.timer;
+			if (t < 0.5) {
+				let t2 = t * 2;
+				t2 = ease.in(t2);
+				this.ctx.fillStyle = colors.green2.darker;
+				this.ctx.fillRect(0, lerp(-DARK_EDGE_SIZE, h / 2, t2), w, DARK_EDGE_SIZE);
+				this.ctx.fillStyle = colors.green2.brighter;
+				this.ctx.fillRect(0, -DARK_EDGE_SIZE, w, lerp(0, h / 2 + DARK_EDGE_SIZE, t2));
+				this.ctx.fillRect(0, lerp(h, h / 2, t2), w, h);
+			} else if (t < 1) {
+				let t2 = t * 2 - 1;
+				t2 = ease.out(t2);
+				if (this.text) {
+					this.ctx.fillStyle = colors.green2.darker;
+					this.ctx.fillRect(
+						0,
+						lerp(0, h / 2 - TITLE_HEIGHT / 2, t2),
+						w,
+						lerp(h, TITLE_HEIGHT + DARK_EDGE_SIZE, t2),
+					);
+					this.ctx.fillStyle = colors.green2.brighter;
+					this.ctx.fillRect(0, lerp(0, h / 2 - TITLE_HEIGHT / 2, t2), w, lerp(h, TITLE_HEIGHT, t2));
+				} else {
+					this.ctx.fillStyle = colors.green2.darker;
+					this.ctx.fillRect(0, lerp(0, h / 2, t2), w, lerp(h, DARK_EDGE_SIZE, t2));
+					this.ctx.fillStyle = colors.green2.brighter;
+					this.ctx.fillRect(0, lerp(0, h / 2, t2), w, lerp(h, 0, t2));
+				}
+			} else if (t < 1 + TITLE_DURATION) {
+				if (this.text) {
+					this.ctx.fillStyle = colors.green2.darker;
+					this.ctx.fillRect(0, h / 2, w, TITLE_HEIGHT / 2 + DARK_EDGE_SIZE);
+					this.ctx.fillStyle = colors.green2.brighter;
+					this.ctx.fillRect(0, h / 2 - TITLE_HEIGHT / 2, w, TITLE_HEIGHT);
+				} else {
+					this.timer = TITLE_DURATION + 1.5;
+				}
+			} else if (t < TITLE_DURATION + 1.5) {
+				let t2 = (t - TITLE_DURATION - 1) * 2;
+				t2 = ease.in(t2);
+				this.ctx.fillStyle = colors.green2.darker;
+				this.ctx.fillRect(0, h / 2, w, lerp(TITLE_HEIGHT / 2 + DARK_EDGE_SIZE, DARK_EDGE_SIZE, t2));
+				this.ctx.fillStyle = colors.green2.brighter;
+				this.ctx.fillRect(0, lerp(h / 2 - TITLE_HEIGHT / 2, h / 2, t2), w, lerp(TITLE_HEIGHT, 0, t2));
+			}
+
+			if (t > 0.5 && t < 3.5) {
+				const fontHeight = TITLE_HEIGHT - TITLE_PADDING * 2;
+				this.ctx.font = fontHeight + "px Arial, Helvetica, sans-serif";
+				const totalWidth = this.ctx.measureText(this.text).width;
+				const x = w / 2 - totalWidth / 2 + TEXT_EXTRUDE / 2;
+				const y = h / 2 + fontHeight * 0.37 + TEXT_EXTRUDE / 2;
+				let t2;
+				if (t < 1.1) {
+					t2 = iLerp(0.5, 1.1, t);
+				} else if (t < 2.9) {
+					t2 = 1;
+				} else {
+					t2 = iLerp(3.5, 2.9, t);
+				}
+				this.drawAnimatedText(
+					t2,
+					x,
+					y,
+					fontHeight,
+					"white",
+					"Arial, Helvetica, sans-serif",
+					TEXT_EXTRUDE,
+					3,
+					16842438,
+				);
+				// this.ctx.fillStyle = "white";
+				// this.ctx.fillText(transitionText, x, y);
+			}
+
+			this.ctx.restore();
+		}
+
+		//skip death transition
+		if (skipDeathTransition && this.text == "GAME OVER" && this.time > 1) {
+			this.timer = 1.1;
+			this.direction = -1;
+			allowSkipDeathTransition = false;
+			skipDeathTransition = false;
+		}
+	}
+
+	 /** starts the transition
+	  * @param {string} text
+	  * @param {boolean} [reverseOnHalf] start playing backwords once it is showing the title
+	  * @param {(()=>void)?} [callback1] fired once the transition is full screen for the first time
+	  * @param {(()=>void)?} [callback2] fired when full screen for the second time, only shown when reverseOnHalf = true
+	  * @param {boolean} [overrideExisting] */
+	doTransition(text, reverseOnHalf, callback1, callback2, overrideExisting) {
+		// console.log("doTransition()", text, reverseOnHalf, callback1, callback2, overrideExisting);
+		// console.log("isTransitioning:",isTransitioning);
+		if (!isTransitioning || overrideExisting) {
+			this.text = text;
+			isTransitioning = true;
+			this.direction = 1;
+			this.timer = this.prevTimer = 0;
+			this.canvas.style.display = null;
+			if (reverseOnHalf === undefined) {
+				reverseOnHalf = false;
+			}
+			this.reverseOnHalf = reverseOnHalf;
+			this.callback1 = callback1;
+			this.callback2 = callback2;
+		}
+	}
+
+	/**
+	 * Draw and animate text on the transition canvas.
+	 * @param {number} time 
+	 * @param {number} x 
+	 * @param {number} y 
+	 * @param {number} fontHeight 
+	 * @param {*} color 
+	 * @param {string} font 
+	 * @param {number} textExtrude 
+	 * @param {number} charSpeed 
+	 * @param {number} orderSeed 
+	 */
+	drawAnimatedText(time, x, y, fontHeight, color, font, textExtrude, charSpeed, orderSeed) {
+		if (color === undefined) {
+			color = "white";
+		}
+		this.ctx.fillStyle = color;
+		if (font === undefined) {
+			font = "Arial, Helvetica, sans-serif";
+		}
+		this.ctx.font = font = fontHeight + "px " + font;
+		if (orderSeed === undefined) {
+			orderSeed = 0;
+		}
+		let lastWidth = 0;
+		for (let charI = 0; charI < this.text.length; charI++) {
+			const rndOffset = rndSeed(charI + orderSeed);
+			if (charSpeed === undefined) {
+				charSpeed = 3;
+			}
+			const charT = time * charSpeed - (rndOffset * (charSpeed - rndOffset));
+			const thisChar = this.text[charI];
+			const charWidth = this.ctx.measureText(thisChar).width;
+			const yMin = y - fontHeight * 0.77;
+			if (charT < 0.8) {
+				this.tempCanvas.width = charWidth;
+				this.tempCanvas.height = fontHeight;
+				this.tempCtx.font = font;
+				this.tempCtx.fillStyle = "white";
+				this.tempCtx.fillText(thisChar, 0, fontHeight * 0.77);
+				if (charT < 0.4) {
+					const t2 = charT / 0.4;
+	
+					this.tempCtx.beginPath();
+					this.tempCtx.moveTo(0, lerp(fontHeight, 0, t2));
+					this.tempCtx.lineTo(0, fontHeight);
+					this.tempCtx.lineTo(lerp(0, charWidth, t2), fontHeight);
+					this.tempCtx.closePath();
+				} else {
+					const t2 = charT / 0.4 - 1;
+					this.tempCtx.moveTo(0, 0);
+					this.tempCtx.lineTo(0, fontHeight);
+					this.tempCtx.lineTo(charWidth, fontHeight);
+					this.tempCtx.lineTo(charWidth, lerp(fontHeight, 0, t2));
+					this.tempCtx.lineTo(lerp(0, charWidth, t2), 0);
+				}
+				this.tempCtx.globalCompositeOperation = "destination-in";
+				this.tempCtx.fill();
+				this.ctx.drawImage(this.tempCanvas, x + lastWidth, yMin);
+			} else {
+				const t2 = Math.min(1, charT * 5 - 4);
+				const offset = t2 * textExtrude;
+				this.ctx.fillStyle = colors.green2.darker;
+				for (let i = 0; i < offset; i++) {
+					this.ctx.fillText(thisChar, x + lastWidth - offset + i, y - offset + i);
+				}
+				this.ctx.fillStyle = "white";
+				this.ctx.fillText(thisChar, x + lastWidth - offset, y - offset);
+			}
+			lastWidth += charWidth - 0.5;
+		}
+	}
+}
+
+class LifeCanvas extends SplixBaseCanvas {
+	timer = 0;
+	animDir = 0;
+	isLife = true;
+	canvasTransformType = canvasTransformTypes.LIFE;
+	constructor(canvas){
+		super(canvas);
+	}
+	render(dt, force) {
+		if (this.animDir !== 0 || force) {
+			this.timer += dt * this.animDir * 0.002;
+			if (this.animDir == 1) {
+				if (this.timer > 1) {
+					this.timer = 1;
+					this.afterAnimate();
+				}
+			} else {
+				if (this.timer < 0) {
+					this.timer = 0;
+					this.afterAnimate();
+				}
+			}
+			this.ctxApplyCamTransform(true, true);
+			this.ctx.fillStyle = "rgba(0,0,0,0.3)";
+			this.drawHeart(false, 15.7, 15.7);
+
+			if (this.animDir == 1) {
+				this.ctx.fillStyle = colors.red.darker;
+				this.ctx.translate(30, 30);
+				let s = this.timer;
+				if (s < 0.8) {
+					s = lerp(0, 1.2, ease.in(iLerp(0, 0.8, s)));
+				} else {
+					s = lerp(1.2, 1, ease.in(iLerp(0.8, 1, s)));
+				}
+				const r = (1 - s) * 0.5;
+				this.ctx.rotate(r);
+				this.ctx.scale(s, s);
+				this.ctx.translate(-30, -30);
+				this.drawHeart(false, 15.7, 15.7);
+				this.ctx.fillStyle = colors.red.brighter;
+				this.drawHeart(false, 14.3, 14.3);
+				this.ctx.restore();
+			} else {
+				this.ctx.globalAlpha = this.timer;
+				this.ctx.fillStyle = colors.red.darker;
+				this.drawHeart(true, 15.7, 15.7);
+				this.ctx.fillStyle = colors.red.brighter;
+				this.drawHeart(true, 14.3, 14.3);
+				this.ctx.restore();
+			}
+		}
+	}
+	/**
+	 * Draw a heart.
+	 * @param {boolean} useTimer 
+	 * @param {number} xo x offset
+	 * @param {number} yo y offset
+	 */
+	drawHeart(useTimer, xo, yo) {
+		if (!useTimer || this.timer == 1) {
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + xo, 12 + yo);
+			this.ctx.bezierCurveTo(15 + xo, 3 + yo, 27 + xo, 3 + yo, 27 + xo, 12 + yo);
+			this.ctx.bezierCurveTo(27 + xo, 18 + yo, 15 + xo, 27 + yo, 15 + xo, 27 + yo);
+			this.ctx.bezierCurveTo(15 + xo, 27 + yo, 3 + xo, 18 + yo, 3 + xo, 12 + yo);
+			this.ctx.bezierCurveTo(3 + xo, 3 + yo, 15 + xo, 3 + yo, 15 + xo, 12 + yo);
+			this.ctx.fill();
+		} else {
+			let txo, tyo; //time x/y offset
+			const t = ease.out(1 - this.timer);
+
+			txo = xo + t * 3;
+			tyo = yo - t * 12;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(15 + txo, 12 + tyo);
+			this.ctx.bezierCurveTo(15 + txo, 8.1 + tyo, 17.4 + txo, 5.25 + tyo, 21 + txo, 5.25 + tyo);
+			this.ctx.fill();
+
+			txo = xo + t * 9;
+			tyo = yo - t * 1.5;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(21 + txo, 5.25 + tyo);
+			this.ctx.bezierCurveTo(24 + txo, 5.25 + tyo, 27 + txo, 7.5 + tyo, 27 + txo, 12 + tyo);
+			this.ctx.bezierCurveTo(27 + txo, 15.3 + tyo, 23.25 + txo, 19.35 + tyo, 23.1 + txo, 19.5 + tyo);
+			this.ctx.fill();
+
+			txo = xo + t * 6;
+			tyo = yo + t * 9;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(23.1 + txo, 19.5 + tyo);
+			this.ctx.bezierCurveTo(23.1 + txo, 19.8 + tyo, 17.55 + txo, 25.11 + tyo, 17.1 + txo, 25.35 + tyo);
+			this.ctx.fill();
+
+			txo = xo - t * 1.5;
+			tyo = yo + t * 9;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(17.1 + txo, 25.35 + tyo);
+			this.ctx.lineTo(15 + txo, 27 + tyo);
+			this.ctx.bezierCurveTo(14.91 + txo, 27 + tyo, 10.5 + txo, 23.28 + tyo, 10.5 + txo, 23.16 + tyo);
+			this.ctx.fill();
+
+			txo = xo - t * 12;
+			tyo = yo + t * 1.5;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(10.5 + txo, 23.16 + tyo);
+			this.ctx.bezierCurveTo(10.5 + txo, 23.16 + tyo, 3 + txo, 16.65 + tyo, 3 + txo, 12 + tyo);
+			this.ctx.fill();
+
+			txo = xo - t * 3;
+			tyo = yo - t * 6;
+			this.ctx.beginPath();
+			this.ctx.moveTo(15 + txo, 16.5 + tyo);
+			this.ctx.lineTo(3 + txo, 12 + tyo);
+			this.ctx.bezierCurveTo(3 + txo, 3 + tyo, 15 + txo, 3 + tyo, 15 + txo, 12 + tyo);
+			this.ctx.fill();
+		}
+	}
+	afterAnimate(){
+		this.animDir = 0;
+		this.set(this.isLife);
+	}
+	set(isLife) {
+		this.isLife = isLife;
+		if (this.animDir === 0) {
+			if (isLife) {
+				if (this.timer < 1) {
+					this.animDir = 1;
+				}
+			} else {
+				if (this.timer > 0) {
+					this.animDir = -1;
+				}
+			}
+		}
+	}
+}
+
+class TutorialCanvas extends SplixBaseCamera {
+	/**@type {canvasTransformTypes} */ // TODO: this should be removed in the end
+	canvasTransformType = canvasTransformTypes.TUTORIAL;
+	/** @type {number} */
+	timer = 0;
+	/** @type {number} */
+	prevTimer = 0;
+	/** @type {Player} */
+	p1;
+	/** @type {Player} */
+	p2;
+	text;
+	state = new SplixState();
+	constructor(canvas,text){
+		super(canvas);
+		this.text = text;
+		this.p1 = this.state.getPlayer(1);
+		this.p1.skinBlock = 8;
+		this.p1.hasReceivedPosition = true;
+		this.p2 = this.state.getPlayer(2);
+		this.p2.skinBlock = 0;
+		this.p2.pos = [-2, 7];
+		this.p2.hasReceivedPosition = true;
+		for (let x = 0; x < 10; x++) {
+			for (let y = 0; y < 10; y++) {
+				const block = this.state.getBlock(x, y);
+				let id = 1;
+				if (x >= 1 && x <= 3 && y >= 1 && y <= 3) {
+					id = 10;
+				}
+				block.setBlockId(id, false);
+			}
+		}
+	}
+
+	render(timeStamp,deltaTime){
+		this.timer += deltaTime * GLOBAL_SPEED * 0.7;
+		this.setCanvasSize();
+		this.ctx.reset();
+		if (!uglyMode) {
+			this.setCanvasSize(undefined,this.linesCanvas);
+			this.linesCtx.reset();
+
+		}
+
+		//BG
+		this.ctx.fillStyle = colors.grey.BG;
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		if (!uglyMode) {
+			this.linesCtx.fillStyle = "white";
+			this.linesCtx.fillRect(0, 0, this.linesCanvas.width, this.linesCanvas.height);
+		}
+
+		//cam transforms
+		this.ctxApplyCamTransform(undefined,undefined,this.ctx);
+		if (!uglyMode) {
+			this.ctxApplyCamTransform(undefined,undefined,this.linesCtx);
+		}
+
+		const t = this.timer;
+		this.drawBlocks(deltaTime,this.state.blocks);
+
+		//p1
+		if (t < 10) {
+			this.p1.pos = [2, 2];
+		} else if (t < 15) {
+			this.p1.pos = [t - 8, 2];
+		} else if (t < 18) {
+			this.p1.pos = [7, t - 13];
+		} else if (t < 23) {
+			this.p1.pos = [25 - t, 5];
+		} else if (t < 26) {
+			this.p1.pos = [2, 28 - t];
+		} else if (t < 30) {
+		} else if (t < 36) {
+			this.p1.pos = [2, t - 28];
+		} else if (t < 39) {
+			this.p1.pos = [t - 34, 8];
+		}
+
+		//p1 trail
+		if (t < 12) {
+		} else if (t < 15) {
+			this.p1.trails = [{
+				trail: [[4, 2]],
+				vanishTimer: 0,
+			}];
+		} else if (t < 18) {
+			this.p1.trails = [{
+				trail: [[4, 2], [7, 2]],
+				vanishTimer: 0,
+			}];
+		} else if (t < 23) {
+			this.p1.trails = [{
+				trail: [[4, 2], [7, 2], [7, 5]],
+				vanishTimer: 0,
+			}];
+		} else if (t < 24) {
+			this.p1.trails = [{
+				trail: [[4, 2], [7, 2], [7, 5], [2, 5]],
+				vanishTimer: 0,
+			}];
+		}
+		if (t > 24 && this.prevTimer < 24) {
+			this.p1.trails = [{
+				trail: [[4, 2], [7, 2], [7, 5], [2, 5], [2, 4]],
+				vanishTimer: 0,
+			}, {
+				trail: [],
+				vanishTimer: 0,
+			}];
+		}
+		if (t < 34) {
+		} else if (t < 36) {
+			this.p1.trails = [{
+				trail: [[2, 6]],
+				vanishTimer: 0,
+			}];
+		} else if (t < 39) {
+			this.p1.trails = [{
+				trail: [[2, 6], [2, 8]],
+				vanishTimer: 0,
+			}];
+		}
+
+		//p2
+		if (t < 34) {
+		} else if (t < 50) {
+			this.p2.pos = [t - 37, 7];
+			this.p2.trails = [{
+				trail: [[-2, 7]],
+				vanishTimer: 0,
+			}];
+		}
+
+		if (t > 25 && this.prevTimer < 25) {
+			this.state.fillArea(2, 2, 6, 4, 10, 0);
+		}
+		if (t > 39 && this.prevTimer < 39) {
+			this.p1.die(true);
+			this.state.fillArea(1, 1, 7, 5, 1, 0);
+			this.p2.addHitLine([2, 7]);
+		}
+		if (t > 50) {
+			this.timer = this.prevTimer = 0;
+			this.state.fillArea(1, 1, 3, 3, 10, 0);
+			this.p1.isDeadTimer = 0;
+			this.p1.isDead = false;
+			this.p1.trails = [];
+			this.p1.pos = [100, 100];
+			this.p2.trails = [{
+				trail: [[-2, 7], [12, 7]],
+				vanishTimer: 0,
+			}, {
+				trail: [],
+				vanishTimer: 0,
+			}];
+			this.p2.pos = this.p2.drawPos = [-2, 7];
+		}
+
+		//tutorial text
+		if (t > 1 && this.prevTimer < 1) {
+			this.text.innerHTML = "Close an area to fill it with your color.";
+		}
+		if (t > 30 && this.prevTimer < 30) {
+			this.text.innerHTML = "Don't get hit by other players.";
+		}
+		const textOpacity = ( clamp01(5 - Math.abs((t - 20) * 0.5))
+						  	+ clamp01(4 - Math.abs((t - 40) * 0.5)));
+		this.text.style.opacity = clamp(textOpacity, 0, 0.9);
+
+		this.p1.moveDrawPosToPos(deltaTime);
+		this.p2.moveDrawPosToPos(deltaTime);
+		this.ctx.globalAlpha = Math.min(1, Math.max(0, t * 0.3 - 1));
+
+		this.drawPlayer(this.p1, timeStamp, deltaTime);
+		this.drawPlayer(this.p2, timeStamp, deltaTime);
+		this.ctx.globalAlpha = 1;
+		this.prevTimer = t;
+
+		//draw lines canvas
+		if (!uglyMode) {
+			this.drawDiagonalLines(this.linesCtx, "white", 5, 10, timeStamp * 0.008);
+		}
+
+		//restore cam transforms
+		this.ctx.restore();
+
+		if (!uglyMode) {
+			this.linesCtx.restore();
+			this.ctx.globalCompositeOperation = "multiply";
+			this.ctx.drawImage(this.linesCanvas, 0, 0);
+			this.ctx.globalCompositeOperation = "source-over";
+		}
+	}
+
+	get h(){
+		return 300;
+	}
+
+	get w(){
+		return 300;
+	}
+}
+
+class SkinButtonCanvas extends SplixBaseCamera {
+	canvasTransformType = canvasTransformTypes.SKIN_BUTTON;
+	block = new Block();
+	shadow;
+	constructor(canvas,shadow){
+		super(canvas);
+		let currentColor = localStorage.getItem("skinColor");
+		if (currentColor === null) {
+			currentColor = 0;
+		} else {
+			currentColor = parseInt(currentColor);
+		}
+		this.shadow = shadow;
+		this.canvas.addEventListener('click', () => {
+			if (!one_game && !isTransitioning && !playingAndReady) {
+				transition_canvas.doTransition("", false, openSkinScreen);
+			}
+		});
+		this.block.setBlockId(currentColor + 1, false);
+		this.block.x = 0;
+		this.block.y = 0;
+		this.canvas.addEventListener('mouseover', () => {
+			// TODO Live update skin color without needing to mouseover (listen to storage events)
+			// this currently is just for animation purposes
+			let currentColor = localStorage.getItem("skinColor");
+			if (currentColor === null) {
+				currentColor = 0;
+			}
+			currentColor = parseInt(currentColor);
+			if (currentColor > 0) {
+				this.block.setBlockId(currentColor + 1 + SKIN_BLOCK_COUNT, false);
+			}
+		});
+		this.canvas.addEventListener('mouseout',() => {
+			let currentColor = localStorage.getItem("skinColor");
+			if (currentColor === null) {
+				currentColor = 0;
+			}
+			this.block.setBlockId(parseInt(currentColor) + 1, false);
+		});
+	}
+	
+	render(deltaTime){
+		this.ctxApplyCamTransform(true,true);
+		this.drawBlocks(deltaTime,[this.block]);
+		this.ctx.restore();
+	}
+
+}
+
+
+class Minimap {
+	/** @type {HTMLCanvasElement} */
+	canvas;
+	/** @type {CanvasRenderingContext2D} */
+	ctx;
+	/** @type {HTMLElement} */
+	dot_elem;
+
+	/** @type {SplixState} */
+	state;
+	/** @type {number?} */
+	map_size;
+	constructor(state,canvas,dot_elem){
+		this.canvas = canvas;
+		this.ctx = this.canvas.getContext("2d");
+		this.dot_elem = dot_elem;
+		this.state = state;
+	}
+
+	update_map(data){
+		const part = data[1];
+		const xOffset = part * 20;
+		this.ctx.clearRect(xOffset * 2, 0, 40, 160);
+		this.ctx.fillStyle = "#000000";
+		for (let i = 1; i < data.length; i++) {
+			for (let j = 0; j < 8; j++) {
+				const filled = (data[i] & (1 << j)) !== 0;
+				if (filled) {
+					const bitNumber = (i - 2) * 8 + j;
+					const x = Math.floor(bitNumber / 80) % 80 + xOffset;
+					const y = bitNumber % 80;
+					this.ctx.fillRect(x * 2, y * 2, 2, 2);
+				}
+			}
+		}
+	}
+
+	update_size(map_size){
+		this.map_size = map_size;
+	}
+
+	update_player(pos){
+
+		this.dot_elem.style.left = (pos[0] / this.map_size * 160 + 1.5) + "px";
+		this.dot_elem.style.top = (pos[1] / this.map_size * 160 + 1.5) + "px";
+	}
+
+	reset(){
+		this.ctx.clearRect(0, 0, 160, 160);
+	}
+
+}
+
+
+class SkinScreen extends SplixBaseCamera {
+	canvasTransformType = canvasTransformTypes.SKIN;
+	state = new SplixState();
+	#visible = true;
+	/** @type {HTMLElement} */
+	container;
+	constructor(canvas,container){
+		super(canvas);
+		this.container = container;
+		let currentColor = localStorage.getItem("skinColor");
+		if (currentColor === null) {
+			currentColor = 0;
+		}
+		currentColor = parseInt(currentColor);
+
+		let currentPattern = localStorage.getItem("skinPattern");
+		if (currentPattern === null) {
+			currentPattern = 0;
+		}
+		currentPattern = parseInt(currentPattern);
+		this.state.fillArea(0, 0, VIEWPORT_RADIUS * 2, VIEWPORT_RADIUS * 2, currentColor + 1, currentPattern);
+
+		//called when a skinbutton is pressed
+		//add = -1 or 1 (increment/decrement)
+		//type = 0 (color) or 1 (pattern)
+		const skinButton = (add, type) => {
+			if (type === 0) {
+				let oldC = localStorage.getItem("skinColor");
+				const hiddenCs = [];
+				if (localStorage.patreonLastPledgedValue >= 300) {
+					//access to patreon color
+				} else {
+					hiddenCs.push(13);
+				}
+				if (oldC === null) {
+					oldC = 0;
+				}
+				oldC = parseInt(oldC);
+				let cFound = false;
+				while (!cFound) {
+					oldC += add;
+					oldC = mod(oldC, SKIN_BLOCK_COUNT + 1);
+					if (hiddenCs.indexOf(oldC) < 0) {
+						cFound = true;
+					}
+				}
+				lsSet("skinColor", oldC);
+			} else if (type == 1) {
+				let oldP = localStorage.getItem("skinPattern");
+				const hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
+				if (localStorage.patreonLastPledgedValue > 0) {
+					//access to patreon pattern
+				} else {
+					hiddenPs.push(27);
+				}
+				if (oldP === null) {
+					oldP = 0;
+				}
+				oldP = parseInt(oldP);
+				let pFound = false;
+				while (!pFound) {
+					oldP += add;
+					oldP = mod(oldP, SKIN_PATTERN_COUNT);
+					if (hiddenPs.indexOf(oldP) < 0) {
+						pFound = true;
+					}
+				}
+				lsSet("skinPattern", oldP);
+			}
+			updateSkin();
+		}
+	
+		document.getElementById("prevColor").addEventListener('click', () => {
+			skinButton(-1, 0);
+		});
+		document.getElementById("nextColor").addEventListener('click', () => {
+			skinButton(1, 0);
+		});
+		document.getElementById("prevPattern").addEventListener('click', () => {
+			skinButton(-1, 1);
+		});
+		document.getElementById("nextPattern").addEventListener('click', () => {
+			skinButton(1, 1);
+		});
+		document.getElementById("skinSave").addEventListener('click', () => {
+			transition_canvas.doTransition("", false, showBeginHideSkin);
+		});
+	
+	}
+
+	render(deltaTime){
+		this.ctxApplyCamTransform(true);
+		this.ctx.clearRect(0,0,this.w,this.h);
+		this.drawBlocks(deltaTime,this.state.blocks);
+		this.ctx.restore();
+	}
+
+	show(){
+		this.container.style.display = null;
+		this.#visible = true;
+	}
+
+	hide(){
+		this.container.style.display = "none";
+		this.#visible = false;
+	}
+
+	get visible() {
+		return this.#visible;
+	}
+}
+//#endregion
+class LifeBox {
+	/**@type {LifeCanvas[]} */
+	lives = [];
+	box;
+
+	constructor(){
+		this.box = document.getElementById("lifeBox");
+	}
+
+	clearAllLives() {
+		this.box.innerHTML = "";
+		this.lives = [];
+	}
+	
+	/** 
+	 * @param {number} current
+	 * @param {number} total
+	 */
+	setLives(current, total) {
+		const oldLength = this.lives.length;
+		for (let i = 0; i < total - oldLength; i++) {
+			const el = document.createElement("canvas");
+			el.style.margin = "-15px";
+			const life = new LifeCanvas(el);
+			this.box.appendChild(el);
+			this.lives.push(life);
+			life.render(0, true);
+		}
+		for (let i = oldLength - 1; i >= total; i--) {
+			const life = this.lives[i];
+			this.box.removeChild(life.node);
+			this.lives.splice(i, 1);
+		}
+	
+		for (let i = 0; i < this.lives.length; i++) {
+			const life = this.lives[i];
+			life.set(current > i);
+		}
+	}
+
+	/**
+	 * @param {number} dt
+	 */
+	renderAllLives(dt) {
+		for (const life of this.lives) {
+			life.render(dt);
+		}
+	}
+}
+
+
+class TopNotification {
+	/** @type {string} */
+	text;
+	/** @type {HTMLElement} */
+	elem = null;
+	/** @type {number} */
+	animationTimer = 0;
+	/** @type {number} */
+	animationDirection = 1;
+	/** @type {Set<TopNotification>} */
+	static current_notifications = new Set();
+	/**
+	 * @param {string} text 
+	 * @param {TopNotification} manager 
+	 */
+	constructor(text){
+		this.text = text;
+		const el = document.createElement("div");
+		this.elem = el;
+		el.innerHTML = this.text;
+		el.classList.add("topNotification", "greenBox");
+		el.style.visibility = "hidden";
+		document.getElementById("topNotifications").appendChild(el);
+		const c = getColorForBlockSkinId(game_state.my_player?.skinBlock ?? 9);
+		const mainColor = c.brighter;
+		const edgeColor = c.darker;
+		colorBox(el, mainColor, edgeColor);
+		TopNotification.current_notifications.add(this);
+	}
+
+	static update_all(deltaTime) {
+		for (const n of TopNotification.current_notifications) {
+			n.update(deltaTime);
+		}
+	}
+
+	static reset_all(){
+		for(const n of TopNotification.current_notifications){
+			n.destroy();
+		}
+		TopNotification.current_notifications.clear();
+	}
+
+	update(deltaTime){
+		this.animationTimer += deltaTime * 0.001 * this.animationDirection;
+		const hiddenPos = -this.elem.offsetHeight - 10;
+		const topPos = lerp(hiddenPos, 10, ease.out(clamp01(this.animationTimer)));
+		this.elem.style.top = topPos + "px";
+		this.elem.style.visibility = null;
+		//if return true, destroy notification object
+		if (this.animationDirection == -1 && this.animationTimer < 0) {
+			this.destroy();
+		}
+	}
+
+	animateOut() {
+		this.animationDirection = -1;
+		if (this.animationTimer > 1) {
+			this.animationTimer = 1;
+		}
+	}
+
+	destroy() {
+		this.elem.parentElement.removeChild(this.elem);
+		TopNotification.current_notifications.delete(this);
+	}
+}
+
+class LeftStats {
+
+	blocks_target = 25;
+	blocks = 25;
+	score_target = 25;
+	score = 25;
+	/**
+	 * Handles the bottom left stats.
+	 * @param {HTMLElement} blocks 
+	 * @param {HTMLElement} kills 
+	 * @param {HTMLElement} score 
+	 * @param {HTMLElement} rank 
+	 * @param {HTMLElement} total 
+	 */
+	constructor(kills, blocks, score, rank, total){
+		this.ui = {
+			blocks,
+			kills,
+			score,
+			rank,
+			total,
+		}
+		this.score_target;
+	};
+
+	reset(){
+		this.blocks = this.blocks_target = this.score = this.score_target = 25;
+	}
+
+	render(deltaTime){
+		this.score = lerpt(this.score, this.score_target, 0.1, deltaTime);
+		this.ui.score.innerText = Math.round(this.score);
+		this.blocks = lerpt(this.blocks, this.blocks_target, 0.1, deltaTime);
+		this.ui.blocks.innerText = Math.round(this.blocks);
+	}
+
+	rank_update(rank,total){
+		this.ui.rank.innerText = rank;
+		this.ui.total.innerText = total;
+	}
+
+	score_update(kills,blocks){
+		this.blocks_target = blocks;
+		this.score_target = blocks + kills * 500;
+		this.ui.kills.innerText = kills;
+	}
+}
+
+class Leaderboard {
+	/**
+	 * @type {HTMLTableSectionElement}
+	 */
+	body;
+	/**
+	 * @type {HTMLElement}
+	 */
+	container;
+	/**
+	 * The in game leaderboard.
+	 * @param {HTMLElement} container 
+	 */
+	constructor(container) {
+		this.body = document.createElement("tbody");
+		const table = document.createElement("table");
+		table.appendChild(this.body);
+		this.container = container;
+		this.container.appendChild(table);
+	}
+
+	update(records){
+		let rows = [];
+		for(const {rank, name, score} of records) {
+			//create table row
+			const tr = document.createElement("tr");
+			tr.className = "scoreRank";
+			const rankElem = document.createElement("td");
+			rankElem.innerHTML = "#" + rank;
+			tr.appendChild(rankElem);
+			const nameElem = document.createElement("td");
+			nameElem.innerHTML = filter(htmlEscape(name));
+			tr.appendChild(nameElem);
+			const scoreElem = document.createElement("td");
+			scoreElem.innerHTML = score;
+			tr.appendChild(scoreElem);
+			rows.push(tr);
+		}
+		this.body.replaceChildren(...rows);
+	}
+
+	set_visibility(visibility) {
+		this.container.style.display = visibility ? "none" : null;
+	}
+}
+
+class QualityUI {
+	/** @type {HTMLElement} */
+	element;
+
+	constructor(element){
+		this.element = element;
+		element.addEventListener('click',()=>this.toggle());
+		this.set();
+	}
+	set(){
+		if (localStorage.getItem("quality") === null) {
+			lsSet("quality", "1");
+		}
+		if (localStorage.quality != "auto") {
+			canvasQuality = parseFloat(localStorage.quality);
+			this.element.innerHTML = "Quality: " + {
+				"0.4": "low",
+				"0.7": "medium",
+				"1": "high",
+			}[localStorage.quality];
+		} else {
+			this.element.innerHTML = "Quality: auto";
+		}
+	}
+
+	toggle(){
+		switch (localStorage.quality) {
+			case "auto":
+				lsSet("quality", "0.4");
+				break;
+			case "0.4":
+				lsSet("quality", "0.7");
+				break;
+			case "0.7":
+				lsSet("quality", "1");
+				break;
+			case "1":
+				lsSet("quality", "auto");
+				break;
+		}
+		this.set();
+	}
+}
+
+class UglyUI {
+	element;
+	constructor(element){
+		this.element = element;
+		element.addEventListener('click',()=>this.toggle());
+		this.set();
+	}
+	set(){
+		updateUglyMode();
+		const onOff = uglyMode ? "on" : "off";
+		this.element.innerHTML = "Ugly mode: " + onOff;
+	}
+
+	toggle(){
+		window.hc.flags.toggle('uglyMode');
+	}
+}
+
+class InputHanlder {
+
+	/** @type {OneGame} */
+	game;
+
+	//Honk
+	honkStartTime = undefined;
+	lastHonkTime = 0;
+	
+	//Mouse/Pointer
+	lastMousePos = [0, 0];
+	mouseHidePos = [0, 0];
+
+	// Touch stuffs
+	current_touches = new Map();
+	/** @type {HTMLElement} */
+	touchcontrol_elem;
+
+	// Keyboard
+	pressed_keys = [];
+
+	// Game pad
+	current_gamepad;
+	current_gamepad_map = {
+		buttonMap: {
+			0: 0,
+			1: 1,
+			2: 2,
+			3: 3,
+			4: 4,
+			5: 5,
+			6: 6,
+			7: 7,
+			8: 8,
+			9: 9,
+			10: 10,
+			11: 11,
+			12: 12,
+			13: 13,
+			14: 14,
+			15: 15,
+		},
+		axesMap: { 0: 0, 1: 1, 2: 2, 3: 3 },
+	};
+	gamepad_is_honking = false;
+	
+	constructor(state,touchcontrol_elem){
+		this.state = state;
+		//Blur
+		window.addEventListener("blur", function (event) {
+			this.pressedKeys = [];
+		}, false);
+
+		// Mouse/pointer
+		window.addEventListener("click", showCursor);
+		window.addEventListener("mousemove", (e) => {
+			this.lastMousePos = [e.screenX, e.screenY];
+			const distX = this.lastMousePos[0] - this.mouseHidePos[0];
+			const distY = this.lastMousePos[1] - this.mouseHidePos[1];
+			const dist = Math.sqrt(Math.pow(distX, 2) + Math.pow(distY, 2));
+			if (dist > 15) {
+				showCursor();
+			}
+		});
+		window.addEventListener("contextmenu", e => {
+			if (e.target.nodeName.toLowerCase() == "embed") {
+				return true;
+			} else {
+				e.preventDefault();
+				return false;
+			}
+		});
+
+		// Swipe events
+		this.touchcontrol_elem = touchcontrol_elem;
+		touchcontrol_elem.addEventListener('touchstart', e => {
+			let touch = e.touches[e.touches.length - 1];
+			this.current_touches.set(touch.identifier,{
+				prevPos: [touch.pageX, touch.pageY],
+				prevTime: Date.now(),
+				id: touch.identifier,
+			});
+		});
+		touchcontrol_elem.addEventListener('touchmove', e => {
+			for (const touch of e.touches) {
+				const currentTouch = this.current_touches.get(touch.identifier);
+				if (currentTouch) {
+					this.game.sendDir(calcTouch(currentTouch, touch));
+				}
+			}
+			e.preventDefault();
+		});
+		const touch_end = e => {
+			for (const touch of e.touches) {
+				const  current_touch = this.current_touches.get(touch.identifier);
+				if(current_touch){
+					this.game.sendDir(calcTouch(current_touch, touch));
+					this.current_touches.delete(current_touch.id);
+				}
+			}
+		};
+		touchcontrol_elem.addEventListener('touchend', touch_end);
+		touchcontrol_elem.addEventListener('touchcancel', touch_end);
+	}
+
+	honkStart() {
+		if(this.honkStartTime === undefined){
+			this.honkStartTime = Date.now();
+		}
+	}
+
+	honkEnd() {
+		const now = Date.now();
+		if (now > this.lastHonkTime && this.honkStartTime !== undefined) {
+			let time = now - this.honkStartTime;
+			time = clamp(time, 0, 1000);
+			this.lastHonkTime = now + time;
+			this.honkStartTime = undefined;
+			time = iLerp(0, 1000, time);
+			time *= 255;
+			time = Math.floor(time);
+			time = Math.max(time,70);
+			one_game.honk(time);
+		}
+	}
+
+	parse_gamepads(){
+		if ("getGamepads" in navigator) {
+			const gamepads = navigator.getGamepads();
+			let honkButtonPressedAnyPad = false;
+			for (let i = 0; i < gamepads.length; i++) {
+				this.current_gamepad = gamepads[i];
+				if (this.current_gamepad !== undefined && this.current_gamepad !== null) {
+					let validGamepad = false;
+					if (this.current_gamepad.mapping == "standard") {
+						this.current_gamepad_map = {
+							buttonMap: {
+								0: 0,
+								1: 1,
+								2: 2,
+								3: 3,
+								4: 4,
+								5: 5,
+								6: 6,
+								7: 7,
+								8: 8,
+								9: 9,
+								10: 10,
+								11: 11,
+								12: 12,
+								13: 13,
+								14: 14,
+								15: 15,
+							},
+							axesMap: { 0: 0, 1: 1, 2: 2, 3: 3 },
+						};
+						validGamepad = true;
+					} else {
+						for (const custom_mapping of custom_gamepad_mappings) {
+							if (this.current_gamepad.id.indexOf(custom_mapping.name) >= 0) {
+								validGamepad = true;
+								this.current_gamepad_map = custom_mapping;
+							}
+						}
+					}
+					if (validGamepad) {
+						if (this.get_current_gamepad_button(12)) { //up
+							this.game.sendDir(3);
+						}
+						if (this.get_current_gamepad_button(13)) { //down
+							this.game.sendDir(1);
+						}
+						if (this.get_current_gamepad_button(14)) { //left
+							this.game.sendDir(2);
+						}
+						if (this.get_current_gamepad_button(15)) { //right
+							this.game.sendDir(0);
+						}
+						if (this.get_current_gamepad_button(0)) { // X / A
+							honkButtonPressedAnyPad = true;
+						}
+						if (this.get_current_gamepad_button(1)) { // O / B
+							doSkipDeathTransition();
+						}
+						if (this.get_current_gamepad_button(9)) { // pause
+							this.game.sendDir(4);
+						}
+						if (this.get_current_gamepad_axis(0) < -0.9 || this.get_current_gamepad_axis(2) < -0.9) { //left
+							this.game.sendDir(2);
+						}
+						if (this.get_current_gamepad_axis(0) > 0.9 || this.get_current_gamepad_axis(2) > 0.9) { //right
+							this.game.sendDir(0);
+						}
+						if (this.get_current_gamepad_axis(1) < -0.9 || this.get_current_gamepad_axis(3) < -0.9) { //up
+							this.game.sendDir(3);
+						}
+						if (this.get_current_gamepad_axis(1) > 0.9 || this.get_current_gamepad_axis(3) > 0.9) { //down
+							this.game.sendDir(1);
+						}
+					}
+				}
+			}
+	
+			if (honkButtonPressedAnyPad) { // X / A
+				if (beginScreenVisible) {
+					connectWithTransition();
+				} else if (!this.gamepad_is_honking) {
+					this.gamepad_is_honking = true;
+					input_handler.honkStart();
+				}
+			} else {
+				if (this.gamepad_is_honking) {
+					this.gamepad_is_honking = false;
+					input_handler.honkEnd();
+				}
+			}
+		}
+	}
+
+	get_current_gamepad_button(id){
+		if (this.current_gamepad) {
+			if (this.current_gamepad.buttons) {
+				const button = this.current_gamepad.buttons[this.current_gamepad_map.buttonMap[id]];
+				if (button) {
+					return button.pressed;
+				}
+			}
+		}
+		return false;
+	}
+
+	get_current_gamepad_axis(id){
+		if (this.current_gamepad) {
+			if (this.current_gamepad.axes) {
+				const axis = this.current_gamepad.axes[this.current_gamepad_map.axesMap[id]];
+				if (axis !== undefined) {
+					return axis;
+				}
+			}
+		}
+		return 0;
+	}
+}
+
+//#region Main loop
+class RenderingLoop {
+	prevTimeStamp = null;
+	currentDtCap = 0;
+	totalDeltaTimeFromCap = 0;
+	deltaTime = 16.66;
+	lerpedDeltaTime = 16.66;
+	missedFrames = [];
+	gainedFrames = [];
+	constructor(){}
+	loop(timeStamp) {
+		if(timeStamp - debugging.time_start > 500) {
+			debugging.time_start = timeStamp;
+			debugging.frames = 0;
+		}
+
+		const realDeltaTime = timeStamp - this.prevTimeStamp;
+		if (realDeltaTime > this.lerpedDeltaTime) {
+			this.lerpedDeltaTime = realDeltaTime;
+		} else {
+			this.lerpedDeltaTime = lerpt(this.lerpedDeltaTime, realDeltaTime, 0.05, this.deltaTime);
+		}
+
+		if (localStorage.quality == "auto" || localStorage.getItem("quality") === null) {
+			if (this.lerpedDeltaTime > 33) {
+				canvasQuality -= 0.01;
+			} else if (this.lerpedDeltaTime < 28) {
+				canvasQuality += 0.01;
+			}
+			canvasQuality = Math.min(1, Math.max(0.4, canvasQuality));
+		}
+
+		if (realDeltaTime < lerp(getDtCap(this.currentDtCap), getDtCap(this.currentDtCap - 1), 0.9)) {
+			this.gainedFrames.push(Date.now());
+			while (this.gainedFrames.length > 190) {
+				if (Date.now() - this.gainedFrames[0] > 10000) {
+					this.gainedFrames.splice(0, 1);
+				} else {
+					this.currentDtCap--;
+					this.gainedFrames = [];
+					this.currentDtCap = clamp(this.currentDtCap, 0, dtCaps.length - 1);
+					break;
+				}
+			}
+		}
+
+		if (realDeltaTime > lerp(getDtCap(this.currentDtCap), getDtCap(this.currentDtCap + 1), 0.05)) {
+			this.missedFrames.push(Date.now());
+			this.gainedFrames = [];
+			while (this.missedFrames.length > 5) {
+				if (Date.now() - this.missedFrames[0] > 5000) {
+					this.missedFrames.splice(0, 1);
+				} else {
+					this.currentDtCap++;
+					this.missedFrames = [];
+					this.currentDtCap = clamp(this.currentDtCap, 0, dtCaps.length - 1);
+					break;
+				}
+			}
+		}
+
+		this.deltaTime = realDeltaTime + this.totalDeltaTimeFromCap;
+		this.prevTimeStamp = timeStamp;
+		if (this.deltaTime < getDtCap(this.currentDtCap) && localStorage.dontCapFps != "true") {
+			this.totalDeltaTimeFromCap += realDeltaTime;
+		} else {
+			this.totalDeltaTimeFromCap = 0;
+			//main canvas
+			if(playingAndReady){
+				one_game.update(this.deltaTime);
+				main_canvas.render(timeStamp,this.deltaTime);
+				//debug info (red ping stats)
+				if (localStorage.drawDebug == "true" && one_game) {
+						main_canvas.display_ping(...one_game.get_ping_info());
+				}
+			}
+			//corner stats
+			left_stats.render(this.deltaTime);
+
+			//transition canvas
+			if (isTransitioning) {
+				transition_canvas.render(this.deltaTime);
+			}
+
+			//lives
+			life_box.renderAllLives(this.deltaTime);
+
+			//top notification
+			TopNotification.update_all(this.deltaTime)
+
+			//title
+			if (beginScreenVisible && timeStamp - title_canvas.lastRender > 49) {
+				title_canvas.render(timeStamp);
+			}
+
+			//tutorial canvas
+			if (beginScreenVisible) {
+				tutorial.render(timeStamp,this.deltaTime);
+			}
+
+			//skin button
+			if (beginScreenVisible) {
+				skin_button.render(this.deltaTime);
+			}
+
+			//skin screen canvas
+			if (skin_screen.visible) {
+				skin_screen.render(this.deltaTime);
+			}
+
+			//lastStats
+			if (beginScreenVisible) {
+				lastStatTimer += this.deltaTime;
+				const t = lastStatTimer / 2000;
+				if (t > 1) {
+					lastStatTimer = 0;
+					lastStatCounter++;
+					if (lastStatCounter > 5) {
+						lastStatCounter = 0;
+					}
+
+					if (lastStatCounter === 0) {
+						if (last_stat.no1_time <= 0 && best_stat.no1_time <= 0) {
+							lastStatCounter++;
+						} else {
+							lastStatValueElem.innerHTML = parseTimeToString(last_stat.no1_time) + " on #1";
+							bestStatValueElem.innerHTML = parseTimeToString(best_stat.no1_time) + " on #1";
+						}
+					}
+					if (lastStatCounter == 1) {
+						if (last_stat_killer === "" && last_stat_killer.replace(/\s/g, "").length > 0) {
+							lastStatCounter++;
+						} else {
+							lastStatValueElem.innerHTML = "killed by " + filter(htmlEscape(last_stat_killer));
+							bestStatValueElem.innerHTML = "";
+						}
+					}
+					if (lastStatCounter == 2) {
+						if (last_stat.kills <= 0 && best_stat.kills <= 0) {
+							lastStatCounter++;
+						} else {
+							const killsS = last_stat.kills == 1 ? "" : "s";
+							lastStatValueElem.innerHTML = last_stat.kills + " player" + killsS + " killed";
+							const killsS2 = best_stat.kills == 1 ? "" : "s";
+							bestStatValueElem.innerHTML = best_stat.kills + " player" + killsS2 + " killed";
+						}
+					}
+					if (lastStatCounter == 3) {
+						lastStatValueElem.innerHTML = parseTimeToString(last_stat.alive) + " alive";
+						bestStatValueElem.innerHTML =
+							parseTimeToString(Math.max(last_stat.alive, localStorage.getItem("bestStatAlive"))) + " alive";
+					}
+					if (lastStatCounter == 4) {
+						if (last_stat.blocks <= 0 && best_stat.blocks <= 0) {
+							lastStatCounter++;
+						} else {
+							const blockS = last_stat.blocks == 1 ? "" : "s";
+							lastStatValueElem.innerHTML = last_stat.blocks + " block" + blockS + " captured";
+							const blockS2 = best_stat.blocks == 1 ? "" : "s";
+							bestStatValueElem.innerHTML = best_stat.blocks + " block" + blockS2 + " captured";
+						}
+					}
+					if (lastStatCounter == 5) {
+						if (last_stat.leaderboard_rank <= 0 && best_stat.leaderboard_rank <= 0) {
+							lastStatCounter = 0;
+						} else {
+							lastStatValueElem.innerHTML = last_stat.leaderboard_rank == 0 ? "" : "#" + last_stat.leaderboard_rank + " highest rank";
+							bestStatValueElem.innerHTML = best_stat.leaderboard_rank == 0 ? "" : "#" + best_stat.leaderboard_rank + " highest rank";
+						}
+					}
+				}
+				const speed = 5;
+				lastStatValueElem.style.opacity = bestStatValueElem.style.opacity = speed - Math.abs((t - 0.5) * speed * 2);
+			}
+
+			if (beginScreenVisible) {
+				if (Date.now() - lastNameChangeCheck > 1000) {
+					if (lastNameValue != nameInput.value) {
+						nameInputOnChange();
+						lastNameValue = nameInput.value;
+					}
+					lastNameChangeCheck = Date.now();
+				}
+			}
+
+
+
+			//ping overload test
+			// if(Date.now() - lastPingOverloadTestTime > 10000){
+			// 	lastPingOverloadTestTime = Date.now();
+			// 	if(pingOverLoadWs !== null && pingOverLoadWs.readyState == WebSocket.OPEN){
+			// 		pingOverLoadWs.close();
+			// 	}
+			// 	pingOverLoadWs = new WebSocket("ws://37.139.24.137:7999/overloadTest");
+			// 	pingOverLoadWs.onopen = function(){
+			// 		pingOverLoadWs.send(new Uint8Array([0]));
+			// 	};
+			// }
+		}
+
+		// if my position confirmation took too long
+		const clientSideSetPosPassed = Date.now() - lastMyPosSetClientSideTime;
+		const clientSideValidSetPosPassed = Date.now() - lastMyPosSetValidClientSideTime;
+		const serverSideSetPosPassed = Date.now() - lastMyPosServerSideTime;
+		// console.log(clientSideSetPosPassed, clientSideValidSetPosPassed, serverSideSetPosPassed);
+		if (
+			clientSideValidSetPosPassed > WAIT_FOR_DISCONNECTED_MS &&
+			serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !game_state.my_player.isDead
+		) {
+			if (!connectionLostNotification) {
+				connectionLostNotification = new TopNotification(
+					"It seems like you're disconnected. Please check your connection.",
+				);
+			}
+		} else {
+			if (connectionLostNotification) {
+				connectionLostNotification.animateOut();
+				connectionLostNotification = null;
+			}
+		}
+
+		// if(window.innerWidth != prevWindowWidth || window.innerHeight != prevWindowHeight){
+		// 	prevWindowWidth = window.innerWidth;
+		// 	prevWindowHeight = window.innerHeight;
+		// 	onResize(prevWindowWidth, prevWindowHeight);
+		// }
+
+		input_handler.parse_gamepads();
+
+		window.requestAnimationFrame((timeStamp)=>{this.loop(timeStamp)});
+	}
+}
+//#endregion
+
+class Block {
+	currentBlock = -1;
+	nextBlock =  -1;
+	animDirection =  0;
+	animProgress =  0;
+	animDelay =  0;
+	lastSetTime= Date.now();
+	constructor(x,y){
+		this.x = x;
+		this.y = y;
+	}
+	//changes the blockId with optional animatino
+	//animateDelay defaults to 0
+	//if animateDelay === false, don't do any animation at all
+	setBlockId(blockId, animateDelay) {
+		this.lastSetTime = Date.now();
+		if (animateDelay === false) {
+			this.currentBlock = this.nextBlock = blockId;
+			this.animDirection = 0;
+			this.animProgress = 1;
+		} else {
+			if (animateDelay === undefined) {
+				animateDelay = 0;
+			}
+			this.animDelay = animateDelay;
+
+			const isCurrentBlock = blockId == this.currentBlock;
+			const isNextBlock = blockId == this.nextBlock;
+
+			if (isCurrentBlock && isNextBlock) {
+				if (this.animDirection == -1) {
+					this.animDirection = 1;
+				}
+			}
+
+			if (isCurrentBlock && !isNextBlock) {
+				this.animDirection = 1;
+				this.nextBlock = this.currentBlock;
+			}
+
+			if (!isCurrentBlock && isNextBlock) {
+				if (this.animDirection == 1) {
+					this.animDirection = -1;
+				}
+			}
+
+			if (!isCurrentBlock && !isNextBlock) {
+				this.nextBlock = blockId;
+				this.animDirection = -1;
+			}
+		}
+	}
+}
+
+class SplixState {
+	/** @type {Map<Vec2, Block>} */
+	blocks = new Map();
+	/** @type {Map<number, Player>} */
+	players = new Map();
+	/** @type {Player?} */
+	my_player = null;
+	/** @type {number} */
+	map_size = 2000;
+	/** @type {number} */
+	total_players = 0;
+
+	reset(){
+		this.blocks = new Map();
+		this.players = new Map();
+		this.my_player.mydata.reset();
+		this.total_players = 0;
+	}
+	/**
+	 * Gets the block at the (x,y) coordinates. If it does not exist, one
+	 * will be created.
+	 * @param {number} x
+	 * @param {number} y
+	 * @returns {Block}
+	 */
+	getBlock(x, y) {
+		const hash = SplixState.hash_vec2(x,y);
+		if(this.blocks.has(hash)){
+			return this.blocks.get(hash);
+		} else {
+			const block = new Block(x,y);
+			this.blocks.set(hash, block);
+			return block;
+		}
+	}
+
+	static hash_vec2(x,y){
+		return x*1_000_000+y;
+	}
+
+	//fills an area, if array is not specified it defaults to blocks[]
+	fillArea(x, y, w, h, type, pattern, isEdgeChunk = false) {
+		if (pattern === undefined) {
+			pattern = 0;
+		}
+
+		let x2 = x + w;
+		let y2 = y + h;
+		if (this?.my_player?.mydata?.myPos) {
+			x = Math.max(x, Math.round(this.my_player.mydata.myPos[0]) - VIEWPORT_RADIUS);
+			y = Math.max(y, Math.round(this.my_player.mydata.myPos[1]) - VIEWPORT_RADIUS);
+			x2 = Math.min(x2, Math.round(this.my_player.mydata.myPos[0]) + VIEWPORT_RADIUS);
+			y2 = Math.min(y2, Math.round(this.my_player.mydata.myPos[1]) + VIEWPORT_RADIUS);
+		}
+
+		for (let i = x; i < x2; i++) {
+			for (let j = y; j < y2; j++) {
+				const block = this.getBlock(i,j);
+				const thisType = applyPattern(type, pattern, i, j);
+				block.setBlockId(thisType, isEdgeChunk ? false : Math.random() * 400);
+			}
+		}
+	}
+
+	/** remove blocks that are too far away from the camera and are likely
+	 * to be seen without an updated state
+	 * @param {Vec2} pos
+	 */
+	removeBlocksOutsideViewport(pos) {
+		for(const [hash,block] of this.blocks){
+			if (
+				block.x < pos[0] - VIEWPORT_RADIUS * 2 ||
+				block.x > pos[0] + VIEWPORT_RADIUS * 2 ||
+				block.y < pos[1] - VIEWPORT_RADIUS * 2 ||
+				block.y > pos[1] + VIEWPORT_RADIUS * 2
+			) {
+				this.blocks.delete(hash);
+			}
+		}
+	}
+
+
+	/**
+	 * Gets the player at the (x,y) coordinates. If it does not exist, one
+	 * will be created.
+	 * @param {number} id
+	 * @returns {Player}
+	 */
+	getPlayer(id) {
+		if(this.players.has(id)){
+			return this.players.get(id);
+		} else {
+			const player = new Player(id);
+			this.players.set(id, player);
+			if(id === 0){
+				this.my_player = player;
+			}
+			return player;
+		}
+	}
+
+	update(deltaTime){
+		for (const player of this.players.values()) {
+			player.update(deltaTime,this.map_size);
+		}
+	}
+}
+
+class Player extends EventTarget {
+	constructor(id){
+		super();
+		this.id = id;
+		this.pos = [0,0];
+		this.drawPos = [-1,-1];
+		this.drawPosSet = false;
+		this.dir= 0;
+		this.mydata= id === 0 ? new MyPlayerData() : null;
+		this.isDead= false;
+		this.deathWasCertain= false;
+		this.didUncertainDeathLastTick= false;
+		this.isDeadTimer= 0;
+		this.uncertainDeathPosition= [0, 0];
+		this.deadAnimParts= [];
+		this.deadAnimPartsRandDist= [];
+		this.hitLines= [];
+		this.moveRelativeToServerPosNextFrame= false; //if true, lastServerPosSentTime will be used instead of deltatime for one frame
+		this.lastServerPosSentTime= 0;
+		this.honkTimer= 0;
+		this.honkMaxTime= 0;
+		this.trails= [];
+		this.name= "";
+		this.skinBlock= 0;
+		this.hasReceivedPosition= false;
+	}
+
+	die(deathWasCertain) {
+		deathWasCertain = !!deathWasCertain;
+		if (this.isDead) {
+			this.deathWasCertain = deathWasCertain || this.deathWasCertain;
+		} else {
+			if (deathWasCertain || !this.didUncertainDeathLastTick) {
+				if (!deathWasCertain) {
+					this.didUncertainDeathLastTick = true;
+					this.uncertainDeathPosition = [this.pos[0], this.pos[1]];
+				}
+				this.isDead = true;
+				this.deathWasCertain = deathWasCertain;
+				this.deadAnimParts = [0];
+				this.isDeadTimer = 0;
+				if (this.mydata) {
+					main_canvas.doCamShakeDir(this.dir);
+				}
+				let prev = 0;
+				while (true) {
+					prev += Math.random() * 0.4 + 0.5;
+					if (prev >= Math.PI * 2) {
+						this.deadAnimParts.push(Math.PI * 2);
+						break;
+					}
+					this.deadAnimParts.push(prev);
+					this.deadAnimPartsRandDist.push(Math.random());
+				}
+			}
+		}
+	}
+	undoDie() {
+			this.isDead = false;
+	}
+	addHitLine(pos, color) {
+		this.hitLines.push({
+			pos: pos,
+			vanishTimer: 0,
+			color: color,
+		});
+	}
+	doHonk(time) {
+		this.honkTimer = 0;
+		this.honkMaxTime = time;
+		this.dispatchEvent(new CustomEvent('honk', {detail: time}));
+		if (this.name.toLowerCase() == "joris") {
+			honkSfx.play();
+		}
+	}
+	//moves (lerp) drawPos to the actual player position
+	moveDrawPosToPos(deltaTime){
+		let target;
+		if (this.isDead && !this.deathWasCertain) {
+			target = this.uncertainDeathPosition;
+		} else {
+			target = this.pos;
+		}
+		this.drawPos[0] = lerpt(this.drawPos[0], target[0], 0.23, deltaTime);
+		this.drawPos[1] = lerpt(this.drawPos[1], target[1], 0.23, deltaTime);
+	}
+
+	update(deltaTime,map_size){
+		let offset = deltaTime * GLOBAL_SPEED;
+		//move player
+		if (!this.isDead || !this.deathWasCertain) {
+			if (this.moveRelativeToServerPosNextFrame) {
+				offset = (Date.now() - this.lastServerPosSentTime) * GLOBAL_SPEED;
+			}
+			if (this.mydata) {
+				movePos(this.mydata.serverPos, this.mydata.serverDir, offset);
+				if (this.mydata.serverDir == this.dir) {
+					let clientServerDist = 0;
+					if (localStorage.dontSlowPlayersDown != "true") {
+						if (this.dir === 0 || this.dir == 2) { //left or right
+							if (this.pos.y == this.mydata.serverPos.y) {
+								if (this.dir === 0) { //right
+									clientServerDist = this.pos[0] - this.mydata.serverPos[0];
+								} else { //left
+									clientServerDist = this.mydata.serverPos[0] - this.pos[0];
+								}
+							}
+						} else { //up or down
+							if (this.pos.x == this.mydata.serverPos.x) {
+								if (this.dir == 1) { //down
+									clientServerDist = this.pos[1] - this.mydata.serverPos[1];
+								} else { //up
+									clientServerDist = this.mydata.serverPos[1] - this.pos[1];
+								}
+							}
+						}
+					}
+					clientServerDist = Math.max(0, clientServerDist);
+					offset *= lerp(0.5, 1, iLerp(5, 0, clientServerDist));
+				}
+			}
+			movePos(this.pos, this.dir, offset);
+		}
+		this.moveRelativeToServerPosNextFrame = false;
+
+		this.moveDrawPosToPos(deltaTime);
+
+		//test if player should be dead
+		let playerShouldBeDead = false;
+		if (
+			this.drawPos[0] <= 0 || this.drawPos[1] <= 0 || this.drawPos[0] >= map_size - 1 ||
+			this.drawPos[1] >= map_size - 1
+		) {
+			playerShouldBeDead = true;
+		} else if (this.trails.length > 0) {
+			const lastTrail = this.trails[this.trails.length - 1].trail;
+			const roundedPos = [Math.round(this.drawPos[0]), Math.round(this.drawPos[1])];
+			if (
+				Math.abs(roundedPos[0] - this.drawPos[0]) < 0.2 &&
+				Math.abs(roundedPos[1] - this.drawPos[1]) < 0.2
+			) {
+				//only die if player.pos is close to the center of a block
+				let touchingPrevTrail = true;
+				for (let i = lastTrail.length - 3; i >= 0; i--) {
+					const pos1 = [Math.round(lastTrail[i][0]), Math.round(lastTrail[i][1])];
+					const pos2 = [Math.round(lastTrail[i + 1][0]), Math.round(lastTrail[i + 1][1])];
+					const twoPos = orderTwoPos(pos1, pos2);
+					if (
+						roundedPos[0] >= twoPos[0][0] &&
+						roundedPos[0] <= twoPos[1][0] &&
+						roundedPos[1] >= twoPos[0][1] &&
+						roundedPos[1] <= twoPos[1][1]
+					) {
+						if (!touchingPrevTrail) {
+							playerShouldBeDead = true;
+						}
+						touchingPrevTrail = true;
+					} else {
+						touchingPrevTrail = false;
+					}
+				}
+			}
+		}
+		if (playerShouldBeDead) {
+			if (!this.isDead) {
+				this.die();
+			}
+		} else {
+			this.didUncertainDeathLastTick = false;
+		}
+
+		//test if player shouldn't be dead after all
+		if (this.isDead && !this.deathWasCertain && this.isDeadTimer > 1.5) {
+			this.isDead = false;
+			if (this.trails.length > 0) {
+				const lastTrail = this.trails[this.trails.length - 1];
+				lastTrail.vanishTimer = 0;
+			}
+		}
+
+		//if my player
+		if (this.mydata) {
+			this.mydata.myPos = [this.pos[0], this.pos[1]];
+			minimap_canvas.update_player(this.mydata.myPos);
+			main_canvas.move_camera(this.pos,deltaTime);
+			if (this.mydata.nextDir != this.dir) {
+				// console.log("myNextDir != player.dir (",myNextDir,"!=",player.dir,")");
+				const horizontal = this.dir === 0 || this.dir == 2;
+				//only change when currently traveling horizontally and new dir is not horizontal
+				//or when new dir is horizontal but not currently traveling horizontally
+				if (this.mydata.changeDirAtIsHorizontal != horizontal) {
+					let changeDirNow = false;
+					const currentCoord = this.pos[horizontal ? 0 : 1];
+					if (this.dir === 0 || this.dir == 1) { //right & down
+						if (this.mydata.changeDirAt < currentCoord) {
+							changeDirNow = true;
+						}
+					} else {
+						if (this.mydata.changeDirAt > currentCoord) {
+							changeDirNow = true;
+						}
+					}
+					if (changeDirNow) {
+						const newPos = [this.pos[0], this.pos[1]];
+						const tooFarTraveled = Math.abs(this.mydata.changeDirAt - currentCoord);
+						newPos[horizontal ? 0 : 1] = this.mydata.changeDirAt;
+						this.mydata.changedir(this.mydata.nextDir, newPos);
+						movePos(this.pos, this.dir, tooFarTraveled);
+					}
+				}
+			}
+		}
+	}
+}
+
+class MyPlayerData {
+	constructor(){
+		this.nextDir = 0;
+		/** @type {Vec2} */
+		this.myPos = null;
+		this.rank = 0;
+		this.serverPos= [0, 0];
+		this.serverDir = null;
+		this.changedir = undefined;
+		this.changeDirAt = null;
+		this.changeDirAtIsHorizontal = false;
+	}
+
+	reset(){
+		this.myPos = null;
+		this.rank = 0;
+	}
+}
+
+const request = window.indexedDB.open("test");
+/**
+ * @type {IDBDatabase}
+ */
+let db;
+request.onerror = (event) => {
+	console.error("Why didn't you allow my web app to use IndexedDB?!");
+  };
+request.onsuccess = (event) => {
+db = event.target.result;
+db.onerror = (event) => {
+	// Generic error handler for all errors targeted at this database's
+	// requests!
+	console.error(`Database error: ${event.target.error?.message}`);
+};
+};
+
+request.onupgradeneeded = (event) => {
+	// Save the IDBDatabase interface
+	const db = event.target.result;
+  
+	// Create an objectStore for this database
+	const data_store = db.createObjectStore("recording_data", { autoIncrement: true });
+	data_store.createIndex("time","time");
+	data_store.createIndex("recording","recording");
+	data_store.transaction.oncomplete = () => {
+		console.log("Succesfully created !");
+	}
+
+	const listing_store = db.createObjectStore("recording_listing", { autoIncrement: true });
+	listing_store.createIndex("time","time");
+	listing_store.transaction.oncomplete = () => {
+		console.log("Succesfully created !");
+	}
+
+};
+
+class OneGame extends EventTarget {
+	/**
+	 * @type {SplixState}
+	 */
+	#state;
+	/**
+	 * @type {GameConnection}
+	 */
+	connection;
+	constructor(url,state,fake){
+		super();
+		this.#state = state;
+		this.fake = fake;
+		if(!fake){
+			let listing_store = db.transaction(["recording_listing"],"readwrite").objectStore('recording_listing');
+			listing_store.add({time: Date.now()}).onsuccess = ev => {
+				this.listing = ev.target.result;
+				connection_worker.postMessage({
+						request: "start_connection",
+						args: {
+							url,
+							name: nameInput.value,
+							skinColor: localStorage.getItem("skinColor"),
+							skinPattern: localStorage.getItem("skinPattern"),
+							patreonLastSplixCode: localStorage.patreonLastSplixCode,
+							recording: ev.target.result,
+							replay: "recording",
+						}
+				});
+			};
+		} else {
+			connection_worker.postMessage({
+					request: "start_connection",
+					args: {
+						url,
+						name: nameInput.value,
+						skinColor: localStorage.getItem("skinColor"),
+						skinPattern: localStorage.getItem("skinPattern"),
+						patreonLastSplixCode: localStorage.patreonLastSplixCode,
+						recording: url,
+						replay: "replay",
+					}
+			});
+		}
+	}
+
+	sendDir(dir,skipQueue){
+		connection_worker.postMessage({
+			call: "sendDir",
+			args: [dir,skipQueue,this.#state.my_player.mydata.myPos,this.#state.my_player.dir],
+		})
+	}
+
+	honk(time){
+		connection_worker.postMessage({
+			call: "wsSendMsg",
+			args: [sendAction.HONK, time],
+		})
+	}
+
+	update(deltaTime){
+		// update the player positions
+		this.#state.update(deltaTime);
+	}
+
+	/**
+	 * 
+	 * @param {Player} player 
+	 * @param {Vec2} pos 
+	 */
+	trailPush(player, pos) {
+		if (player.trails.length > 0) {
+			const lastTrail = player.trails[player.trails.length - 1].trail;
+			if (lastTrail.length > 0) {
+				const lastPos = lastTrail[lastTrail.length - 1];
+				if (lastPos[0] != player.pos[0] || lastPos[1] != player.pos[1]) {
+					if (pos === undefined) {
+						pos = [player.pos[0], player.pos[1]];
+					} else {
+						pos = [pos[0], pos[1]];
+					}
+					lastTrail.push(pos);
+					if (player.mydata) {
+						connection_worker.postMessage({
+							call: "myTrailPush",
+							args: [pos],
+						})
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Changes my player's direction.
+	 * @param {number} dir 
+	 * @param {Vec2} newPos 
+	 * @param {boolean} extendTrail 
+	 * @param {boolean} isClientside 
+	 */
+	changeMyDir(dir, newPos, extendTrail, isClientside) {
+		this.#state.my_player.dir = this.#state.my_player.mydata.nextDir = dir;
+		this.#state.my_player.pos = [newPos[0], newPos[1]];
+		
+		if (extendTrail === undefined) {
+			extendTrail = true;
+		}
+		if (isClientside === undefined) {
+			isClientside = true;
+		}
+		
+		if (extendTrail) {
+			this.trailPush(this.#state.my_player);
+		}
+		
+		connection_worker.postMessage({
+			call: "changeMyDir",
+			args: [newPos,dir,isClientside],
+		})
+	}
+
+	update_change_dir({next_dir, at, is_horizontal}){
+		this.#state.my_player.mydata.nextDir = next_dir;
+		this.#state.my_player.mydata.changeDirAt = at;
+		this.#state.my_player.mydata.changeDirAtIsHorizontal = is_horizontal;
+		//hide cursor // TODO Move this somewhere else
+		input_handler.mouseHidePos = [input_handler.lastMousePos[0], input_handler.lastMousePos[1]];
+		document.body.style.cursor = "none";
+		lastMyPosHasBeenConfirmed = false;
+	}
+
+	update_change_my_dir(dir,newPos){
+		this.changeMyDir(dir, newPos);
+		//hide cursor // TODO Move this somewhere else
+		input_handler.mouseHidePos = [input_handler.lastMousePos[0], input_handler.lastMousePos[1]];
+		document.body.style.cursor = "none";
+		lastMyPosHasBeenConfirmed = false;
+	}
+
+	
+	/**
+	 * A copy of the data needed for sendDir.
+	 */
+	get_send_dir_data(){
+		return this.#state.my_player && this.#state.my_player.mydata.myPos ? {
+			my_pos: this.#state.my_player.mydata.myPos.map(x=>x),
+			my_dir: this.#state.my_player.dir
+		} : undefined;
+	}
+
+	/**
+	 * Get ping information.
+	 */
+	get_ping_info(){
+		return [this.serverAvgPing,this.serverLastPing,this.serverDiffPing];
+	}
+
+	getPlayer(id){
+		const player = this.#state.getPlayer(id);
+		if(id === 0){
+			player.mydata.changedir ??= this.changeMyDir.bind(this);
+		}
+		return player;
+	}
+
+	getBlock(x,y){
+		return this.#state.getBlock(x,y);
+	}
+
+	update_block(x,y,type){
+		const block = this.getBlock(x, y);
+		block.setBlockId(type);
+	}
+
+	update_player_pos(id,x,y,newDir,extendTrail,reqdoSetPos,serverAvgPing){
+		const player = this.getPlayer(id);
+		player.hasReceivedPosition = true;
+		player.moveRelativeToServerPosNextFrame = true;
+		player.lastServerPosSentTime = Date.now();
+		lastMyPosHasBeenConfirmed = true;
+		const newPos = [x, y];
+		let newPosOffset = [x, y];
+
+		//add distance traveled during server delay (ping/2)
+		let posOffset = 0;
+		if (player.mydata || serverAvgPing > 50) {
+			posOffset = serverAvgPing / 2 * GLOBAL_SPEED;
+		}
+		movePos(newPosOffset, newDir, posOffset);
+
+		let doSetPos = true;
+		if (player.mydata) {
+			lastMyPosServerSideTime = Date.now();
+			// console.log("current dir:",player.dir, "myNextDir", myNextDir, "newDir", newDir);
+			// console.log("newPosOffset",newPosOffset, "player.pos", player.pos);
+
+			//if dir and pos are close enough to the current dir and pos
+			if (
+				(player.dir == newDir || player.mydata.nextDir == newDir) &&
+				Math.abs(newPosOffset[0] - player.pos[0]) < 1 &&
+				Math.abs(newPosOffset[1] - player.pos[1]) < 1
+			) {
+				// console.log("newPosOffset",newPosOffset);
+				// console.log("doSetPos is false because dir and pos are close enough to current dir and pos");
+				doSetPos = false;
+			}
+
+			doSetPos = doSetPos && reqdoSetPos;
+
+			if (player.dir == 4 || newDir == 4) { //is paused or is about to be paused
+				// console.log("player.dir == 4 or newDir == 4, doSetPos = true");
+				doSetPos = true;
+			}
+
+			// console.log("doSetPos:",doSetPos);
+			if (doSetPos) {
+				// console.log("==================doSetPos is true================");
+				player.mydata.nextDir = newDir;
+				this.changeMyDir(newDir, newPos, false, false);
+				//doSetPos is true, so the server thinks the player is somewhere
+				//else than the client thinks he is. To prevent the trail from
+				//getting messed up, request the full trail
+				connection_worker.postMessage({
+					call: "startRequestMyTrail",
+					args: [true],
+				});
+			}
+
+			//always set the server position
+			player.mydata.serverPos = [newPosOffset[0], newPosOffset[1]];
+			player.mydata.serverDir = newDir;
+
+			this.#state.removeBlocksOutsideViewport(player.pos); // TODO Fog mode
+		} else {
+			player.dir = newDir;
+		}
+
+		if (doSetPos) {
+			player.pos = newPosOffset;
+			// console.log("doSetPos",newPosOffset);
+			if (extendTrail) {
+				this.trailPush(player, newPos);
+			} else {
+				player.trails.push({
+					trail: [],
+					vanishTimer: 0,
+				});
+			}
+		}
+
+		if (!player.drawPosSet) {
+			player.drawPos = [player.pos[0], player.pos[1]];
+			player.drawPosSet = true;
+		}
+	}
+
+	update_player_trail(id,new_trail,replace){
+		const player = this.getPlayer(id);
+		if(id === 0){
+			//if last trail was emtpy (if entering enemy land) send a request for the new trail
+			if (player.trails.length > 0) {
+				const lastTrail = player.trails[player.trails.length - 1];
+				if (lastTrail.trail.length <= 0 && new_trail.length > 0) {
+					connection_worker.postMessage({
+						call: "startRequestMyTrail",
+						args: [],
+					})
+				}
+			}
+		}
+		if (replace) {
+			if (player.trails.length > 0) {
+				const last = player.trails[player.trails.length - 1];
+				last.trail = new_trail;
+				last.vanishTimer = 0;
+			} else {
+				replace = false;
+			}
+		}
+		if (!replace) {
+			player.trails.push({
+				trail: new_trail,
+				vanishTimer: 0,
+			});
+		}
+	}
+
+	update_player_empty_trail_with_last_pos(id,x,y){
+		const player = this.getPlayer(id);
+		if (player.trails.length > 0) {
+			const prevTrail = player.trails[player.trails.length - 1].trail;
+			if (prevTrail.length > 0) {
+				prevTrail.push([x, y]);
+			}
+		}
+		player.trails.push({
+			trail: [],
+			vanishTimer: 0,
+		});
+	}
+
+	update_player_die(id,x,y){
+		const player = this.getPlayer(id);
+		if(x !== undefined){
+			player.pos[0] = x;
+			player.pos[1] = y;
+		}
+		player.die(true);
+	}
+
+	update_player_remove(id){
+		this.#state.players.delete(id);
+	}
+
+	update_player_name(id,name){
+		const player = this.getPlayer(id);
+		player.name = filter(name);
+	}
+
+	update_player_skin(id,skin){
+		const player = this.getPlayer(id);
+		player.skinBlock = skin;
+		if (player.mydata) {
+			colorUI();
+		}
+	}
+
+	update_player_hit_line(id,pointsColor,x,y,hitSelf){
+		pointsColor=getColorForBlockSkinId(pointsColor);
+		const player = this.getPlayer(id);
+		player.addHitLine([x, y], pointsColor, hitSelf);
+		if (player.mydata && !hitSelf) {
+			main_canvas.doCamShakeDir(player.dir, 10, false);
+		}
+	}
+
+	update_player_honk(id,time){
+		const player = this.getPlayer(id);
+		player.doHonk(time);
+	}
+
+	update_player_undo_die(id){
+		const player = this.getPlayer(id);
+		player.undoDie();
+	}
+
+	update_you_ded(data){
+		if (data.length > 1) {
+			last_stat.blocks = bytesToInt(data[1], data[2], data[3], data[4]);
+			if (last_stat.blocks > best_stat.blocks) {
+				best_stat.blocks = last_stat.blocks;
+				lsSet("bestStatBlocks", best_stat.blocks);
+			}
+			last_stat.kills = bytesToInt(data[5], data[6]);
+			if (last_stat.kills > best_stat.kills) {
+				best_stat.kills = last_stat.kills;
+				lsSet("bestStatKills", best_stat.kills);
+			}
+			last_stat.leaderboard_rank = bytesToInt(data[7], data[8]);
+			if ((last_stat.leaderboard_rank < best_stat.leaderboard_rank || best_stat.leaderboard_rank <= 0) && last_stat.leaderboard_rank > 0) {
+				best_stat.leaderboard_rank = last_stat.leaderboard_rank;
+				lsSet("bestStatLbRank", best_stat.leaderboard_rank);
+			}
+			last_stat.alive = bytesToInt(data[9], data[10], data[11], data[12]);
+			if (last_stat.alive > best_stat.alive) {
+				best_stat.alive = last_stat.alive;
+				lsSet("bestStatAlive", best_stat.alive);
+			}
+			last_stat.no1_time = bytesToInt(data[13], data[14], data[15], data[16]);
+			if (last_stat.no1_time > best_stat.no1_time) {
+				best_stat.no1_time = last_stat.no1_time;
+				lsSet("bestStatNo1Time", best_stat.no1_time);
+			}
+			last_stat_death_type = data[17];
+			last_stat_killer = "";
+			document.getElementById("lastStats").style.display = null;
+			document.getElementById("bestStats").style.display = null;
+			lastStatCounter = 0;
+			lastStatTimer = 0;
+			lastStatValueElem.innerHTML = bestStatValueElem.innerHTML = "";
+			switch (last_stat_death_type) {
+				case 1:
+					if (data.length > 18) {
+						const nameBytes = data.subarray(18, data.length);
+						last_stat_killer = Utf8ArrayToStr(nameBytes);
+					}
+					break;
+				case 2:
+					last_stat_killer = "the wall";
+					break;
+				case 3:
+					last_stat_killer = "yourself";
+					break;
+			}
+		}
+		allowSkipDeathTransition = true;
+		deathTransitionTimeout = window.setTimeout(() => {
+			// resetAll();
+			if (skipDeathTransition) {
+				transition_canvas.doTransition("", false, () => {
+					onClose();
+					resetAll();
+					connectWithTransition(true);
+				});
+			} else {
+				// console.log("before doTransition",isTransitioning);
+				transition_canvas.doTransition("GAME OVER", true, null, () => {
+					connection_worker.postMessage({
+						call: "onClose",
+						args: [],
+					});
+					resetAll();
+				}, true);
+				// console.log("after doTransition",isTransitioning);
+			}
+			deathTransitionTimeout = null;
+		}, 1000);
+	}
+
+	update_my_rank(rank){
+		if(rank !== undefined) this.#state.my_player.mydata.rank = rank;
+		this.update_stats(true);
+	}
+
+	update_stats(ranksent){
+		if (this.#state.my_player.mydata.rank > this.#state.total_players && ranksent) {
+			this.#state.total_players = this.#state.my_player.mydata.rank;
+		} else if ((this.#state.total_players < this.#state.my_player.mydata.rank) || (this.#state.my_player.mydata.rank === 0 && this.#state.total_players > 0)) {
+			this.#state.my_player.mydata.rank = this.#state.total_players;
+		}
+		this.dispatchEvent(new CustomEvent('update_my_rank', {detail: {
+			rank: this.#state.my_player.mydata.rank,
+			total_players: this.#state.total_players,
+		}}));
+	}
+
+	update_leaderboard(total_players,data){
+		data=Uint8Array.from(data);
+		this.#state.total_players = total_players;
+		this.update_stats(false);
+		let i = 0;
+		let rank = 1;
+		const rows = [];
+		while (true) {
+			if (i >= data.length) {
+				break;
+			}
+			const score = bytesToInt(data[i], data[i + 1], data[i + 2], data[i + 3]);
+			const name_len = data[i + 4];
+			const name_bytes = data.subarray(i + 5, i + 5 + name_len);
+			const name = Utf8ArrayToStr(name_bytes);
+			rows.push({
+				rank: rank,
+				name: name,
+				score: score,
+			});
+			i = i + 5 + name_len;
+			rank++;
+		}
+		leaderboard_ui.update(rows);
+		if (this.#state.total_players < 30 && doRefreshAfterDie && closeNotification === null) {
+			closeNotification = new TopNotification("This server is about to close, refresh to join a full server.");
+		}
+	}
+
+	update_my_score(kills,blocks){
+		this.dispatchEvent(new CustomEvent('update_my_score',{detail: {
+			kills,
+			blocks,
+		}}));
+	}
+
+	update_chunk_of_blocks(x,y,w,h,data){
+		let i = 0;
+		for (let j = x; j < x + w; j++) {
+			for (let k = y; k < y + h; k++) {
+				const block = this.getBlock(j, k);
+				block.setBlockId(data[i], false);
+				i++;
+			}
+		}
+	}
+
+	update_fill_area(x, y, w, h, type, pattern, isEdgeChunk){
+		this.#state.fillArea(x, y, w, h, type, pattern, isEdgeChunk);
+	}
+
+	update_minimap(data){
+		minimap_canvas.update_map(data);
+	}
+
+	update_map_size(size){
+		this.#state.map_size = size;
+		minimap_canvas.update_size(size);
+	}
+
+	update_life_count(currentLives,totalLives){
+		life_box.setLives(currentLives, totalLives);
+	}
+
+	update_ready(){
+		playingAndReady = true;
+		if (!isTransitioning) {
+			isTransitioning = true;
+			onConnectOrMiddleOfTransition();
+		}
+	}
+
+	update_ping(avg,last,diff){
+		this.serverAvgPing = avg;
+		this.serverLastPing = last;
+		this.serverDiffPing = diff;
+	}
+
+	update_onopen(){
+		countPlayGame();
+		document.body.dataset.state="playing";
+		window.hc.km.enable_scope("playing");
+		if (playingAndReady) {
+			onConnectOrMiddleOfTransition();
+		}
+	}
+
+	update_onclose(closedBecauseOfDeath){
+		if (!playingAndReady) {
+			if (!isTransitioning) {
+				if (couldntConnect()) {
+					showBeginHideMainCanvas();
+				}
+			} else {
+				// TODO showCouldntConnectAfterTransition = true;
+			}
+		} else if (!closedBecauseOfDeath) {
+			transition_canvas.doTransition("", false, resetAll);
+			// ga("send","event","Game","lost_connection_mid_game");
+			// _paq.push(['trackEvent', 'Game', 'lost_connection_mid_game']);
+			setNotification("The connection was lost :/");
+		} else {
+			//disconnect because of death 
+		}
+	}
+}
+
+// Some dated code is using these in places like `for(i = 0`.
+// While ideally these variables should all be made local,
+// I'm worried some locations actually rely on them not being local.
+// So for now these are all global, but we should slowly try to get rid of these.
+// Jesper
+//
+// var i, w;
+// Nothing to worry about !
+// Tartasprint
+
+//#region Declarations
+const IS_SECURE = location.protocol.indexOf("https") >= 0;
+const SECURE_WS = IS_SECURE ? "wss://" : "ws://";
+/** @type {SplixCanvas} main ctx */
+let main_canvas;
+
+let game_state = new SplixState();
+/**@type {Minimap} */
+let minimap_canvas;
+/** @type {TransitionCanvas} */
+let transition_canvas;
+/** @type {TutorialCanvas} */
+let tutorial;
+/** @type {SkinButtonCanvas} */
+let skin_button;
+/** @type {SkinScreen} */
+let skin_screen;
+/** @type {SplixLogoCanvas} Canvas for splix animated logo */ 
+let title_canvas;
+/** @type {LifeBox} */
+let life_box;
+/** @type {LeftStats} */
+let left_stats;
+/** @type {InputHanlder} */
+let input_handler;
+/** @type {RenderingLoop} */
+let rendering_loop;
+/** @type {QualityUI} */
+let quality_ui;
+/** @type {UglyUI} */
+let ugly_ui;
+/** @type {Leaderboard} */
+let leaderboard_ui;
+let logger = null;
+var beginScreenVisible = true;
+var canvasQuality = 1, zoom, uglyMode = false;
+var playUI,
+	beginScreen,
+	notificationElem,
+	formElem,
+	nameInput,
+	lastNameValue = "",
+	lastNameChangeCheck = 0;
+var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
+var showCouldntConnectAfterTransition = false, playingAndReady = false;
+var isTransitioning = false;
+var doRefreshAfterDie = false, pressedKeys = [];
+var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
+var closeNotification = null, connectionLostNotification = null;
+var lastMyPosSetClientSideTime = 0,
+	lastMyPosServerSideTime = 0,
+	lastMyPosSetValidClientSideTime = 0,
+	lastMyPosHasBeenConfirmed = false;
+var uiElems = [];
+let last_stat = new Stats();
+let last_stat_death_type = 0,
+	last_stat_killer = "";
+let best_stat = new Stats();
+var lastStatTimer = 0, lastStatCounter = 0, lastStatValueElem, bestStatValueElem;
+var joinButton,
+	gamemodeDropDownEl;
+var didConfirmOpenInApp = false;
+let debugging = {
+	frames: 0,
+	time_start: 0,
+	getFPS: () => {
+		return debugging.frames*1000/(Date.now()-debugging.time_start)
+	},
+}
+
+//called by form, connects with transition and error handling
+var isConnectingWithTransition = false;
+
+/**@type {OneGame?} */
+let one_game = null;
+
+let connection_worker = new Worker('src/connection.js');
+
+connection_worker.onmessage = ev => {
+	const message = ev.data;
+	if(typeof message.request === "string"){
+		if(message.request === "get_send_dir_data"){
+			connection_worker.postMessage({
+				response: "get_send_dir_data",
+				result: one_game.get_send_dir_data(),
+				id: message.id,
+			})
+		} else {
+			console.warn('Unknown request :', message.request);
+		}
+	} else if (typeof message.call === "string") {
+		if(one_game) one_game['update_'+message.call].call(one_game,...message.args);
+	}
+};
+//#endregion Declarations
+
 
 function countPlayGame() {
-	var old = 0;
+	let old = 0;
 	if (localStorage.getItem("totalGamesPlayed") !== null) {
 		old = localStorage.totalGamesPlayed;
 	}
@@ -511,7 +4541,7 @@ function countPlayGame() {
 }
 
 function generateServerLocation(originalLocationObj) {
-	var port = IS_SECURE ? "7998" : "7999";
+	const port = IS_SECURE ? "7998" : "7999";
 	return {
 		pingUrlV4: originalLocationObj.pingIpv4 + "/ping",
 		pingUrlV6: originalLocationObj.pingIpv6 + "/ping",
@@ -541,10 +4571,10 @@ function generateServerLocation(originalLocationObj) {
 			}
 			this.ws = new WebSocket(SECURE_WS + this.pingUrlV4);
 			this.ws.binaryType = "arraybuffer";
-			var parent = this;
+			const parent = this;
 			this.ws.onmessage = function () {
 				if (parent.waitingForPing) {
-					var pingTime = Date.now() - parent.lastPingTime;
+					let pingTime = Date.now() - parent.lastPingTime;
 					pingTime += 10;
 					parent.avgPing = parent.avgPing * parent.pingTries + pingTime;
 					parent.pingTries++;
@@ -581,10 +4611,10 @@ function generateServerLocation(originalLocationObj) {
 			}
 			this.ws6 = new WebSocket(SECURE_WS + this.pingUrlV6);
 			this.ws6.binaryType = "arraybuffer";
-			var parent = this;
+			const parent = this;
 			this.ws6.onmessage = function () {
 				if (parent.waitingForPing6) {
-					var pingTime = Date.now() - parent.lastPingTime6;
+					const pingTime = Date.now() - parent.lastPingTime6;
 					parent.avgPing6 = parent.avgPing6 * parent.pingTries6 + pingTime;
 					parent.pingTries6++;
 					parent.avgPing6 /= parent.pingTries6;
@@ -614,7 +4644,7 @@ function generateServerLocation(originalLocationObj) {
 		ping: function () {
 			if (this.waitingForPing) {
 				//if waiting for too long (longer than 10 seconds)
-				var pingTime = Date.now() - this.lastPingTime;
+				const pingTime = Date.now() - this.lastPingTime;
 				if (pingTime > 10000) {
 					this.initSocket();
 				}
@@ -635,7 +4665,7 @@ function generateServerLocation(originalLocationObj) {
 		ping6: function () {
 			if (this.waitingForPing6) {
 				//if waiting for too long (longer than 10 seconds)
-				var pingTime = Date.now() - this.lastPingTime6;
+				const pingTime = Date.now() - this.lastPingTime6;
 				if (pingTime > 10000) {
 					this.initSocket6();
 				}
@@ -688,181 +4718,35 @@ function generateServerLocation(originalLocationObj) {
 	};
 }
 
+const ergomoves = [];
+function activateDir(d){
+    const index = ergomoves.indexOf(d);
+    if(index < 0) {
+        ergomoves.push(d);
+        one_game.sendDir(d);
+    }
+}
+
+function deactivateDir(d){
+    const index = ergomoves.indexOf(d);
+    ergomoves.splice(index,1);
+    if(ergomoves.length > 0){
+        for(const dir of ergomoves){
+            one_game.sendDir(dir);
+        }
+    }
+}
+
+function showTopNotification(text, timeAlive = 4) {
+    var notification = doTopNotification(text);
+    setTimeout(function () { notification.animateOut(); notification.destroy(); }, timeAlive * 1000);
+}
+
 function startPingServers() {
-	for (var i = 0; i < servers.length; i++) {
-		var thisServer = servers[i];
-		thisServer.initSocket();
-		thisServer.initSocket6();
+	for (const server of servers) {
+		server.initSocket();
+		server.initSocket6();
 	}
-}
-
-//gets a block from the specified array,
-//creates it if it doesn't exist yet
-//if array is not specified it will default to the blocks[] array
-function getBlock(x, y, array) {
-	var block;
-	if (array === undefined) {
-		array = blocks;
-	}
-	for (var i = 0; i < array.length; i++) {
-		block = array[i];
-		if (block.x == x && block.y == y) {
-			return block;
-		}
-	}
-	//block doesn't exist, create it
-	block = {
-		x: x,
-		y: y,
-		currentBlock: -1,
-		nextBlock: -1,
-		animDirection: 0,
-		animProgress: 0,
-		animDelay: 0,
-		lastSetTime: Date.now(),
-		//changes the blockId with optional animatino
-		//animateDelay defaults to 0
-		//if animateDelay === false, don't do any animation at all
-		setBlockId: function (blockId, animateDelay) {
-			this.lastSetTime = Date.now();
-			if (animateDelay === false) {
-				this.currentBlock = this.nextBlock = blockId;
-				this.animDirection = 0;
-				this.animProgress = 1;
-			} else {
-				if (animateDelay === undefined) {
-					animateDelay = 0;
-				}
-				this.animDelay = animateDelay;
-
-				var isCurrentBlock = blockId == this.currentBlock;
-				var isNextBlock = blockId == this.nextBlock;
-
-				if (isCurrentBlock && isNextBlock) {
-					if (this.animDirection == -1) {
-						this.animDirection = 1;
-					}
-				}
-
-				if (isCurrentBlock && !isNextBlock) {
-					this.animDirection = 1;
-					this.nextBlock = this.currentBlock;
-				}
-
-				if (!isCurrentBlock && isNextBlock) {
-					if (this.animDirection == 1) {
-						this.animDirection = -1;
-					}
-				}
-
-				if (!isCurrentBlock && !isNextBlock) {
-					this.nextBlock = blockId;
-					this.animDirection = -1;
-				}
-			}
-		},
-	};
-	array.push(block);
-	return block;
-}
-
-//gets a player from the the specified array,
-//creates it if it doesn't exist yet
-//if array is not specified it will default to the players[] array
-function getPlayer(id, array) {
-	var player;
-	if (array === undefined) {
-		array = players;
-	}
-	for (var i = 0; i < array.length; i++) {
-		player = array[i];
-		if (player.id == id) {
-			return player;
-		}
-	}
-
-	//player doesn't exist, create it
-	player = {
-		id: id,
-		pos: [0, 0],
-		drawPos: [-1, -1],
-		drawPosSet: false,
-		serverPos: [0, 0],
-		dir: 0,
-		isMyPlayer: id === 0,
-		isDead: false,
-		deathWasCertain: false,
-		didUncertainDeathLastTick: false,
-		isDeadTimer: 0,
-		uncertainDeathPosition: [0, 0],
-		die: function (deathWasCertain) {
-			deathWasCertain = !!deathWasCertain;
-			if (this.isDead) {
-				this.deathWasCertain = deathWasCertain || this.deathWasCertain;
-			} else {
-				if (deathWasCertain || !this.didUncertainDeathLastTick) {
-					if (!deathWasCertain) {
-						this.didUncertainDeathLastTick = true;
-						this.uncertainDeathPosition = [this.pos[0], this.pos[1]];
-					}
-					this.isDead = true;
-					this.deathWasCertain = deathWasCertain;
-					this.deadAnimParts = [0];
-					this.isDeadTimer = 0;
-					if (this.isMyPlayer) {
-						doCamShakeDir(this.dir);
-					}
-					var prev = 0;
-					while (true) {
-						prev += Math.random() * 0.4 + 0.5;
-						if (prev >= Math.PI * 2) {
-							this.deadAnimParts.push(Math.PI * 2);
-							break;
-						}
-						this.deadAnimParts.push(prev);
-						this.deadAnimPartsRandDist.push(Math.random());
-					}
-				}
-			}
-		},
-		undoDie: function () {
-			this.isDead = false;
-		},
-		deadAnimParts: [],
-		deadAnimPartsRandDist: [],
-		addHitLine: function (pos, color) {
-			this.hitLines.push({
-				pos: pos,
-				vanishTimer: 0,
-				color: color,
-			});
-		},
-		hitLines: [],
-		doHonk: function (time) {
-			this.honkTimer = 0;
-			this.honkMaxTime = time;
-			if (this.name.toLowerCase() == "joris") {
-				if (honkSfx == null) {
-					honkSfx = new Audio("./static/honk.mp3");
-				}
-				honkSfx.play();
-			}
-		},
-		moveRelativeToServerPosNextFrame: false, //if true, lastServerPosSentTime will be used instead of deltatime for one frame
-		lastServerPosSentTime: 0,
-		honkTimer: 0,
-		honkMaxTime: 0,
-		trails: [],
-		name: "",
-		skinBlock: 0,
-		lastBlock: null,
-		hasReceivedPosition: false,
-	};
-	array.push(player);
-	if (player.isMyPlayer) {
-		myPlayer = player;
-	}
-	return player;
 }
 
 //localStorage with ios private mode error handling
@@ -876,10 +4760,10 @@ function lsSet(name, value) {
 }
 
 function checkUsername(name) {
-	var lower = name.toLowerCase();
+	const lower = name.toLowerCase();
 
 	if (lower == "denniskoe") {
-		var s = document.body.style;
+		const s = document.body.style;
 		s.webkitFilter = s.filter = "contrast(200%) hue-rotate(90deg) invert(100%)";
 	} else if (lower == "kwebbelkop") {
 		lsSet("skinColor", 12);
@@ -922,380 +4806,72 @@ function checkUsername(name) {
 	}
 }
 
-//sends name to websocket
-function sendName() {
-	var n = nameInput.value;
-	if (n !== undefined && n !== null && n !== "" && n.trim() !== "") {
-		wsSendMsg(sendAction.SET_USERNAME, n);
-	}
-}
-
 function nameInputOnChange() {
 	lsSet("name", nameInput.value);
 }
 
-//sends a legacy message which is required for older servers
-function sendLegacyVersion() {
-	wsSendMsg(sendAction.VERSION, {
-		type: 0,
-		ver: 28,
-	});
-}
-
-//sends current skin to websocket
-function sendSkin() {
-	var blockColor = localStorage.getItem("skinColor");
-	if (blockColor === null) {
-		blockColor = 0;
-	}
-	var pattern = localStorage.getItem("skinPattern");
-	if (pattern === null) {
-		pattern = 0;
-	}
-	wsSendMsg(sendAction.SKIN, {
-		blockColor: blockColor,
-		pattern: pattern,
-	});
-}
-
-function sendPatreonCode() {
-	if (localStorage.patreonLastSplixCode !== "" && localStorage.patreonLastSplixCode !== undefined) {
-		wsSendMsg(sendAction.PATREON_CODE, localStorage.patreonLastSplixCode);
-	}
-}
-
-function parseDirKey(c) {
-	var pd = false;
-	//up
-	if (c == 38 || c == 87 || c == 56 || c == 73) {
-		sendDir(3);
-		pd = true;
-	}
-	//left
-	if (c == 37 || c == 65 || c == 52 || c == 74) {
-		sendDir(2);
-		pd = true;
-	}
-	//right
-	if (c == 39 || c == 68 || c == 54 || c == 76) {
-		sendDir(0);
-		pd = true;
-	}
-	//down
-	if (c == 40 || c == 83 || c == 50 || c == 75) {
-		sendDir(1);
-		pd = true;
-	}
-	//pause
-	if (c == 80) {
-		sendDir(4);
-		pd = true;
-	}
-	//space
-	if (c == 32 || c == 53) {
-		honkStart();
-		pd = true;
-	}
-	//enter
-	if (c == 13) {
-		doSkipDeathTransition();
-		pd = true;
-	}
-	return pd;
-}
-
-//sends new direction to websocket
-var lastSendDir = -1, lastSendDirTime = 0; //used to prevent spamming buttons
-function sendDir(dir, skipQueue) {
-	// console.log("======sendDir",dir, skipQueue);
-	if (!ws || !myPos) {
-		return false;
-	}
-	//myPlayer doesn't exist
-	if (!myPlayer) {
-		return false;
-	}
-
-	//prevent spamming sendDir function
-	if (
-		dir == lastSendDir && //if dir is same as old sendDir call
-		(Date.now() - lastSendDirTime) < 0.7 / GLOBAL_SPEED // if last call was less than 'one block travel time' ago
-	) {
-		return false;
-	}
-	lastSendDir = dir;
-	lastSendDirTime = Date.now();
-
-	//dir is already the current direction, don't do anything
-	if (myPlayer.dir == dir) {
-		// console.log("already current direction, don't do anything");
-		addSendDirQueue(dir, skipQueue);
-		return false;
-	}
-
-	//if dir is the opposite direction
-	if (
-		(dir === 0 && myPlayer.dir == 2) ||
-		(dir == 2 && myPlayer.dir === 0) ||
-		(dir == 1 && myPlayer.dir == 3) ||
-		(dir == 3 && myPlayer.dir == 1)
-	) {
-		// console.log("already opposite direction, don't send");
-		addSendDirQueue(dir, skipQueue);
-		return false;
-	}
-
-	//hide cursor
-	mouseHidePos = [lastMousePos[0], lastMousePos[1]];
-	document.body.style.cursor = "none";
-
-	var horizontal = myPlayer.dir == 1 || myPlayer.dir == 3; //wether next direction is horizontal movement or not
-	var coord = myPos[horizontal ? 1 : 0];
-	var newPos = [myPos[0], myPos[1]];
-	var roundCoord = Math.round(coord);
-	newPos[horizontal ? 1 : 0] = roundCoord;
-
-	// console.log("test already sent");
-
-	//test if the coordinate being sent wasn't already sent earlier
-	// console.log(lastChangedDirPos);
-	if (
-		(myPlayer.dir === 0 && newPos[0] <= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 1 && newPos[1] <= lastChangedDirPos[1]) ||
-		(myPlayer.dir == 2 && newPos[0] >= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 3 && newPos[1] >= lastChangedDirPos[1])
-	) {
-		// console.log("same coordinate, don't send");
-		addSendDirQueue(dir, skipQueue);
-		return false;
-	}
-
-	var changeDirNow = false;
-	var blockPos = coord - Math.floor(coord);
-	if (myPlayer.dir <= 1) { //right or down
-		if (blockPos < 0.45) {
-			changeDirNow = true;
-		}
-	} else if (myPlayer.dir <= 3) { //left or up
-		if (blockPos > 0.55) {
-			changeDirNow = true;
-		}
-	} else { //paused
-		changeDirNow = true;
-	}
-
-	// console.log("changeDirNow",changeDirNow);
-
-	if (changeDirNow) {
-		changeMyDir(dir, newPos);
-	} else {
-		myNextDir = dir;
-		changeDirAt = roundCoord;
-		changeDirAtIsHorizontal = horizontal;
-		lastChangedDirPos = [newPos[0], newPos[1]];
-	}
-	lastMyPosSetClientSideTime = Date.now();
-	if (lastMyPosHasBeenConfirmed) {
-		lastMyPosSetValidClientSideTime = Date.now();
-	}
-	lastMyPosHasBeenConfirmed = false;
-	// console.log("send ======= UPDATE_DIR ======",dir,newPos);
-	wsSendMsg(sendAction.UPDATE_DIR, {
-		dir: dir,
-		coord: newPos,
-	});
-	return true;
-}
-
-var sendDirQueue = [];
-function addSendDirQueue(dir, skip) {
-	// console.log("adding sendDir to queue", dir, skip);
-	if (!skip && sendDirQueue.length < 3) {
-		sendDirQueue.push({
-			dir: dir,
-			addTime: Date.now(),
-		});
-	}
-}
-
-function changeMyDir(dir, newPos, extendTrail, isClientside) {
-	// console.log("changeMyDir");
-	myPlayer.dir = myNextDir = dir;
-	myPlayer.pos = [newPos[0], newPos[1]];
-	lastChangedDirPos = [newPos[0], newPos[1]];
-
-	if (extendTrail === undefined) {
-		extendTrail = true;
-	}
-	if (isClientside === undefined) {
-		isClientside = true;
-	}
-
-	if (extendTrail) {
-		trailPush(myPlayer);
-	}
-
-	if (isClientside) {
-		lastClientsideMoves.push({
-			dir: dir,
-			pos: newPos,
-		});
-	}
-}
-
-function startRequestMyTrail() {
-	isRequestingMyTrail = true;
-	trailPushesDuringRequest = [];
-	wsSendMsg(sendAction.REQUEST_MY_TRAIL);
-}
-
-function trailPush(player, pos) {
-	if (player.trails.length > 0) {
-		var lastTrail = player.trails[player.trails.length - 1].trail;
-		if (lastTrail.length > 0) {
-			var lastPos = lastTrail[lastTrail.length - 1];
-			if (lastPos[0] != player.pos[0] || lastPos[1] != player.pos[1]) {
-				if (pos === undefined) {
-					pos = [player.pos[0], player.pos[1]];
-				} else {
-					pos = [pos[0], pos[1]];
-				}
-				lastTrail.push(pos);
-				if (player.isMyPlayer && isRequestingMyTrail) {
-					trailPushesDuringRequest.push(pos);
-				}
-			}
-		}
-	}
-}
-
-function honkStart() {
-	honkStartTime = Date.now();
-}
-
-function honkEnd() {
-	var now = Date.now();
-	if (now > lastHonkTime) {
-		var time = now - honkStartTime;
-		time = clamp(time, 0, 1000);
-		lastHonkTime = now + time;
-		time = iLerp(0, 1000, time);
-		time *= 255;
-		time = Math.floor(time);
-		wsSendMsg(sendAction.HONK, time);
-		for (var playerI = 0; playerI < players.length; playerI++) {
-			var player = players[playerI];
-			if (player.isMyPlayer) {
-				player.doHonk(Math.max(70, time));
-			}
-		}
-	}
-}
-
 //when page is finished loading
-window.onload = function () {
-	//piwik
-	// _paq = _paq || [];
-	// _paq.push(["setDomains", ["*.splix.io"]]);
-	// _paq.push(['trackPageView']);
-	// _paq.push(['enableLinkTracking']);
-	// (function() {
-	//   var u="//139.59.211.221/";
-	//   _paq.push(['setTrackerUrl', u+'piwik.php']);
-	//   _paq.push(['setSiteId', '1']);
-	//   var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-	//   g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-	// })();
-
-	mainCanvas = document.getElementById("mainCanvas");
-	ctx = mainCanvas.getContext("2d");
-	minimapCanvas = document.getElementById("minimapCanvas");
-	minimapCtx = minimapCanvas.getContext("2d");
-	linesCanvas = document.createElement("canvas");
-	linesCtx = linesCanvas.getContext("2d");
-	tempCanvas = document.createElement("canvas");
-	tempCtx = tempCanvas.getContext("2d");
-	transitionCanvas = document.getElementById("transitionCanvas");
-	tCtx = transitionCanvas.getContext("2d");
-	tutorialCanvas = document.getElementById("tutorialCanvas");
-	tutCtx = tutorialCanvas.getContext("2d");
-	tutorialText = document.getElementById("tutorialText");
-	touchControlsElem = document.getElementById("touchControls");
+window.addEventListener('load', function () {
+	window.CSS.registerProperty({
+		name: "--menu-opacity",
+		syntax: "<number>",
+		inherits: true,
+		initialValue: "0.7",
+	  });
+	rendering_loop = new RenderingLoop();
+	input_handler  = new InputHanlder(
+		game_state,
+		document.getElementById("touchControls")
+	);
+	main_canvas = new SplixCanvas(document.getElementById("mainCanvas"), game_state);
+	minimap_canvas = new Minimap(
+		game_state,
+		document.getElementById("minimapCanvas"),
+		document.getElementById("miniMapPlayer"),
+	);
+	transition_canvas = new TransitionCanvas(document.getElementById("transitionCanvas"));
+	tutorial = new TutorialCanvas(
+		document.getElementById("tutorialCanvas"),
+		document.getElementById("tutorialText")
+	);
+	skin_screen = new SkinScreen(
+		document.getElementById("skinScreenCanvas"),
+		document.getElementById("skinScreen"),
+	);
+	skin_button = new SkinButtonCanvas(
+		document.getElementById("skinButton"),
+		document.getElementById("skinButtonShadow"),
+	);
+	title_canvas = new SplixLogoCanvas(document.getElementById("logoCanvas"));
+	life_box = new LifeBox();
+	quality_ui = new QualityUI(document.getElementById("qualityText"));
+	ugly_ui = new UglyUI(document.getElementById("uglyText"));
+	left_stats = new LeftStats(
+		document.getElementById("myKills"),
+		document.getElementById("blockCaptureCount"),
+		document.getElementById("score"),
+		document.getElementById("myRank"),
+		document.getElementById("totalPlayers"),
+	);
+	
+	
 	notificationElem = document.getElementById("notification");
-	skinScreen = document.getElementById("skinScreen");
-	skinCanvas = document.getElementById("skinScreenCanvas");
-	skinCtx = skinCanvas.getContext("2d");
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
-	qualityText = document.getElementById("qualityText");
-	uglyText = document.getElementById("uglyText");
-	lifeBox = document.getElementById("lifeBox");
-	adBox = document.getElementById("adbox");
-	adBox2 = document.getElementById("adbox2");
 
-	window.onkeydown = function (e) {
-		var c = e.keyCode;
-		if (pressedKeys.indexOf(c) < 0) {
-			pressedKeys.push(c);
-
-			var pd = parseDirKey(c);
-			if (c == 79 && myPos) {
-				leaderboardHidden = !leaderboardHidden;
-				setLeaderboardVisibility();
-				lsSet("leaderboardHidden", leaderboardHidden);
-			}
-
-			if (pd && playingAndReady) {
-				e.preventDefault();
-			}
-		}
-	};
-	window.onkeyup = function (e) {
-		var c = e.keyCode;
-		var index = pressedKeys.indexOf(c);
-		pressedKeys.splice(index, 1);
-		//space
-		if (c == 32 || c == 53) {
-			honkEnd();
-		}
-
-		//senddir of still holding keys
-		for (var i = 0; i < pressedKeys.length; i++) {
-			parseDirKey(pressedKeys[i]);
-		}
-	};
-	window.addEventListener("blur", function (event) {
-		pressedKeys = [];
-	}, false);
-	bindSwipeEvents();
-	window.oncontextmenu = function (e) {
-		if (e.target.nodeName.toLowerCase() == "embed") {
-			return true;
-		} else {
-			e.preventDefault();
-			return false;
-		}
-	};
-	myScoreElem = document.getElementById("blockCaptureCount");
-	myRealScoreElem = document.getElementById("score");
-	myKillsElem = document.getElementById("myKills");
-	myRankElem = document.getElementById("myRank");
-	totalPlayersElem = document.getElementById("totalPlayers");
-	leaderboardElem = document.createElement("tbody");
-	var table = document.createElement("table");
-	table.appendChild(leaderboardElem);
-	leaderboardDivElem = document.getElementById("leaderboard");
-	leaderboardDivElem.appendChild(table);
-	uiElems.push(leaderboardDivElem);
-	miniMapPlayer = document.getElementById("miniMapPlayer");
+	leaderboard_ui = new Leaderboard(document.getElementById("leaderboard"));
+	leaderboard_ui.set_visibility(
+		localStorage.leaderboardHidden == "true",
+	);
+	uiElems.push(leaderboard_ui.container);
 	beginScreen = document.getElementById("beginScreen");
 	playUI = document.getElementById("playUI");
 	uiElems.push(document.getElementById("scoreBlock"));
 	uiElems.push(document.getElementById("miniMap"));
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
-	prerollElem = document.getElementById("preroll");
+	window.prerollElem = document.getElementById("preroll"); // TODO remove global window
 
 	nameInput = document.getElementById("nameInput");
 	if (localStorage.name) {
@@ -1318,98 +4894,33 @@ window.onload = function () {
 		return false;
 	};
 
-	//show cursor
-	window.addEventListener("click", showCursor);
-	window.addEventListener("mousemove", function (e) {
-		lastMousePos = [e.screenX, e.screenY];
-		var distX = lastMousePos[0] - mouseHidePos[0];
-		var distY = lastMousePos[1] - mouseHidePos[1];
-		var dist = Math.sqrt(Math.pow(distX, 2) + Math.pow(distY, 2));
-		if (dist > 15) {
-			showCursor();
-		}
-	});
-
-	//quality button
-	qualityText.onclick = toggleQuality;
-	uglyText.onclick = toggleUglyMode;
-	setQuality();
-	setUglyText();
-
-	initTutorial();
-	initSkinScreen();
-	initTitle();
-	setLeaderboardVisibility();
-
-	//pledged
-	if (location.hash.indexOf("#pledged") === 0) {
-		var hrefQuerry = parseQuery(location.href);
-		if (!("action" in hrefQuerry) || ["update", "create"].indexOf(hrefQuerry.action) != -1) {
-			setPatreonOverlay(true);
-		}
-	}
-	requestPatreonPledgeData();
-
-	//init video ads if refreshed during ad
-	if (localStorage.refreshDuringAd) {
-		initVideoAdsScript();
-	}
-
-	//banner ads
-	if (testPatreonAdsAllowed()) {
-		setUpAdBoxContent();
-		var script = document.createElement("script");
-		script.src = "//api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js";
-		script.type = "text/javascript";
-		document.head.appendChild(script);
-		refreshBanner();
-	}
-
 	//best stats
-	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
-	bestStatKills = Math.max(bestStatKills, localStorage.getItem("bestStatKills"));
-	bestStatLbRank = Math.max(bestStatLbRank, localStorage.getItem("bestStatLbRank"));
-	bestStatAlive = Math.max(bestStatAlive, localStorage.getItem("bestStatAlive"));
-	bestStatNo1Time = Math.max(bestStatNo1Time, localStorage.getItem("bestStatNo1Time"));
+	best_stat.blocks = Math.max(best_stat.blocks, localStorage.getItem("bestStatBlocks"));
+	best_stat.kills = Math.max(best_stat.kills, localStorage.getItem("bestStatKills"));
+	best_stat.leaderboard_rank = Math.max(best_stat.leaderboard_rank, localStorage.getItem("bestStatLbRank"));
+	best_stat.alive = Math.max(best_stat.alive, localStorage.getItem("bestStatAlive"));
+	best_stat.no1_time = Math.max(best_stat.no1_time, localStorage.getItem("bestStatNo1Time"));
 
 	initServerSelection();
 
 	document.getElementById("serverSelect").addEventListener(
 		"change",
-		(e) => localStorage.setItem("lastSelectedEndpoint", e.target.value),
+		e => localStorage.setItem("lastSelectedEndpoint", e.target.value),
 	);
+	debugging.time_start = Date.now();
+	window.requestAnimationFrame(  timeStamp => {rendering_loop.loop(timeStamp)}  );
 
-	window.requestAnimationFrame(loop);
-
-	var devString = IS_DEV_BUILD ? " (dev build)" : "";
+	const devString = IS_DEV_BUILD ? " (dev build)" : "";
 	console.log(
 		"%c splix.io %c\n\n\nversion " + CLIENT_VERSION + " loaded" + devString,
 		"color: #a22929; font-size: 50px; font-family: arial; text-shadow: 1px 1px #7b1e1e, 2px 2px #7b1e1e;",
 		"",
 	);
-};
-
-//when WebSocket connection is established
-function onOpen() {
-	isConnecting = false;
-	sendLegacyVersion();
-	sendPatreonCode();
-	sendName();
-	sendSkin();
-	wsSendMsg(sendAction.READY);
-	if (playingAndReady) {
-		onConnectOrMiddleOfTransition();
-	}
-	// ga("send","event","Game","game_start");
-	trackGameStart();
-	countPlayGame();
-	// _paq.push(['trackEvent', 'Game', 'game_start']);
-	wsOnOpenTime = Date.now();
-}
+});
 
 //called when successfully connected and when the transition is full screen
 function onConnectOrMiddleOfTransition() {
-	hideSkinScreen();
+	skin_screen.hide();
 	hideBeginShowMain();
 }
 
@@ -1427,11 +4938,10 @@ function hideBegin() {
 
 function showMainCanvas() {
 	playUI.style.display = null;
-	mainCanvas.style.display = null;
+	main_canvas.show();
 	if ("ontouchstart" in window) {
-		touchControlsElem.style.display = null;
+		input_handler.touchcontrol_elem.style.display = null;
 	}
-	myNameAlphaTimer = 0;
 	setNotification("");
 }
 
@@ -1445,66 +4955,29 @@ function showBegin() {
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
 	nameInput.focus();
-	setAdBoxLeft();
 }
 
 function hideMainCanvas() {
 	playUI.style.display = "none";
-	mainCanvas.style.display = "none";
-	touchControlsElem.style.display = "none";
-}
-
-function showSkinScreen() {
-	skinScreenVisible = true;
-	skinScreen.style.display = null;
-}
-
-function hideSkinScreen() {
-	skinScreenVisible = false;
-	skinScreen.style.display = "none";
+	main_canvas.hide()
+	input_handler.touchcontrol_elem.style.display = "none";
 }
 
 function openSkinScreen() {
 	hideBegin();
-	showSkinScreen();
+	skin_screen.show();
 }
 
 //hides main canvas and ui and shows beginScreen
 function showBeginHideMainCanvas() {
+	document.body.dataset.state="begin";
 	showBegin();
 	hideMainCanvas();
 }
 
 function showBeginHideSkin() {
 	showBegin();
-	hideSkinScreen();
-}
-
-//when WebSocket connection is closed
-function onClose() {
-	if (!!ws && ws.readyState == WebSocket.OPEN) {
-		ws.close();
-	}
-	if (!playingAndReady) {
-		if (!isTransitioning) {
-			if (couldntConnect()) {
-				showBeginHideMainCanvas();
-			}
-		} else {
-			showCouldntConnectAfterTransition = true;
-		}
-	} else if (!closedBecauseOfDeath) {
-		doTransition("", false, resetAll);
-		// ga("send","event","Game","lost_connection_mid_game");
-		// _paq.push(['trackEvent', 'Game', 'lost_connection_mid_game']);
-		setNotification("The connection was lost :/");
-	} else { //disconnect because of death
-		// var gameTime = Date.now() - wsOnOpenTime;
-		// ga("send","timing","Game","game_session_time", gameTime);
-		// _paq.push(['trackEvent', 'Game', 'game_session', 'time', gameTime]);
-	}
-	ws = null;
-	isConnecting = false;
+	skin_screen.hide();
 }
 
 //if trying to establish a connection but failed
@@ -1512,19 +4985,17 @@ function onClose() {
 //false if it will try again
 function couldntConnect() {
 	setNotification("Couldn't connect to the server :/");
-	var err = new Error("couldntConnectError");
+	const err = new Error("couldntConnectError");
 	console.log(err.stack);
 	isTransitioning = true;
 	return true;
 }
 
-//called by form, connects with transition and error handling
-var isConnectingWithTransition = false;
 function connectWithTransition(dontDoAds) {
-	if (!isConnectingWithTransition && !isWaitingForAd) {
+	if (!isConnectingWithTransition) {
 		isConnectingWithTransition = true;
 		if (doConnect(dontDoAds)) {
-			doTransition("", false, function () {
+			transition_canvas.doTransition("", false, function () {
 				if (!playingAndReady) {
 					isTransitioning = false;
 				}
@@ -1542,730 +5013,66 @@ function connectWithTransition(dontDoAds) {
 	}
 }
 
-//starts websocket connection
-//return true if it should start the transition on submit
-var isConnecting = false;
-function doConnect(dontDoAds) {
-	if (!ws && !isConnecting && !isTransitioning) {
-		if (canRunAds && !dontDoAds && testPatreonAdsAllowed()) {
-			var adCounter = getAdCounter();
-			var lastAdTime = localStorage.lastAdTime;
-			lastAdTime = parseInt(lastAdTime);
-			lastAdTime = Date.now() - lastAdTime;
-			if (adCounter == 1 || (!isNaN(lastAdTime) && lastAdTime > 300000)) {
-				displayAd();
-				return false;
-			} else {
-				countAd();
-			}
-		}
-		isConnecting = true;
-		showCouldntConnectAfterTransition = false;
-		closedBecauseOfDeath = false;
-		// if(!serversRequestDone){
-		// 	console.log("set true 2 ");
-		// 	doConnectAfterServersGet = true;
-		// 	return true;
-		// }
-		var server = getSelectedServer();
+function doConnect() {
+	if (!one_game && !isTransitioning) {
+		const server = getSelectedServer();
 		if (!server) {
-			onClose();
+			onClose(); // TODO  onClose does not exist
 			return false;
 		}
-		thisServerAvgPing = thisServerLastPing = 0;
-		ws = new WebSocket(server);
-		ws.binaryType = "arraybuffer";
-		ws.onmessage = function (evt) {
-			if (ws == this) {
-				onMessage(evt);
-			}
-		};
-		ws.onclose = function (evt) {
-			if (ws == this) {
-				onClose(evt);
-			}
-		};
-		ws.onopen = function (evt) {
-			if (ws == this) {
-				onOpen(evt);
-			}
-		};
-		return true;
-	}
-	return false;
-}
-
-//when receiving a message from the websocket
-function onMessage(evt) {
-	// console.log(evt);
-	var x, y, type, id, player, w, h, block, i, j, nameBytes;
-	var data = new Uint8Array(evt.data);
-	// console.log(evt.data);
-	// for(var key in receiveAction){
-	// 	if(receiveAction[key] == data[0]){
-	// 		console.log(key);
-	// 	}
-	// }
-	if (data[0] == receiveAction.UPDATE_BLOCKS) {
-		x = bytesToInt(data[1], data[2]);
-		y = bytesToInt(data[3], data[4]);
-		type = data[5];
-		block = getBlock(x, y);
-		block.setBlockId(type);
-	}
-	if (data[0] == receiveAction.PLAYER_POS) {
-		x = bytesToInt(data[1], data[2]);
-		y = bytesToInt(data[3], data[4]);
-		id = bytesToInt(data[5], data[6]);
-		player = getPlayer(id);
-		player.hasReceivedPosition = true;
-		player.moveRelativeToServerPosNextFrame = true;
-		player.lastServerPosSentTime = Date.now();
-		lastMyPosHasBeenConfirmed = true;
-		var newDir = data[7];
-		var newPos = [x, y];
-		var newPosOffset = [x, y];
-
-		//add distance traveled during server delay (ping/2)
-		var posOffset = 0;
-		if (player.isMyPlayer || thisServerAvgPing > 50) {
-			posOffset = thisServerAvgPing / 2 * GLOBAL_SPEED;
+		if(Number.isNaN(Number.parseInt(server))){
+			one_game = new OneGame(server,game_state);
+		}else{
+			one_game = new OneGame(Number.parseInt(server),game_state,true);
 		}
-		movePos(newPosOffset, newDir, posOffset);
-
-		var doSetPos = true;
-		if (player.isMyPlayer) {
-			lastMyPosServerSideTime = Date.now();
-			// console.log("current dir:",player.dir, "myNextDir", myNextDir, "newDir", newDir);
-			// console.log("newPosOffset",newPosOffset, "player.pos", player.pos);
-
-			//if dir and pos are close enough to the current dir and pos
-			if (
-				(player.dir == newDir || myNextDir == newDir) &&
-				Math.abs(newPosOffset[0] - player.pos[0]) < 1 &&
-				Math.abs(newPosOffset[1] - player.pos[1]) < 1
-			) {
-				// console.log("newPosOffset",newPosOffset);
-				// console.log("doSetPos is false because dir and pos are close enough to current dir and pos");
-				doSetPos = false;
-			}
-
-			//if dir and pos are the first item of lastClientsideMoves
-			//when two movements are made shortly after each other the
-			//previous check (dir && pos) won't suffice, eg:
-			// client makes move #1
-			// client makes move #2
-			// receives move #1 <-- different from current dir & pos
-			// recieves move #2
-			// console.log(lastClientsideMoves);
-			if (lastClientsideMoves.length > 0) {
-				var lastClientsideMove = lastClientsideMoves.shift();
-				if (
-					lastClientsideMove.dir == newDir &&
-					lastClientsideMove.pos[0] == newPos[0] &&
-					lastClientsideMove.pos[1] == newPos[1]
-				) {
-					doSetPos = false;
-					// console.log("new dir is same as last isClientside move");
-					// console.log("doSetPos = false;");
-				} else {
-					lastClientsideMoves = [];
-					// console.log("empty lastClientsideMoves");
-				}
-			}
-
-			if (player.dir == 4 || newDir == 4) { //is paused or is about to be paused
-				// console.log("player.dir == 4 or newDir == 4, doSetPos = true");
-				doSetPos = true;
-			}
-
-			// console.log("doSetPos:",doSetPos);
-			if (doSetPos) {
-				// console.log("==================doSetPos is true================");
-				myNextDir = newDir;
-				changeMyDir(newDir, newPos, false, false);
-				//doSetPos is true, so the server thinks the player is somewhere
-				//else than the client thinks he is. To prevent the trail from
-				//getting messed up, request the full trail
-				startRequestMyTrail();
-				sendDirQueue = [];
-			}
-
-			//always set the server position
-			player.serverPos = [newPosOffset[0], newPosOffset[1]];
-			player.serverDir = newDir;
-
-			removeBlocksOutsideViewport(player.pos);
-		} else {
-			player.dir = newDir;
-		}
-
-		if (doSetPos) {
-			player.pos = newPosOffset;
-			// console.log("doSetPos",newPosOffset);
-
-			var extendTrailFlagSet = data.length > 8;
-			if (extendTrailFlagSet) {
-				var extendTrail = data[8] == 1;
-				if (extendTrail) {
-					trailPush(player, newPos);
-				} else {
-					player.trails.push({
-						trail: [],
-						vanishTimer: 0,
-					});
-				}
-			}
-		}
-
-		if (!player.drawPosSet) {
-			player.drawPos = [player.pos[0], player.pos[1]];
-			player.drawPosSet = true;
-		}
-	}
-	if (data[0] == receiveAction.FILL_AREA) {
-		x = bytesToInt(data[1], data[2]);
-		y = bytesToInt(data[3], data[4]);
-		w = bytesToInt(data[5], data[6]);
-		h = bytesToInt(data[7], data[8]);
-		type = data[9];
-		const pattern = data[10];
-		const isEdgeChunk = data[11];
-		fillArea(x, y, w, h, type, pattern, undefined, isEdgeChunk);
-	}
-	if (data[0] == receiveAction.SET_TRAIL) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		var newTrail = [];
-		//wether the new trail should replace the old trail (don't play animation)
-		//or append it to the trails list (do play animation)
-		var replace = false;
-		for (i = 3; i < data.length; i += 4) {
-			var coord = [bytesToInt(data[i], data[i + 1]), bytesToInt(data[i + 2], data[i + 3])];
-			newTrail.push(coord);
-		}
-		if (player.isMyPlayer) {
-			if (skipTrailRequestResponse) {
-				skipTrailRequestResponse = false;
-				trailPushesDuringRequest = [];
-			} else {
-				if (isRequestingMyTrail) {
-					isRequestingMyTrail = false;
-					replace = true;
-					for (i = 0; i < trailPushesDuringRequest.length; i++) {
-						newTrail.push(trailPushesDuringRequest[i]);
-					}
-					trailPushesDuringRequest = [];
-				}
-				//if last trail was emtpy (if entering enemy land) send a request for the new trail
-				if (player.trails.length > 0) {
-					var lastTrail = player.trails[player.trails.length - 1];
-					if (lastTrail.trail.length <= 0 && newTrail.length > 0) {
-						startRequestMyTrail();
-					}
-				}
-			}
-		}
-		if (replace) {
-			if (player.trails.length > 0) {
-				var last = player.trails[player.trails.length - 1];
-				last.trail = newTrail;
-				last.vanishTimer = 0;
-			} else {
-				replace = false;
-			}
-		}
-		if (!replace) {
-			player.trails.push({
-				trail: newTrail,
-				vanishTimer: 0,
-			});
-		}
-	}
-	if (data[0] == receiveAction.EMPTY_TRAIL_WITH_LAST_POS) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		if (player.trails.length > 0) {
-			var prevTrail = player.trails[player.trails.length - 1].trail;
-			if (prevTrail.length > 0) {
-				x = bytesToInt(data[3], data[4]);
-				y = bytesToInt(data[5], data[6]);
-				prevTrail.push([x, y]);
-			}
-		}
-
-		//fix for trailing while in own land
-		//when your ping is high and trail very short
-		//(one block or so) you'll start trailing
-		//in your own land. It's a ghost trail and you make
-		//ghost deaths every time you hit the line
-		if (player.isMyPlayer && isRequestingMyTrail) {
-			skipTrailRequestResponse = true;
-		}
-
-		player.trails.push({
-			trail: [],
-			vanishTimer: 0,
+		one_game.addEventListener('update_my_rank', ev => {
+			left_stats.rank_update(ev.detail.rank,ev.detail.total_players)
 		});
-	}
-	if (data[0] == receiveAction.PLAYER_DIE) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		if (data.length > 3) {
-			x = bytesToInt(data[3], data[4]);
-			y = bytesToInt(data[5], data[6]);
-			player.pos = [x, y];
-		}
-		player.die(true);
-	}
-	if (data[0] == receiveAction.CHUNK_OF_BLOCKS) {
-		x = bytesToInt(data[1], data[2]);
-		y = bytesToInt(data[3], data[4]);
-		w = bytesToInt(data[5], data[6]);
-		h = bytesToInt(data[7], data[8]);
-		i = 9;
-		for (j = x; j < x + w; j++) {
-			for (var k = y; k < y + h; k++) {
-				block = getBlock(j, k);
-				block.setBlockId(data[i], false);
-				i++;
-			}
-		}
-		if (!hasReceivedChunkThisGame) {
-			hasReceivedChunkThisGame = true;
-			wsSendMsg(sendAction.READY);
-			didSendSecondReady = true;
-		}
-	}
-	if (data[0] == receiveAction.REMOVE_PLAYER) {
-		id = bytesToInt(data[1], data[2]);
-		for (i = players.length - 1; i >= 0; i--) {
-			player = players[i];
-			if (id == player.id) {
-				players.splice(i, 1);
-			}
-		}
-	}
-	if (data[0] == receiveAction.PLAYER_NAME) {
-		id = bytesToInt(data[1], data[2]);
-		nameBytes = data.subarray(3, data.length);
-		var name = Utf8ArrayToStr(nameBytes);
-		player = getPlayer(id);
-		player.name = filter(name);
-	}
-	if (data[0] == receiveAction.MY_SCORE) {
-		var score = bytesToInt(data[1], data[2], data[3], data[4]);
-		var kills = 0;
-		if (data.length > 5) {
-			kills = bytesToInt(data[5], data[6]);
-		}
-		scoreStatTarget = score;
-		realScoreStatTarget = score + kills * 500;
-		myKillsElem.innerHTML = kills;
-	}
-	if (data[0] == receiveAction.MY_RANK) {
-		myRank = bytesToInt(data[1], data[2]);
-		myRankSent = true;
-		updateStats();
-	}
-	if (data[0] == receiveAction.LEADERBOARD) {
-		leaderboardElem.innerHTML = "";
-		totalPlayers = bytesToInt(data[1], data[2]);
-		updateStats();
-		i = 3;
-		var rank = 1;
-		while (true) {
-			if (i >= data.length) {
-				break;
-			}
-			var thisPlayerScore = bytesToInt(data[i], data[i + 1], data[i + 2], data[i + 3]);
-			var nameLen = data[i + 4];
-			nameBytes = data.subarray(i + 5, i + 5 + nameLen);
-			var thisPlayerName = Utf8ArrayToStr(nameBytes);
-
-			//create table row
-			var tr = document.createElement("tr");
-			tr.className = "scoreRank";
-			var rankElem = document.createElement("td");
-			rankElem.innerHTML = "#" + rank;
-			tr.appendChild(rankElem);
-			var nameElem = document.createElement("td");
-			nameElem.innerHTML = filter(htmlEscape(thisPlayerName));
-			tr.appendChild(nameElem);
-			var scoreElem = document.createElement("td");
-			scoreElem.innerHTML = thisPlayerScore;
-			tr.appendChild(scoreElem);
-			leaderboardElem.appendChild(tr);
-
-			i = i + 5 + nameLen;
-			rank++;
-		}
-		if (totalPlayers < 30 && doRefreshAfterDie && closeNotification === null) {
-			closeNotification = doTopNotification("This server is about to close, refresh to join a full server.");
-		}
-	}
-	if (data[0] == receiveAction.MAP_SIZE) {
-		mapSize = bytesToInt(data[1], data[2]);
-	}
-	if (data[0] == receiveAction.YOU_DED) {
-		if (data.length > 1) {
-			lastStatBlocks = bytesToInt(data[1], data[2], data[3], data[4]);
-			if (lastStatBlocks > bestStatBlocks) {
-				bestStatBlocks = lastStatBlocks;
-				lsSet("bestStatBlocks", bestStatBlocks);
-			}
-			lastStatKills = bytesToInt(data[5], data[6]);
-			if (lastStatKills > bestStatKills) {
-				bestStatKills = lastStatKills;
-				lsSet("bestStatKills", bestStatKills);
-			}
-			lastStatLbRank = bytesToInt(data[7], data[8]);
-			if ((lastStatLbRank < bestStatLbRank || bestStatLbRank <= 0) && lastStatLbRank > 0) {
-				bestStatLbRank = lastStatLbRank;
-				lsSet("bestStatLbRank", bestStatLbRank);
-			}
-			lastStatAlive = bytesToInt(data[9], data[10], data[11], data[12]);
-			if (lastStatAlive > bestStatAlive) {
-				bestStatAlive = lastStatAlive;
-				lsSet("bestStatAlive", bestStatAlive);
-			}
-			lastStatNo1Time = bytesToInt(data[13], data[14], data[15], data[16]);
-			if (lastStatNo1Time > bestStatNo1Time) {
-				bestStatNo1Time = lastStatNo1Time;
-				lsSet("bestStatNo1Time", bestStatNo1Time);
-			}
-			lastStatDeathType = data[17];
-			lastStatKiller = "";
-			document.getElementById("lastStats").style.display = null;
-			document.getElementById("bestStats").style.display = null;
-			lastStatCounter = 0;
-			lastStatTimer = 0;
-			lastStatValueElem.innerHTML = bestStatValueElem.innerHTML = "";
-			switch (lastStatDeathType) {
-				case 1:
-					if (data.length > 18) {
-						nameBytes = data.subarray(18, data.length);
-						lastStatKiller = Utf8ArrayToStr(nameBytes);
-					}
-					break;
-				case 2:
-					lastStatKiller = "the wall";
-					break;
-				case 3:
-					lastStatKiller = "yourself";
-					break;
-			}
-		}
-		closedBecauseOfDeath = true;
-		allowSkipDeathTransition = true;
-		hideBanners();
-		refreshBanner();
-		//show newsbox
-		document.getElementById("newsbox").style.display = null;
-		deathTransitionTimeout = window.setTimeout(function () {
-			// resetAll();
-			if (skipDeathTransition) {
-				doTransition("", false, function () {
-					onClose();
-					resetAll();
-				});
-			} else {
-				// console.log("before doTransition",isTransitioning);
-				doTransition("GAME OVER", true, null, function () {
-					onClose();
-					resetAll();
-					initVideoAdsScript();
-				}, true);
-				// console.log("after doTransition",isTransitioning);
-			}
-			deathTransitionTimeout = null;
-		}, 1000);
-	}
-	if (data[0] == receiveAction.MINIMAP) {
-		var part = data[1];
-		var xOffset = part * 20;
-		minimapCtx.clearRect(xOffset * 2, 0, 40, 160);
-		minimapCtx.fillStyle = "#000000";
-		for (i = 1; i < data.length; i++) {
-			for (j = 0; j < 8; j++) {
-				var filled = (data[i] & (1 << j)) !== 0;
-				if (filled) {
-					var bitNumber = (i - 2) * 8 + j;
-					x = Math.floor(bitNumber / 80) % 80 + xOffset;
-					y = bitNumber % 80;
-					minimapCtx.fillRect(x * 2, y * 2, 2, 2);
-				}
-			}
-		}
-	}
-	if (data[0] == receiveAction.PLAYER_SKIN) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		if (player.isMyPlayer) {
-			myColorId = data[3];
-			colorUI();
-		}
-		player.skinBlock = data[3];
-	}
-	if (data[0] == receiveAction.READY) {
-		playingAndReady = true;
-		if (!isTransitioning) {
-			isTransitioning = true;
-			onConnectOrMiddleOfTransition();
-		}
-	}
-	if (data[0] == receiveAction.PLAYER_HIT_LINE) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		var pointsColor = getColorForBlockSkinId(data[3]);
-		x = bytesToInt(data[4], data[5]);
-		y = bytesToInt(data[6], data[7]);
-		var hitSelf = false;
-		if (data.length > 8) {
-			hitSelf = data[8] == 1;
-		}
-		player.addHitLine([x, y], pointsColor, hitSelf);
-		if (player.isMyPlayer && !hitSelf) {
-			doCamShakeDir(player.dir, 10, false);
-		}
-	}
-	if (data[0] == receiveAction.REFRESH_AFTER_DIE) {
-		doRefreshAfterDie = true;
-	}
-	if (data[0] == receiveAction.PLAYER_HONK) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		var time = data[3];
-		player.doHonk(time);
-	}
-	if (data[0] == receiveAction.PONG) {
-		var ping = Date.now() - lastPingTime;
-		var thisDiff = Math.abs(ping - thisServerLastPing);
-		thisServerDiffPing = Math.max(thisServerDiffPing, thisDiff);
-		thisServerDiffPing = lerp(thisDiff, thisServerDiffPing, 0.5);
-		thisServerAvgPing = lerp(thisServerAvgPing, ping, 0.5);
-		thisServerLastPing = ping;
-		lastPingTime = Date.now();
-		waitingForPing = false;
-	}
-	if (data[0] == receiveAction.UNDO_PLAYER_DIE) {
-		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
-		player.undoDie();
-	}
-	if (data[0] == receiveAction.TEAM_LIFE_COUNT) {
-		var currentLives = data[1];
-		var totalLives = data[2];
-		setLives(currentLives, totalLives);
-	}
-}
-
-//send a message to the websocket, returns true if successful
-function wsSendMsg(action, data) {
-	var utf8Array;
-	if (!!ws && ws.readyState == WebSocket.OPEN) {
-		var array = [action];
-		if (action == sendAction.UPDATE_DIR) {
-			array.push(data.dir);
-			var coordBytesX = intToBytes(data.coord[0], 2);
-			array.push(coordBytesX[0]);
-			array.push(coordBytesX[1]);
-			var coordBytesY = intToBytes(data.coord[1], 2);
-			array.push(coordBytesY[0]);
-			array.push(coordBytesY[1]);
-		}
-		if (
-			action == sendAction.SET_USERNAME || action == sendAction.SET_TEAM_USERNAME ||
-			action == sendAction.PATREON_CODE
-		) {
-			utf8Array = toUTF8Array(data);
-			array.push.apply(array, utf8Array);
-		}
-		if (action == sendAction.SKIN) {
-			array.push(data.blockColor);
-			array.push(data.pattern);
-		}
-		if (action == sendAction.REQUEST_CLOSE) {
-			for (var i = 0; i < data.length; i++) {
-				array.push(data[i]);
-			}
-		}
-		if (action == sendAction.HONK) {
-			array.push(data);
-		}
-		if (action == sendAction.MY_TEAM_URL) {
-			utf8Array = toUTF8Array(data);
-			array.push.apply(array, utf8Array);
-		}
-		if (action == sendAction.VERSION) {
-			array.push(data.type);
-			var verBytes = intToBytes(data.ver, 2);
-			array.push(verBytes[0]);
-			array.push(verBytes[1]);
-		}
-		var payload = new Uint8Array(array);
-		try {
-			ws.send(payload);
-			return true;
-		} catch (ex) {
-			console.log("error sending message", action, data, array, ex);
-		}
+		one_game.addEventListener('update_my_score', ev => {
+			left_stats.score_update(ev.detail.kills,ev.detail.blocks);
+		});
+		return true;
 	}
 	return false;
 }
 
 //basically like refreshing the page
 function resetAll() {
-	if (!!ws && ws.readyState == WebSocket.OPEN) {
-		ws.close();
-	}
-	ws = null;
-	isConnecting = false;
-	blocks = [];
-	players = [];
-	camPosSet = false;
+	connection_worker.postMessage({
+		request: "close_connection",
+	});
+	/* if(one_game.listing){
+		const option = document.createElement('option');
+		option.value = one_game.listing;
+		option.text = "Replay #" + one_game.listing;
+		document.getElementById("replayGroup").append(option);
+	} */
+	one_game = null;
+	game_state.reset();
+	main_canvas.reset();
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
-	myPos = null;
-	myRank = 0;
-	scoreStat =
-		scoreStatTarget =
-		realScoreStat =
-		realScoreStatTarget =
-			25;
-	myRankSent = false;
-	totalPlayers = 0;
+	left_stats.reset();
 	playingAndReady = false;
-	camShakeForces = [];
-	resetTitleNextFrame = true;
+	title_canvas.resetNextFrame = true;
 	allowSkipDeathTransition = false;
 	skipDeathTransition = false;
-	minimapCtx.clearRect(0, 0, 160, 160);
-	hasReceivedChunkThisGame = false;
-	didSendSecondReady = false;
+	minimap_canvas.reset();
 	showBeginHideMainCanvas();
 	if (doRefreshAfterDie) {
 		location.reload();
 	}
-	var s = document.body.style;
+	const s = document.body.style;
 	s.webkitFilter = s.filter = null;
-	for (var topNotificationI = currentTopNotifications.length - 1; topNotificationI >= 0; topNotificationI--) {
-		var thisTopNotification = currentTopNotifications[topNotificationI];
-		thisTopNotification.destroy();
-	}
-	currentTopNotifications = [];
-	sendDirQueue = [];
-	clearAllLives();
-}
-
-//initiate tutorialBlocks and tutorialPlayers
-function initTutorial() {
-	tutorialBlocks = [];
-	for (var x = 0; x < 10; x++) {
-		for (var y = 0; y < 10; y++) {
-			var block = getBlock(x, y, tutorialBlocks);
-			var id = 1;
-			if (x >= 1 && x <= 3 && y >= 1 && y <= 3) {
-				id = 10;
-			}
-			block.setBlockId(id, false);
-		}
-	}
-	tutorialPlayers = [];
-	var p1 = getPlayer(1, tutorialPlayers);
-	p1.skinBlock = 8;
-	p1.hasReceivedPosition = true;
-	var p2 = getPlayer(2, tutorialPlayers);
-	p2.skinBlock = 0;
-	p2.pos = [-2, 7];
-	p2.hasReceivedPosition = true;
-}
-
-//initiate skinScreenBlocks and buttons
-function initSkinScreen() {
-	skinButtonCanvas = document.getElementById("skinButton");
-	skinButtonShadow = document.getElementById("skinButtonShadow");
-	skinButtonCtx = skinButtonCanvas.getContext("2d");
-	skinButtonCanvas.onclick = function () {
-		if (!ws && !isTransitioning && !playingAndReady) {
-			doTransition("", false, openSkinScreen);
-		}
-	};
-
-	var currentColor = localStorage.getItem("skinColor");
-	if (currentColor === null) {
-		currentColor = 0;
-	}
-	currentColor = parseInt(currentColor);
-
-	var currentPattern = localStorage.getItem("skinPattern");
-	if (currentPattern === null) {
-		currentPattern = 0;
-	}
-	currentPattern = parseInt(currentPattern);
-
-	skinScreenBlocks = [];
-	fillArea(0, 0, VIEWPORT_RADIUS * 2, VIEWPORT_RADIUS * 2, currentColor + 1, currentPattern, skinScreenBlocks);
-
-	document.getElementById("prevColor").onclick = function () {
-		skinButton(-1, 0);
-	};
-	document.getElementById("nextColor").onclick = function () {
-		skinButton(1, 0);
-	};
-	document.getElementById("prevPattern").onclick = function () {
-		skinButton(-1, 1);
-	};
-	document.getElementById("nextPattern").onclick = function () {
-		skinButton(1, 1);
-	};
-	document.getElementById("skinSave").onclick = function () {
-		doTransition("", false, showBeginHideSkin);
-	};
-
-	var block = getBlock(0, 0, skinButtonBlocks);
-	block.setBlockId(currentColor + 1, false);
-
-	skinButtonCanvas.onmouseover = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		currentColor = parseInt(currentColor);
-		if (currentColor > 0) {
-			skinButtonBlocks[0].setBlockId(currentColor + 1 + SKIN_BLOCK_COUNT, false);
-		}
-	};
-	skinButtonCanvas.onmouseout = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		skinButtonBlocks[0].setBlockId(parseInt(currentColor) + 1, false);
-	};
-}
-
-//initiate title players
-function initTitle() {
-	for (var lineI = 0; lineI < titleLines.length; lineI++) {
-		var thisLine = titleLines[lineI];
-		for (var subLineI = 0; subLineI < thisLine.line.length; subLineI++) {
-			var thisSubLine = thisLine.line[subLineI];
-			for (var coordI = 0; coordI < thisSubLine.length; coordI += 2) {
-				thisSubLine[coordI] += thisLine.posOffset[0] - 40;
-				thisSubLine[coordI + 1] += thisLine.posOffset[1] - 20;
-			}
-		}
-	}
-	titCanvas = document.getElementById("logoCanvas");
-	titCtx = titCanvas.getContext("2d");
+	TopNotification.reset_all();
+	life_box.clearAllLives();
 }
 
 function testHashForMobile() {
 	if (deviceType != DeviceTypes.DESKTOP) {
-		var hash = location.hash;
+		const hash = location.hash;
 		if (hash != "" && hash != "#pledged") {
-			var confirmText = "Would you like to join this server in the app?";
+			const confirmText = "Would you like to join this server in the app?";
 			if (confirm(confirmText)) {
 				didConfirmOpenInApp = true;
 				openSplixApp(hash.substring(1, hash.length));
@@ -2275,196 +5082,17 @@ function testHashForMobile() {
 }
 
 function openSplixApp(data) {
-	var url = location.href = "splix://" + data;
+	const url = location.href = "splix://" + data;
 	if (deviceType == DeviceTypes.ANDROID && navigator.userAgent.toLowerCase().indexOf("chrome") > -1) {
 		window.document.body.innerHTML = "Chrome doesn't like auto redirecting, click <a href=\"" + url +
 			'">here</a> to open the splix.io app.';
 	}
 }
 
-//request canrunads js
-var canRunAdsRequested = false;
-function requestCanRunAds() {
-	if (!canRunAdsRequested && testPatreonAdsAllowed()) {
-		fetch("https://api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js", { mode: "no-cors" }).then(
-			function () {
-				canRunAds = true;
-				canRunAdsRequested = true;
-			},
-			function () {
-				//failed, can't run ads
-				canRunAdsRequested = true;
-			},
-		);
-	}
-}
 
-var initVidAdsCalled = false;
-var adplayer;
-function initVideoAdsScript() {
-	requestCanRunAds();
-
-	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
-		initVidAdsCalled = true;
-		aiptag.cmd.player.push(function () {
-			adplayer = new aipPlayer({
-				AD_WIDTH: 960,
-				AD_HEIGHT: 540,
-				AD_FULLSCREEN: false,
-				AD_CENTERPLAYER: false,
-				LOADING_TEXT: "loading advertisement",
-				PREROLL_ELEM: function () {
-					return prerollElem;
-				},
-				AIP_COMPLETE: function (AD_TYPE) {
-					console.log("Ad: " + AD_TYPE + " Completed");
-					onAdFinish();
-				},
-				AIP_REMOVE: function () {},
-			});
-		});
-	}
-}
-
-var prerollElem, isWaitingForAd = false, boltIsRendered = false;
-function displayAd() {
-	isWaitingForAd = true;
-	formElem.style.display = "none";
-	prerollElem.style.display = null;
-
-	aiptag.cmd.player.push(function () {
-		adplayer.startPreRoll();
-	});
-	onAdLoaded();
-
-	scrollAd();
-}
-
-var prerollIsVisible = false;
-function onAdLoaded(evt) {
-	lsSet("refreshDuringAd", "true");
-	prerollIsVisible = true;
-	hideBanners();
-}
-
-function scrollAd() {
-	var top = prerollElem.offsetTop;
-	var bottom = top + prerollElem.offsetHeight;
-	var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-	var scrollBottom = scrollTop + window.innerHeight;
-	var middle = (top + bottom) / 2;
-	if (top < scrollTop || bottom > scrollBottom) {
-		window.scroll(0, middle - window.innerHeight / 2);
-	}
-}
-
-function onAdFinish() {
-	countAd();
-	lsSet("refreshDuringAd", "");
-	prerollIsVisible = false;
-	lsSet("lastAdTime", Date.now());
-	formElem.style.display = null;
-	prerollElem.style.display = "none";
-	isConnectingWithTransition = false;
-	isWaitingForAd = false;
-	connectWithTransition(true);
-}
-
-function getAdCounter() {
-	var adCounter = localStorage.adCounter;
-	if (adCounter === undefined) {
-		adCounter = 0;
-	}
-	adCounter = parseInt(adCounter);
-	if (isNaN(adCounter)) {
-		adCounter = 0;
-	}
-	return adCounter;
-}
-
-function countAd() {
-	var adCounter = getAdCounter();
-	adCounter++;
-	if (adCounter > 5) {
-		adCounter = 0;
-	}
-	lsSet("adCounter", adCounter);
-}
-/* jshint ignore:end */
-
-function refreshBanner() {
-	if (testPatreonAdsAllowed()) {
-		aiptag.cmd.display.push(function () {
-			aipDisplayTag.display("JTE_splix-io_300x250");
-		});
-	}
-}
-
-function showBanner() {
-	if (!prerollIsVisible) {
-		adBox.style.visibility = null;
-	}
-}
-
-function showBanner2() {
-	if (!prerollIsVisible) {
-		adBox2.style.visibility = null;
-	}
-}
-
-function hideBanners() {
-	adBox.style.visibility = adBox2.style.visibility = "hidden";
-}
-
-function setAdBoxLeft() {
-	adBox.style.left = "-" + (adBox.clientWidth + 20) + "px";
-}
-
-function setUpAdBoxContent() {
-	adBoxContentDiv = document.createElement("div");
-	adBoxContentDiv2 = document.createElement("div");
-	adBoxContentDiv.id = "JTE_splix-io_300x250";
-	adBox.appendChild(adBoxContentDiv);
-	adBox2.appendChild(adBoxContentDiv2);
-}
-
-function onAdBoxLoaded() {
-	showBanner();
-	setAdBoxLeft();
-}
-
-function onAdBox2Loaded() {
-	showBanner2();
-}
-
-var adBoxContentDiv = null, prevAdboxContentWidth = 0, prevAdboxContentHeight = 0, adBox = null;
-function testAdBoxLoaded() {
-	if (!adBoxContentDiv) {
-		return;
-	}
-	if (
-		prevAdboxContentWidth != adBoxContentDiv.clientWidth || prevAdboxContentHeight != adBoxContentDiv.clientHeight
-	) {
-		prevAdboxContentWidth = adBoxContentDiv.clientWidth;
-		prevAdboxContentHeight = adBoxContentDiv.clientHeight;
-		onAdBoxLoaded();
-	}
-}
-var adBoxContentDiv2 = null, prevAdbox2ContentWidth = 0, prevAdbox2ContentHeight = 0, adBox2 = null;
-function testAdBox2Loaded() {
-	if (!adBoxContentDiv2) return;
-	if (
-		prevAdbox2ContentWidth != adBoxContentDiv2.clientWidth ||
-		prevAdbox2ContentHeight != adBoxContentDiv2.clientHeight
-	) {
-		prevAdbox2ContentWidth = adBoxContentDiv2.clientWidth;
-		prevAdbox2ContentHeight = adBoxContentDiv2.clientHeight;
-		onAdBox2Loaded();
-	}
-}
 
 //called when moving mouse/ clicking
-function showCursor() {
+const showCursor = () => {
 	document.body.style.cursor = null;
 }
 
@@ -2475,9 +5103,9 @@ function updateCmpPersistentLinkVisibility() {
 	}
 }
 
-function popUp(url, w, h) {
-	var left = (screen.width / 2) - (w / 2);
-	var top = (screen.height / 2) - (h / 2);
+const popUp = (url, w, h) => {
+	const left = (screen.width / 2) - (w / 2);
+	const top = (screen.height / 2) - (h / 2);
 	window.open(
 		url,
 		"_blank",
@@ -2488,319 +5116,69 @@ function popUp(url, w, h) {
 
 //sets the right color for UI
 //by skinId
-function colorUI() {
-	var c = getColorForBlockSkinId(myColorId);
-	var mainColor = c.brighter;
-	var edgeColor = c.darker;
-	for (var i = 0; i < uiElems.length; i++) {
-		var thisElem = uiElems[i];
-		colorBox(thisElem, mainColor, edgeColor);
+const colorUI = () => {
+	const c = getColorForBlockSkinId(game_state.my_player.skinBlock);
+	const mainColor = c.brighter;
+	const edgeColor = c.darker;
+	for (const elem of uiElems) {
+		colorBox(elem, mainColor, edgeColor);
 	}
 }
 
-//styles an element with mainColor and edgeColor;
-function colorBox(elem, mainColor, edgeColor) {
-	elem.style.backgroundColor = mainColor;
-	elem.style.boxShadow = "1px 1px " + edgeColor + "," +
-		"2px 2px " + edgeColor + "," +
-		"3px 3px " + edgeColor + "," +
-		"4px 4px " + edgeColor + "," +
-		"5px 5px " + edgeColor + "," +
-		"10px 30px 80px rgba(0,0,0,0.3)";
-}
-
-//called when a skinbutton is pressed
-//add = -1 or 1 (increment/decrement)
-//type = 0 (color) or 1 (pattern)
-function skinButton(add, type) {
-	if (type === 0) {
-		var oldC = localStorage.getItem("skinColor");
-		var hiddenCs = [];
-		if (localStorage.patreonLastPledgedValue >= 300) {
-			//access to patreon color
-		} else {
-			hiddenCs.push(13);
-		}
-		if (oldC === null) {
-			oldC = 0;
-		}
-		oldC = parseInt(oldC);
-		var cFound = false;
-		while (!cFound) {
-			oldC += add;
-			oldC = mod(oldC, SKIN_BLOCK_COUNT + 1);
-			if (hiddenCs.indexOf(oldC) < 0) {
-				cFound = true;
-			}
-		}
-		lsSet("skinColor", oldC);
-	} else if (type == 1) {
-		var oldP = localStorage.getItem("skinPattern");
-		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
-		if (localStorage.patreonLastPledgedValue > 0) {
-			//access to patreon pattern
-		} else {
-			hiddenPs.push(27);
-		}
-		if (oldP === null) {
-			oldP = 0;
-		}
-		oldP = parseInt(oldP);
-		var pFound = false;
-		while (!pFound) {
-			oldP += add;
-			oldP = mod(oldP, SKIN_PATTERN_COUNT);
-			if (hiddenPs.indexOf(oldP) < 0) {
-				pFound = true;
-			}
-		}
-		lsSet("skinPattern", oldP);
-	}
-
-	updateSkin();
-}
-
-function updateSkin() {
-	var blockId = parseInt(localStorage.skinColor) + 1;
-	fillArea(
+const updateSkin = () => {
+	const blockId = parseInt(localStorage.skinColor) + 1;
+	skin_screen.state.fillArea(
 		0,
 		0,
 		VIEWPORT_RADIUS * 2,
 		VIEWPORT_RADIUS * 2,
 		blockId,
 		parseInt(localStorage.skinPattern),
-		skinScreenBlocks,
 	);
-	skinButtonBlocks[0].setBlockId(blockId);
-}
-
-//lives stuff
-var lives = [];
-var lifeBox;
-function clearAllLives() {
-	lifeBox.innerHTML = "";
-	lives = [];
-}
-
-function setLives(current, total) {
-	var life, i;
-	var oldLength = lives.length;
-	for (i = 0; i < total - oldLength; i++) {
-		var el = document.createElement("canvas");
-		el.style.margin = "-15px";
-		var ctx = el.getContext("2d");
-		life = {
-			node: el,
-			ctx: ctx,
-			timer: 0,
-			animDir: 0,
-			isLife: true,
-			render: function (dt, force) {
-				if (this.animDir !== 0 || force) {
-					this.timer += dt * this.animDir * 0.002;
-					if (this.animDir == 1) {
-						if (this.timer > 1) {
-							this.timer = 1;
-							this.afterAnimate();
-						}
-					} else {
-						if (this.timer < 0) {
-							this.timer = 0;
-							this.afterAnimate();
-						}
-					}
-					canvasTransformType = canvasTransformTypes.LIFE;
-					ctxApplyCamTransform(this.ctx, true, true);
-					this.ctx.fillStyle = "rgba(0,0,0,0.3)";
-					this.drawHeart(false, 15.7, 15.7);
-
-					if (this.animDir == 1) {
-						this.ctx.fillStyle = colors.red.darker;
-						this.ctx.translate(30, 30);
-						var s = this.timer;
-						if (s < 0.8) {
-							s = lerp(0, 1.2, ease.in(iLerp(0, 0.8, s)));
-						} else {
-							s = lerp(1.2, 1, ease.in(iLerp(0.8, 1, s)));
-						}
-						var r = (1 - s) * 0.5;
-						this.ctx.rotate(r);
-						this.ctx.scale(s, s);
-						this.ctx.translate(-30, -30);
-						this.drawHeart(false, 15.7, 15.7);
-						this.ctx.fillStyle = colors.red.brighter;
-						this.drawHeart(false, 14.3, 14.3);
-						this.ctx.restore();
-					} else {
-						this.ctx.globalAlpha = this.timer;
-						this.ctx.fillStyle = colors.red.darker;
-						this.drawHeart(true, 15.7, 15.7);
-						this.ctx.fillStyle = colors.red.brighter;
-						this.drawHeart(true, 14.3, 14.3);
-						this.ctx.restore();
-					}
-				}
-			},
-			drawHeart: function (useTimer, xo, yo) { //xo = xOffset, yo = yOffset
-				if (!useTimer || this.timer == 1) {
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + xo, 12 + yo);
-					this.ctx.bezierCurveTo(15 + xo, 3 + yo, 27 + xo, 3 + yo, 27 + xo, 12 + yo);
-					this.ctx.bezierCurveTo(27 + xo, 18 + yo, 15 + xo, 27 + yo, 15 + xo, 27 + yo);
-					this.ctx.bezierCurveTo(15 + xo, 27 + yo, 3 + xo, 18 + yo, 3 + xo, 12 + yo);
-					this.ctx.bezierCurveTo(3 + xo, 3 + yo, 15 + xo, 3 + yo, 15 + xo, 12 + yo);
-					this.ctx.fill();
-				} else {
-					var txo, tyo; //time x/y offset
-					var t = ease.out(1 - this.timer);
-
-					txo = xo + t * 3;
-					tyo = yo - t * 12;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(15 + txo, 12 + tyo);
-					this.ctx.bezierCurveTo(15 + txo, 8.1 + tyo, 17.4 + txo, 5.25 + tyo, 21 + txo, 5.25 + tyo);
-					this.ctx.fill();
-
-					txo = xo + t * 9;
-					tyo = yo - t * 1.5;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(21 + txo, 5.25 + tyo);
-					this.ctx.bezierCurveTo(24 + txo, 5.25 + tyo, 27 + txo, 7.5 + tyo, 27 + txo, 12 + tyo);
-					this.ctx.bezierCurveTo(27 + txo, 15.3 + tyo, 23.25 + txo, 19.35 + tyo, 23.1 + txo, 19.5 + tyo);
-					this.ctx.fill();
-
-					txo = xo + t * 6;
-					tyo = yo + t * 9;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(23.1 + txo, 19.5 + tyo);
-					this.ctx.bezierCurveTo(23.1 + txo, 19.8 + tyo, 17.55 + txo, 25.11 + tyo, 17.1 + txo, 25.35 + tyo);
-					this.ctx.fill();
-
-					txo = xo - t * 1.5;
-					tyo = yo + t * 9;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(17.1 + txo, 25.35 + tyo);
-					this.ctx.lineTo(15 + txo, 27 + tyo);
-					this.ctx.bezierCurveTo(14.91 + txo, 27 + tyo, 10.5 + txo, 23.28 + tyo, 10.5 + txo, 23.16 + tyo);
-					this.ctx.fill();
-
-					txo = xo - t * 12;
-					tyo = yo + t * 1.5;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(10.5 + txo, 23.16 + tyo);
-					this.ctx.bezierCurveTo(10.5 + txo, 23.16 + tyo, 3 + txo, 16.65 + tyo, 3 + txo, 12 + tyo);
-					this.ctx.fill();
-
-					txo = xo - t * 3;
-					tyo = yo - t * 6;
-					this.ctx.beginPath();
-					this.ctx.moveTo(15 + txo, 16.5 + tyo);
-					this.ctx.lineTo(3 + txo, 12 + tyo);
-					this.ctx.bezierCurveTo(3 + txo, 3 + tyo, 15 + txo, 3 + tyo, 15 + txo, 12 + tyo);
-					this.ctx.fill();
-				}
-			},
-			afterAnimate: function () {
-				this.animDir = 0;
-				this.set(this.isLife);
-			},
-			set: function (isLife) {
-				this.isLife = isLife;
-				if (this.animDir === 0) {
-					if (isLife) {
-						if (this.timer < 1) {
-							this.animDir = 1;
-						}
-					} else {
-						if (this.timer > 0) {
-							this.animDir = -1;
-						}
-					}
-				}
-			},
-		};
-		lifeBox.appendChild(el);
-		lives.push(life);
-		life.render(0, true);
-	}
-	for (i = oldLength - 1; i >= total; i--) {
-		life = lives[i];
-		lifeBox.removeChild(life.node);
-		lives.splice(i, 1);
-	}
-
-	for (i = 0; i < lives.length; i++) {
-		life = lives[i];
-		life.set(current > i);
-	}
-}
-
-function renderAllLives(dt) {
-	for (var i = 0; i < lives.length; i++) {
-		var life = lives[i];
-		life.render(dt);
-	}
+	skin_button.block.setBlockId(blockId);
 }
 
 //engagement meter
-var engagementIsPlaying = localStorage.engagementIsPlaying == "true";
-var engagementLastPlayTime = localStorage.engagementLastPlayTime;
-if (engagementLastPlayTime === undefined) {
-	engagementLastPlayTime = Date.now();
-}
-var engagementLastNoPlayTime = 0;
-var engagementLastChangeTime = localStorage.engagementLastChangeTime;
-if (engagementLastChangeTime === undefined) {
-	engagementLastChangeTime = Date.now();
-}
-var engagementValue = localStorage.engagementValue;
-if (engagementValue === undefined) {
-	engagementValue = 0.5;
-} else {
-	engagementValue = parseFloat(engagementValue);
-}
-function engagementSetIsPlaying(set) {
-	var now = Date.now();
-	if (set != engagementIsPlaying) {
-		lsSet("engagementIsPlaying", set);
-		engagementIsPlaying = set;
-		var lastSet;
-		if (set) {
-			lastSet = engagementLastNoPlayTime;
-		} else {
-			lastSet = engagementLastPlayTime;
+class Engagement {
+	is_playing = localStorage.engagementIsPlaying == "true";
+	last_play_time = localStorage.engagementLastPlayTime ?? Date.now();
+	last_no_play_time = 0;
+	last_change_time = localStorage.engagementLastChangeTime ?? Date.now();
+	value = parseFloat(localStorage.engagementValue ?? "0.5");
+	set_is_playing(set){
+		const now = Date.now();
+		if (set != this.is_playing) {
+			lsSet("engagementIsPlaying", set);
+			this.is_playing = set;
+			const lastSet = set ? this.last_no_play_time : this.last_play_time;
+			const setDiff = (lastSet - this.last_change_time)/20_000;
+			if (set) {
+				//subtract non play time
+				this.value = lerptt(this.value, 0, 0.01, setDiff / 100);
+			} else {
+				//add play time
+				this.value = lerptt(this.value, 1, 0.01, setDiff);
+			}
+			lsSet("engagementValue", this.value);
+			this.last_change_time = now;
+			lsSet("engagementLastChangeTime", now);
 		}
-		var setDiff = lastSet - engagementLastChangeTime;
-		setDiff /= 20000;
 		if (set) {
-			//subtract non play time
-			engagementValue = lerptt(engagementValue, 0, 0.01, setDiff / 100);
+			lsSet("engagementLastPlayTime", now);
+			this.last_play_time = now;
 		} else {
-			//add play time
-			engagementValue = lerptt(engagementValue, 1, 0.01, setDiff);
+			this.last_no_play_time = now;
 		}
-		lsSet("engagementValue", engagementValue);
-		engagementLastChangeTime = now;
-		lsSet("engagementLastChangeTime", now);
-	}
-	if (set) {
-		lsSet("engagementLastPlayTime", now);
-		engagementLastPlayTime = now;
-	} else {
-		engagementLastNoPlayTime = now;
 	}
 }
 
-//patreon stuff
+const engagement = new Engagement(); // TODO: is this really useful ?
+
+//#region patreon stuff
 /* jshint ignore:start */
 function loginWithPatreon() {
 	lsSet("clickedLoginWithPatreonButton", "true");
-	var redirectUri = getPatreonRedirectUri();
+	const redirectUri = getPatreonRedirectUri();
 	window.location =
 		"//www.patreon.com/oauth2/authorize?response_type=code&client_id=29edae8672a352342c2ecda5ff440eda65e5e52ebc7500b02eefb481c94c88b1&scope=users%20pledges-to-me%20my-campaign&redirect_uri=" +
 		encodeURIComponent(redirectUri);
@@ -2812,7 +5190,7 @@ function getPatreonRedirectUri() {
 }
 
 function setPatreonOverlay(visible, content) {
-	var el = document.getElementById("patreonOverlay");
+	const el = document.getElementById("patreonOverlay");
 	el.style.display = visible ? null : "none";
 	if (content !== undefined) {
 		document.getElementById("patreonBox").innerHTML = content;
@@ -2865,8 +5243,8 @@ function testPatreonAdsAllowed() {
 //returns true if a patreon code was found
 function checkPatreonQuery() {
 	//if referred after patreon api login
-	var query = parseQuery(location.href);
-	var found = false;
+	const query = parseQuery(location.href);
+	let found = false;
 	if ("code" in query && localStorage.clickedLoginWithPatreonButton == "true") {
 		if (localStorage.skipPatreon == "true") {
 			console.log("code: ", query.code);
@@ -2890,433 +5268,44 @@ function checkPatreonQuery() {
 	lsSet("clickedLoginWithPatreonButton", "false");
 	return found;
 }
+//#endregion
 
-//remove blocks that are too far away from the camera and are likely
-//to be seen without an updated state
-function removeBlocksOutsideViewport(pos) {
-	for (i = blocks.length - 1; i >= 0; i--) {
-		var block = blocks[i];
-		if (
-			block.x < pos[0] - VIEWPORT_RADIUS * 2 ||
-			block.x > pos[0] + VIEWPORT_RADIUS * 2 ||
-			block.y < pos[1] - VIEWPORT_RADIUS * 2 ||
-			block.y > pos[1] + VIEWPORT_RADIUS * 2
-		) {
-			blocks.splice(i, 1);
-		}
-	}
-}
-
-//gets color object for a player skin id
-function getColorForBlockSkinId(id) {
-	switch (id) {
-		case 0:
-			return colors.red;
-		case 1:
-			return colors.red2;
-		case 2:
-			return colors.pink;
-		case 3:
-			return colors.pink2;
-		case 4:
-			return colors.purple;
-		case 5:
-			return colors.blue;
-		case 6:
-			return colors.blue2;
-		case 7:
-			return colors.green;
-		case 8:
-			return colors.green2;
-		case 9:
-			return colors.leaf;
-		case 10:
-			return colors.yellow;
-		case 11:
-			return colors.orange;
-		case 12:
-			return colors.gold;
-		default:
-			return {
-				brighter: "#000000",
-				darker: "#000000",
-				slightlyBrighter: "#000000",
-			};
-	}
-}
-
-//sets the with/height of a full screen canvas, takes retina displays into account
-function ctxCanvasSize(ctx, dontUseQuality) {
-	var w = window.innerWidth, h = window.innerHeight;
-	if (canvasTransformType == canvasTransformTypes.TUTORIAL) {
-		w = h = 300;
-	}
-	if (canvasTransformType == canvasTransformTypes.SKIN_BUTTON) {
-		w = h = 30;
-	}
-	if (canvasTransformType == canvasTransformTypes.LIFE) {
-		w = h = 60;
-	}
-	if (canvasTransformType == canvasTransformTypes.TITLE) {
-		w = 520;
-		h = 180;
-	}
-	var quality = dontUseQuality ? 1 : canvasQuality;
-	var c = ctx.canvas;
-	// PIXEL_RATIO = 1;
-	c.width = w * MAX_PIXEL_RATIO * quality;
-	c.height = h * MAX_PIXEL_RATIO * quality;
-	var styleRatio = 1;
-	if (canvasTransformType == canvasTransformTypes.TITLE) {
-		styleRatio = Math.min(1, (window.innerWidth - 30) / w);
-	}
-	c.style.width = w * styleRatio + "px";
-	c.style.height = h * styleRatio + "px";
-}
-
-//apply camera transformations on a canvas
-//canvasTransformType is a global that determines what
-//transformation should be used
-var canvasTransformTypes = {
-	MAIN: 1,
-	TUTORIAL: 2,
-	SKIN: 3,
-	SKIN_BUTTON: 4,
-	TITLE: 5,
-	LIFE: 6,
-};
-var canvasTransformType = canvasTransformTypes.MAIN;
-function ctxApplyCamTransform(ctx, setSize, dontUseQuality) {
-	if (setSize) {
-		ctxCanvasSize(ctx, dontUseQuality);
-	}
-	ctx.save();
-	var quality = dontUseQuality ? 1 : canvasQuality;
-	if (canvasTransformType != canvasTransformTypes.MAIN && canvasTransformType != canvasTransformTypes.SKIN) {
-		ctx.setTransform(MAX_PIXEL_RATIO * quality, 0, 0, MAX_PIXEL_RATIO * quality, 0, 0);
-	}
-	if (canvasTransformType == canvasTransformTypes.MAIN || canvasTransformType == canvasTransformTypes.SKIN) {
-		var isMain = canvasTransformType == canvasTransformTypes.MAIN;
-		ctx.translate(mainCanvas.width / 2, mainCanvas.height / 2);
-		var biggest = Math.max(mainCanvas.width, mainCanvas.height);
-		var zoomEdge = biggest / MAX_ZOOM;
-		var pixelsAvailable = mainCanvas.width * mainCanvas.height;
-		var pixelsPerBlock = pixelsAvailable / BLOCKS_ON_SCREEN;
-		var zoomBlocks = Math.sqrt(pixelsPerBlock) / 10;
-		zoom = Math.max(zoomBlocks, zoomEdge);
-		if (isMain) {
-			ctx.rotate(camRotOffset);
-		}
-		ctx.scale(zoom, zoom);
-		if (isMain) {
-			ctx.translate(-camPosPrevFrame[0] * 10 - camPosOffset[0], -camPosPrevFrame[1] * 10 - camPosOffset[1]);
-		} else {
-			ctx.translate(-VIEWPORT_RADIUS * 10, -VIEWPORT_RADIUS * 10);
-		}
-	} else if (
-		canvasTransformType == canvasTransformTypes.TUTORIAL || canvasTransformType == canvasTransformTypes.SKIN_BUTTON
-	) {
-		ctx.scale(3, 3);
-	}
-}
-
-//shakes the camera
-function doCamShake(x, y, doRotate) {
-	if (doRotate === undefined) {
-		doRotate = true;
-	}
-	camShakeForces.push([x, y, 0, !!doRotate]);
-}
-
-//shakes the camera but uses a dir (ranges from 0-3) as input
-function doCamShakeDir(dir, amount, doRotate) {
-	if (amount === undefined) {
-		amount = 6;
-	}
-	var x = 0, y = 0;
-	switch (dir) {
-		case 0:
-			x = amount;
-			break;
-		case 1:
-			y = amount;
-			break;
-		case 2:
-			x = -amount;
-			break;
-		case 3:
-			y = -amount;
-			break;
-	}
-	doCamShake(x, y, doRotate);
-}
-
-//applyes camShakeForces
-function calcCamOffset() {
-	camPosOffset = [0, 0];
-	camRotOffset = 0;
-	for (var i = camShakeForces.length - 1; i >= 0; i--) {
-		var force = camShakeForces[i];
-		force[2] += deltaTime * 0.003;
-		var t = force[2];
-		var t3 = 0, t2 = 0;
-		if (t < 1) {
-			t2 = ease.out(t);
-			t3 = ease.inout(t);
-		} else if (t < 8) {
-			t2 = ease.inout(iLerp(8, 1, t));
-			t3 = ease.in(iLerp(8, 1, t));
-		} else {
-			camShakeForces.splice(i, 1);
-		}
-		camPosOffset[0] += force[0] * t2;
-		camPosOffset[1] += force[1] * t2;
-
-		camPosOffset[0] += force[0] * Math.cos(t * 8) * 0.04 * t3;
-		camPosOffset[1] += force[1] * Math.cos(t * 7) * 0.04 * t3;
-		if (force[3]) {
-			camRotOffset += Math.cos(t * 9) * 0.003 * t3;
-		}
-	}
-	var limit = 80;
-	camPosOffset[0] /= limit;
-	camPosOffset[1] /= limit;
-	camPosOffset[0] = smoothLimit(camPosOffset[0]);
-	camPosOffset[1] = smoothLimit(camPosOffset[1]);
-	camPosOffset[0] *= limit;
-	camPosOffset[1] *= limit;
-}
-
-function lerp(a, b, t) {
-	return a + t * (b - a);
-}
-
-//inverse lerp
-function iLerp(a, b, t) {
-	return (t - a) / (b - a);
-}
-
-//fixed lerp, calls lerp() multiple times when having a lower framerate
-function lerpt(a, b, t) {
-	return lerptt(a, b, t, deltaTime / 16.6666);
-}
-
-//lerps between a and b over t, where tt is the amount of times that lerp should becalled
-function lerptt(a, b, t, tt) {
-	var newT = 1 - Math.pow(1 - t, tt);
-	return lerp(a, b, newT);
-}
-
-//lerps an array
-function lerpA(a, b, t) {
-	var newArray = [];
-	for (var i = 0; i < a.length; i++) {
-		newArray.push(lerp(a[i], b[i], t));
-	}
-	return newArray;
-}
-
-//fixed modulo
-function mod(n, m) {
-	return ((n % m) + m) % m;
-}
-
-//clamp
-function clamp(v, min, max) {
-	return Math.max(min, Math.min(max, v));
-}
-
-function clamp01(v) {
-	return clamp(v, 0, 1);
-}
-
-//returns random item from array
-function randFromArray(array) {
-	return array[Math.floor(Math.random() * array.length)];
-}
-
-//limits a value between -1 and 1 without clamping,
-//v will gradually move towards 1/-1 but will never actually reach it
-function smoothLimit(v) {
-	var negative = v < 0;
-	if (negative) {
-		v *= -1;
-	}
-	v = 1 - Math.pow(2, -v);
-	if (negative) {
-		v *= -1;
-	}
-	return v;
-}
-
-//updates the stats in the bottom left corner
-function updateStats() {
-	if (myRank > totalPlayers && myRankSent) {
-		totalPlayers = myRank;
-	} else if ((totalPlayers < myRank) || (myRank === 0 && totalPlayers > 0)) {
-		myRank = totalPlayers;
-	}
-	myRankElem.innerHTML = myRank;
-	totalPlayersElem.innerHTML = totalPlayers;
-}
-
-//draws a trail on a canvas, can be drawn on multiple canvases
-//when drawCalls contains more than one object
+/** draws a trail on a canvas, can be drawn on multiple canvases
+ * when drawCalls contains more than one object
+ * @param {DrawCall[]} drawCalls 
+ * @param {*} trail 
+ * @param {Vec2?} lastPos 
+ */
 function drawTrailOnCtx(drawCalls, trail, lastPos) {
 	if (trail.length > 0) {
-		for (var ctxI = 0; ctxI < drawCalls.length; ctxI++) {
-			var thisDrawCall = drawCalls[ctxI];
-			var thisCtx = thisDrawCall.ctx;
-			thisCtx.lineCap = "round";
-			thisCtx.lineJoin = "round";
-			thisCtx.lineWidth = 6;
-			thisCtx.strokeStyle = thisDrawCall.color;
-			var offset = thisDrawCall.offset;
+		for (const draw_call of drawCalls) {
+			const ctx = draw_call.ctx;
+			ctx.lineCap = "round";
+			ctx.lineJoin = "round";
+			ctx.lineWidth = 6;
+			ctx.strokeStyle = draw_call.color;
+			const offset = draw_call.offset;
 
-			thisCtx.beginPath();
-			thisCtx.moveTo(trail[0][0] * 10 + offset, trail[0][1] * 10 + offset);
-			for (var i = 1; i < trail.length; i++) {
-				thisCtx.lineTo(trail[i][0] * 10 + offset, trail[i][1] * 10 + offset);
+			ctx.beginPath();
+			ctx.moveTo(trail[0][0] * 10 + offset, trail[0][1] * 10 + offset);
+			for (const segment of trail) {
+				ctx.lineTo(segment[0] * 10 + offset, segment[1] * 10 + offset);
 			}
 			if (lastPos !== null) {
-				thisCtx.lineTo(lastPos[0] * 10 + offset, lastPos[1] * 10 + offset);
+				ctx.lineTo(lastPos[0] * 10 + offset, lastPos[1] * 10 + offset);
 			}
-			thisCtx.stroke();
-		}
-	}
-}
-
-//draws diagonal lines on a canvas, can be used as mask and stuff like that
-function drawDiagonalLines(ctx, color, thickness, spaceBetween, offset) {
-	if (thickness > 0) {
-		ctx.lineCap = "butt";
-		ctx.strokeStyle = color;
-		ctx.lineWidth = thickness;
-		var minSize = VIEWPORT_RADIUS * 20;
-		var xOffset = 0;
-		var yOffset = 0;
-		if (camPosPrevFrame !== null && canvasTransformType == canvasTransformTypes.MAIN) {
-			xOffset = Math.round((camPosPrevFrame[0] * 10 - minSize / 2) / spaceBetween) * spaceBetween;
-			yOffset = Math.round((camPosPrevFrame[1] * 10 - minSize / 2) / spaceBetween) * spaceBetween;
-		}
-		xOffset += offset % spaceBetween;
-		for (var i = -minSize; i < minSize; i += spaceBetween) {
-			var thisXOffset = xOffset + i;
-			ctx.beginPath();
-			ctx.moveTo(thisXOffset, yOffset);
-			ctx.lineTo(thisXOffset + minSize, yOffset + minSize);
 			ctx.stroke();
-		}
-	}
-}
-
-function drawAnimatedText(ctx, text, time, x, y, fontHeight, color, font, textExtrude, charSpeed, orderSeed) {
-	var t2;
-	if (color === undefined) {
-		color = "white";
-	}
-	ctx.fillStyle = color;
-	if (font === undefined) {
-		font = "Arial, Helvetica, sans-serif";
-	}
-	ctx.font = font = fontHeight + "px " + font;
-	if (orderSeed === undefined) {
-		orderSeed = 0;
-	}
-	var lastWidth = 0;
-	for (var charI = 0; charI < transitionText.length; charI++) {
-		var rndOffset = rndSeed(charI + orderSeed);
-		if (charSpeed === undefined) {
-			charSpeed = 3;
-		}
-		var charT = time * charSpeed - (rndOffset * (charSpeed - rndOffset));
-		var thisChar = transitionText[charI];
-		var charWidth = ctx.measureText(thisChar).width;
-		var yMin = y - fontHeight * 0.77;
-		if (charT < 0.8) {
-			tempCanvas.width = charWidth;
-			tempCanvas.height = fontHeight;
-			tempCtx.font = font;
-			tempCtx.fillStyle = "white";
-			tempCtx.fillText(thisChar, 0, fontHeight * 0.77);
-			if (charT < 0.4) {
-				t2 = charT / 0.4;
-
-				tempCtx.beginPath();
-				tempCtx.moveTo(0, lerp(fontHeight, 0, t2));
-				tempCtx.lineTo(0, fontHeight);
-				tempCtx.lineTo(lerp(0, charWidth, t2), fontHeight);
-				tempCtx.closePath();
-			} else {
-				t2 = charT / 0.4 - 1;
-				tempCtx.moveTo(0, 0);
-				tempCtx.lineTo(0, fontHeight);
-				tempCtx.lineTo(charWidth, fontHeight);
-				tempCtx.lineTo(charWidth, lerp(fontHeight, 0, t2));
-				tempCtx.lineTo(lerp(0, charWidth, t2), 0);
-			}
-			tempCtx.globalCompositeOperation = "destination-in";
-			tempCtx.fill();
-			ctx.drawImage(tempCanvas, x + lastWidth, yMin);
-		} else {
-			t2 = Math.min(1, charT * 5 - 4);
-			var offset = t2 * textExtrude;
-			ctx.fillStyle = colors.green2.darker;
-			for (var i = 0; i < offset; i++) {
-				ctx.fillText(thisChar, x + lastWidth - offset + i, y - offset + i);
-			}
-			ctx.fillStyle = "white";
-			ctx.fillText(thisChar, x + lastWidth - offset, y - offset);
-		}
-		lastWidth += charWidth - 0.5;
-	}
-}
-
-//orders two positions so that pos1 is in the top left and pos2 in the bottom right
-function orderTwoPos(pos1, pos2) {
-	var x1 = Math.min(pos1[0], pos2[0]);
-	var y1 = Math.min(pos1[1], pos2[1]);
-	var x2 = Math.max(pos1[0], pos2[0]);
-	var y2 = Math.max(pos1[1], pos2[1]);
-	return [[x1, y1], [x2, y2]];
-}
-
-//fills an area, if array is not specified it defaults to blocks[]
-function fillArea(x, y, w, h, type, pattern, array, isEdgeChunk = false) {
-	var defaultArray = array === undefined;
-	if (defaultArray) {
-		array = blocks;
-	}
-
-	if (pattern === undefined) {
-		pattern = 0;
-	}
-
-	var x2 = x + w;
-	var y2 = y + h;
-	if (myPos !== null && defaultArray) {
-		x = Math.max(x, Math.round(myPos[0]) - VIEWPORT_RADIUS);
-		y = Math.max(y, Math.round(myPos[1]) - VIEWPORT_RADIUS);
-		x2 = Math.min(x2, Math.round(myPos[0]) + VIEWPORT_RADIUS);
-		y2 = Math.min(y2, Math.round(myPos[1]) + VIEWPORT_RADIUS);
-	}
-
-	for (var i = x; i < x2; i++) {
-		for (var j = y; j < y2; j++) {
-			var block = getBlock(i, j, array);
-			var thisType = applyPattern(type, pattern, i, j);
-			block.setBlockId(thisType, isEdgeChunk ? false : Math.random() * 400);
 		}
 	}
 }
 
 //changes blockId in to a blockId with a pattern applied
 function applyPattern(blockId, pattern, x, y) {
-	var modX, modY;
+	let modX, modY;
 	if (blockId < 2) {
 		return blockId;
 	}
-	var doPattern = false;
+	let doPattern = false;
 	switch (pattern) {
 		case 1:
 			doPattern = (x % 2 === 0) && (y % 2 === 0);
@@ -3414,7 +5403,7 @@ function applyPattern(blockId, pattern, x, y) {
 		case 27:
 		case 28:
 		case 29:
-			var bitMap, bitMapW, bitMapH, xShift = 0, yShift = 0;
+			let bitMap, bitMapW, bitMapH, xShift = 0, yShift = 0;
 			switch (pattern) {
 				case 18:
 					bitMapW = 18;
@@ -3671,154 +5660,35 @@ function applyPattern(blockId, pattern, x, y) {
 	return blockId;
 }
 
-//top notification stuffs
-var currentTopNotifications = [];
-function doTopNotification(text) {
-	var thisTopNotification = {
-		text: text,
-		elem: null,
-		initiate: function () {
-			var el = document.createElement("div");
-			this.elem = el;
-			el.innerHTML = this.text;
-			el.className = "topNotification greenBox";
-			el.style.visibility = "hidden";
-			document.getElementById("topNotifications").appendChild(el);
-			var c = getColorForBlockSkinId(myColorId);
-			var mainColor = c.brighter;
-			var edgeColor = c.darker;
-			colorBox(el, mainColor, edgeColor);
-		},
-		animationTimer: 0,
-		animationDirection: 1,
-		update: function (dt) {
-			this.animationTimer += dt * 0.001 * this.animationDirection;
-			var hiddenPos = -this.elem.offsetHeight - 10;
-			var topPos = lerp(hiddenPos, 10, ease.out(clamp01(this.animationTimer)));
-			this.elem.style.top = topPos + "px";
-			this.elem.style.visibility = null;
-			//if return true, destroy notification object
-			if (this.animationDirection == -1 && this.animationTimer < 0) {
-				this.destroy();
-			}
-		},
-		animateOut: function () {
-			this.animationDirection = -1;
-			if (this.animationTimer > 1) {
-				this.animationTimer = 1;
-			}
-		},
-		destroy: function () {
-			this.elem.parentElement.removeChild(this.elem);
-			for (var notI = currentTopNotifications.length - 1; notI >= 0; notI--) {
-				var not = currentTopNotifications[notI];
-				if (not == this) {
-					currentTopNotifications.splice(notI, 1);
-				}
-			}
-		},
-	};
-	thisTopNotification.initiate();
-	currentTopNotifications.push(thisTopNotification);
-	return thisTopNotification;
-}
-
-//touch stuffs
-function bindSwipeEvents() {
-	touchControlsElem.addEventListener("touchstart", onTouchStart);
-	touchControlsElem.addEventListener("touchmove", onTouchMove);
-	touchControlsElem.addEventListener("touchend", onTouchEnd);
-	touchControlsElem.addEventListener("touchcancel", onTouchEnd);
-}
-
-function onTouchStart(e) {
-	var touch = e.touches[e.touches.length - 1];
-	currentTouches.push({
-		prevPos: [touch.pageX, touch.pageY],
-		prevTime: Date.now(),
-		id: touch.identifier,
-	});
-}
-
-function onTouchMove(e) {
-	var touches = e.touches;
-	for (var i = 0; i < touches.length; i++) {
-		var touch = touches[i];
-		var currentTouch = null;
-		for (var j = 0; j < currentTouches.length; j++) {
-			if (currentTouches[j].id == touch.identifier) {
-				currentTouch = currentTouches[j];
-				break;
-			}
-		}
-		if (currentTouch) {
-			calcTouch(currentTouch, touch);
-		}
-	}
-	e.preventDefault();
-}
-
 function calcTouch(customTouch, touch) {
-	var currentTime = Date.now();
-	var deltaTime = currentTime - customTouch.prevTime;
-	var curPos = [touch.pageX, touch.pageY];
-	var prevPos = customTouch.prevPos;
-	var xOffset = prevPos[0] - curPos[0];
-	var yOffset = prevPos[1] - curPos[1];
-	var dist = Math.sqrt(Math.pow(xOffset, 2) + Math.pow(yOffset, 2));
-	var speed = dist / deltaTime;
+	const currentTime = Date.now();
+	const deltaTime = currentTime - customTouch.prevTime;
+	const curPos = [touch.pageX, touch.pageY];
+	const prevPos = customTouch.prevPos;
+	const xOffset = prevPos[0] - curPos[0];
+	const yOffset = prevPos[1] - curPos[1];
+	const dist = Math.sqrt(Math.pow(xOffset, 2) + Math.pow(yOffset, 2));
+	let speed = dist / deltaTime;
 	speed *= MAX_PIXEL_RATIO * canvasQuality;
 	customTouch.prevTime = currentTime;
 	customTouch.prevPos = curPos;
 	if (deltaTime > 0 && speed > 2) {
 		if (Math.abs(xOffset) > Math.abs(yOffset)) {
 			if (xOffset > 0) {
-				sendDir(2);
+				return 2;
 			} else {
-				sendDir(0);
+				return 0;
 			}
 		} else {
 			if (yOffset > 0) {
-				sendDir(3);
+				return 3;
 			} else {
-				sendDir(1);
+				return 1;
 			}
 		}
 	}
 }
-
-function onTouchEnd(e) {
-	for (var i = currentTouches.length - 1; i >= 0; i--) {
-		for (var j = 0; j < e.touches.length; j++) {
-			if (currentTouches[i].id == e.touches[j].identifier) {
-				calcTouch(currentTouches[i], e.touches[j]);
-				currentTouches.splice(i, 1);
-			}
-		}
-	}
-}
-
-//starts the transition
-//reverseOnHalf: start playing backwords once it is showing the title
-//callback1: callback fired once the transition is full screen for the first time
-//callback2: fired when full screen for the second time, only shown when reverseOnHalf = true
-function doTransition(text, reverseOnHalf, callback1, callback2, overrideExisting) {
-	// console.log("doTransition()", text, reverseOnHalf, callback1, callback2, overrideExisting);
-	// console.log("isTransitioning:",isTransitioning);
-	if (!isTransitioning || overrideExisting) {
-		transitionText = text;
-		isTransitioning = true;
-		transitionDirection = 1;
-		transitionTimer = transitionPrevTimer = 0;
-		transitionCanvas.style.display = null;
-		if (reverseOnHalf === undefined) {
-			reverseOnHalf = false;
-		}
-		transitionReverseOnHalf = reverseOnHalf;
-		transitionCallback1 = callback1;
-		transitionCallback2 = callback2;
-	}
-}
+//#endregion
 
 function doSkipDeathTransition() {
 	if (allowSkipDeathTransition) {
@@ -3826,626 +5696,10 @@ function doSkipDeathTransition() {
 			window.clearTimeout(deathTransitionTimeout);
 			deathTransitionTimeout = null;
 			onClose();
-			doTransition("", false, function () {
-				window.setTimeout(() => {
-					initVideoAdsScript();
-				}, 700);
-				resetAll();
-			});
+			resetAll();
 		}
 		skipDeathTransition = true;
 	}
-}
-
-//random number between 0 and 1 using a seed
-function rndSeed(seed) {
-	var x = Math.sin(seed) * 10000;
-	return x - Math.floor(x);
-}
-
-//easing functions
-var ease = {
-	// in: function(t){
-	// 	return t === 0 ? 0 : Math.pow( 2, 10 * t - 10 );
-	// },
-	// out: function(t){
-	// 	return t === 1 ? 1 : 1 - Math.pow( 2, -10 * t );
-	// },
-	// inout: function(t){
-	// 	return t === 0 ? 0 : t === 1 ? 1 : t < 0.5 ?
-	// 				Math.pow( 2, 20 * t - 10 ) / 2 :
-	// 				( 2 - Math.pow( 2, -20 * t + 10 ) ) / 2;
-	// }
-	in: function (t) {
-		return t * t * t * t;
-	},
-	out: function (t) {
-		return 1 - Math.pow(1 - t, 4);
-	},
-	inout: function (t) {
-		return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
-	},
-};
-
-//draws main title
-function drawTitle(ctx, time, isShadow, maxExtrude, extraShadow) {
-	ctx.strokeStyle = (!!isShadow) ? colors.red.patternEdge : colors.red.brighter;
-	ctx.lineWidth = 16;
-	ctx.lineJoin = "round";
-	ctx.lineCap = "round";
-
-	if (extraShadow) {
-		ctx.shadowBlur = 40 * MAX_PIXEL_RATIO;
-		ctx.shadowColor = "rgba(0,0,0,0.4)";
-		ctx.shadowOffsetX = ctx.shadowOffsetY = 10 * MAX_PIXEL_RATIO;
-	} else {
-		ctx.shadowColor = "rgba(0,0,0,0)";
-	}
-
-	var t = titleTimer;
-	for (var lineI = 0; lineI < titleLines.length; lineI++) {
-		var thisLine = titleLines[lineI];
-		var lineT = clamp01(t * thisLine.speed - thisLine.offset);
-		var extrude = clamp01(t);
-		extrude *= 5;
-		if (maxExtrude !== undefined) {
-			extrude = Math.min(extrude, maxExtrude);
-		}
-		ctx.beginPath();
-		for (var subLineI = 0; subLineI < thisLine.line.length; subLineI++) {
-			var thisSubLine = thisLine.line[subLineI];
-			var subLineT = clamp01(lineT * (thisLine.line.length - 1) - subLineI + 1);
-			if (subLineT > 0) {
-				if (subLineT == 1) {
-					if (subLineI === 0 && thisSubLine.length == 2) {
-						ctx.moveTo(thisSubLine[0] - extrude, thisSubLine[1] - extrude);
-					} else if (thisSubLine.length == 2) {
-						ctx.lineTo(thisSubLine[0] - extrude, thisSubLine[1] - extrude);
-					} else if (thisSubLine.length == 6) {
-						ctx.bezierCurveTo(
-							thisSubLine[0] - extrude,
-							thisSubLine[1] - extrude,
-							thisSubLine[2] - extrude,
-							thisSubLine[3] - extrude,
-							thisSubLine[4] - extrude,
-							thisSubLine[5] - extrude,
-						);
-					}
-				} else {
-					var lastLine = thisLine.line[subLineI - 1];
-					var lastPos = [lastLine[lastLine.length - 2], lastLine[lastLine.length - 1]];
-					if (thisSubLine.length == 2) {
-						ctx.lineTo(
-							lerp(lastPos[0], thisSubLine[0], subLineT) - extrude,
-							lerp(lastPos[1], thisSubLine[1], subLineT) - extrude,
-						);
-					} else if (thisSubLine.length == 6) {
-						var p0 = lastPos;
-						var p1 = [thisSubLine[0], thisSubLine[1]];
-						var p2 = [thisSubLine[2], thisSubLine[3]];
-						var p3 = [thisSubLine[4], thisSubLine[5]];
-						var p4 = lerpA(p0, p1, subLineT);
-						var p5 = lerpA(p1, p2, subLineT);
-						var p6 = lerpA(p2, p3, subLineT);
-						var p7 = lerpA(p4, p5, subLineT);
-						var p8 = lerpA(p5, p6, subLineT);
-						var p9 = lerpA(p7, p8, subLineT);
-						ctx.bezierCurveTo(
-							p4[0] - extrude,
-							p4[1] - extrude,
-							p7[0] - extrude,
-							p7[1] - extrude,
-							p9[0] - extrude,
-							p9[1] - extrude,
-						);
-					}
-				}
-			}
-		}
-		ctx.stroke();
-	}
-}
-
-//draws blocks on ctx
-function drawBlocks(ctx, blocks, checkViewport) {
-	var t2;
-	for (var i = 0; i < blocks.length; i++) {
-		var block = blocks[i];
-		if (
-			checkViewport &&
-			(
-				block.x < camPos[0] - VIEWPORT_RADIUS ||
-				block.x > camPos[0] + VIEWPORT_RADIUS ||
-				block.y < camPos[1] - VIEWPORT_RADIUS ||
-				block.y > camPos[1] + VIEWPORT_RADIUS
-			)
-		) {
-			//outside viewport, don't render this block
-		} else {
-			if (block.animDelay > 0) {
-				block.animDelay -= deltaTime;
-			} else {
-				block.animProgress += deltaTime * block.animDirection * 0.003;
-			}
-			if (block.animProgress > 1) {
-				block.animDirection = 0;
-				block.animProgress = 1;
-			}
-			if (block.animProgress < 0) {
-				block.currentBlock = block.nextBlock;
-				block.animDirection = 1;
-				block.animProgress = 0;
-			} else {
-				var t = block.animProgress;
-
-				//edge
-				if (block.currentBlock === 0) {
-					ctx.fillStyle = colors.red.boundsDark;
-					ctx.fillRect(block.x * 10, block.y * 10, 10, 10);
-					if (!uglyMode) {
-						linesCtx.fillStyle = colors.grey.diagonalLines;
-						linesCtx.fillRect(block.x * 10, block.y * 10, 10, 10);
-					}
-				}
-				//empty block
-				if (block.currentBlock == 1) {
-					//shadow edge
-					if (t > 0.8 && !uglyMode) {
-						ctx.fillStyle = colors.grey.darker;
-						ctx.fillRect(block.x * 10 + 2, block.y * 10 + 2, 7, 7);
-					}
-
-					//bright surface
-					ctx.fillStyle = colors.grey.brighter;
-					if (t == 1 || uglyMode) {
-						// ctx.fillStyle = colors.grey.darker; //shadow edge
-						// ctx.beginPath();
-						// ctx.moveTo(block.x*10 + 1, block.y*10 + 8);
-						// ctx.lineTo(block.x*10 + 2, block.y*10 + 9);
-						// ctx.lineTo(block.x*10 + 9, block.y*10 + 9);
-						// ctx.lineTo(block.x*10 + 9, block.y*10 + 2);
-						// ctx.lineTo(block.x*10 + 8, block.y*10 + 1);
-						// ctx.fill();
-						ctx.fillRect(block.x * 10 + 1, block.y * 10 + 1, 7, 7);
-					} else if (t < 0.4) {
-						t2 = t * 2.5;
-						ctx.beginPath();
-						ctx.moveTo(block.x * 10 + 2, block.y * 10 + lerp(9, 2, t2));
-						ctx.lineTo(block.x * 10 + 2, block.y * 10 + 9);
-						ctx.lineTo(block.x * 10 + lerp(2, 9, t2), block.y * 10 + 9);
-						ctx.fill();
-					} else if (t < 0.8) {
-						t2 = t * 2.5 - 1;
-						ctx.beginPath();
-						ctx.moveTo(block.x * 10 + 2, block.y * 10 + 2);
-						ctx.lineTo(block.x * 10 + 2, block.y * 10 + 9);
-						ctx.lineTo(block.x * 10 + 9, block.y * 10 + 9);
-						ctx.lineTo(block.x * 10 + 9, block.y * 10 + lerp(9, 2, t2));
-						ctx.lineTo(block.x * 10 + lerp(2, 9, t2), block.y * 10 + 2);
-						ctx.fill();
-					} else {
-						t2 = t * 5 - 4;
-						// ctx.fillStyle = colors.grey.darker; //shadow edge
-						// ctx.beginPath();
-						// ctx.moveTo(block.x*10 + lerp(2,1,t2), block.y*10 + lerp(9,8,t2));
-						// ctx.lineTo(block.x*10 + 2, block.y*10 + 9);
-						// ctx.lineTo(block.x*10 + 9, block.y*10 + 9);
-						// ctx.lineTo(block.x*10 + 9, block.y*10 + 2);
-						// ctx.lineTo(block.x*10 + lerp(9,8,t2), block.y*10 + lerp(2,1,t2));
-						// ctx.fill();
-						ctx.fillRect(block.x * 10 + lerp(2, 1, t2), block.y * 10 + lerp(2, 1, t2), 7, 7);
-					}
-				}
-				//regular colors
-				if (block.currentBlock >= 2) {
-					var idForBlockSkinId = (block.currentBlock - 2) % SKIN_BLOCK_COUNT;
-					var thisColor = getColorForBlockSkinId(idForBlockSkinId);
-
-					var isPatternBlock = block.currentBlock > SKIN_BLOCK_COUNT + 1;
-
-					var brightColor = isPatternBlock ? thisColor.pattern : thisColor.brighter;
-					var darkColor = isPatternBlock ? thisColor.patternEdge : thisColor.darker;
-
-					//shadow edge
-					if (t > 0.8 && !uglyMode) {
-						ctx.fillStyle = darkColor;
-						ctx.fillRect(block.x * 10 + 1, block.y * 10 + 1, 9, 9);
-					}
-
-					//bright surface
-					ctx.fillStyle = brightColor;
-					if (t == 1 || uglyMode) {
-						// ctx.fillStyle = thisColor.darker; //shadow edge
-						// ctx.beginPath();
-						// ctx.moveTo(block.x*10     , block.y*10 + 9 );
-						// ctx.lineTo(block.x*10 + 1 , block.y*10 + 10);
-						// ctx.lineTo(block.x*10 + 10, block.y*10 + 10);
-						// ctx.lineTo(block.x*10 + 10, block.y*10 + 1 );
-						// ctx.lineTo(block.x*10 + 9 , block.y*10     );
-						// ctx.fill();
-
-						ctx.fillRect(block.x * 10, block.y * 10, 9, 9);
-						if (idForBlockSkinId == 12 && !uglyMode) {
-							ctx.fillStyle = colors.gold.bevelBright;
-							ctx.fillRect(block.x * 10 + 3, block.y * 10 + 0.1, 6, 0.1);
-						}
-					} else if (t < 0.4) {
-						t2 = t * 2.5;
-						ctx.beginPath();
-						ctx.moveTo(block.x * 10 + 1, block.y * 10 + lerp(10, 1, t2));
-						ctx.lineTo(block.x * 10 + 1, block.y * 10 + 10);
-						ctx.lineTo(block.x * 10 + lerp(1, 10, t2), block.y * 10 + 10);
-						ctx.fill();
-					} else if (t < 0.8) {
-						t2 = t * 2.5 - 1;
-						ctx.beginPath();
-						ctx.moveTo(block.x * 10 + 1, block.y * 10 + 1);
-						ctx.lineTo(block.x * 10 + 1, block.y * 10 + 10);
-						ctx.lineTo(block.x * 10 + 10, block.y * 10 + 10);
-						ctx.lineTo(block.x * 10 + 10, block.y * 10 + lerp(10, 1, t2));
-						ctx.lineTo(block.x * 10 + lerp(1, 10, t2), block.y * 10 + 1);
-						ctx.fill();
-					} else {
-						t2 = t * 5 - 4;
-						// ctx.fillStyle = thisColor.darker; //shadow edge
-						// ctx.beginPath();
-						// ctx.moveTo(block.x*10 + lerp(1,0,t2) , block.y*10 + lerp(10,9,t2) );
-						// ctx.lineTo(block.x*10 + 1 , block.y*10 + 10);
-						// ctx.lineTo(block.x*10 + 10, block.y*10 + 10);
-						// ctx.lineTo(block.x*10 + 10, block.y*10 + 1 );
-						// ctx.lineTo(block.x*10 + lerp(10,9,t2) , block.y*10 + lerp(1,0,t2)  );
-						// ctx.fill();
-
-						ctx.fillRect(block.x * 10 + lerp(1, 0, t2), block.y * 10 + lerp(1, 0, t2), 9, 9);
-					}
-				}
-			}
-		}
-	}
-}
-
-//draws a player on ctx
-function drawPlayer(ctx, player, timeStamp) {
-	if (player.hasReceivedPosition) {
-		var x, y;
-
-		var pc = getColorForBlockSkinId(player.skinBlock); //player color
-
-		//draw trail
-		if (player.trails.length > 0) {
-			//iterate over each trail
-			for (var trailI = player.trails.length - 1; trailI >= 0; trailI--) {
-				var thisTrail = player.trails[trailI];
-
-				//increase vanish timer
-				var last = trailI == player.trails.length - 1;
-				if (!last || player.isDead) {
-					if (uglyMode) {
-						thisTrail.vanishTimer = 10;
-					} else {
-						var speed = (player.isDead && last) ? 0.006 : 0.02;
-						thisTrail.vanishTimer += deltaTime * speed;
-					}
-					if (!last && (thisTrail.vanishTimer > 10)) {
-						player.trails.splice(trailI, 1);
-					}
-				}
-
-				//if there's no trail, don't draw anything
-				if (thisTrail.trail.length > 0) {
-					var lastPos = last ? player.drawPos : null;
-					if (thisTrail.vanishTimer > 0 && !uglyMode) {
-						ctxApplyCamTransform(tempCtx, true);
-						drawTrailOnCtx(
-							[{
-								ctx: tempCtx,
-								color: pc.darker,
-								offset: 5,
-							}, {
-								ctx: tempCtx,
-								color: pc.brighter,
-								offset: 4,
-							}],
-							thisTrail.trail,
-							lastPos,
-						);
-
-						tempCtx.globalCompositeOperation = "destination-out";
-						drawDiagonalLines(tempCtx, "white", thisTrail.vanishTimer, 10, timeStamp * 0.003);
-
-						ctx.restore();
-						tempCtx.restore();
-						linesCtx.restore();
-
-						ctx.drawImage(tempCanvas, 0, 0);
-						tempCtx.fillStyle = colors.grey.diagonalLines;
-						tempCtx.globalCompositeOperation = "source-in";
-						tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-						linesCtx.drawImage(tempCanvas, 0, 0);
-						ctxApplyCamTransform(ctx);
-						ctxApplyCamTransform(linesCtx);
-					} else if (thisTrail.vanishTimer < 10) {
-						if (uglyMode) {
-							drawTrailOnCtx(
-								[{
-									ctx: ctx,
-									color: pc.darker,
-									offset: 5,
-								}, {
-									ctx: ctx,
-									color: pc.brighter,
-									offset: 4,
-								}],
-								thisTrail.trail,
-								lastPos,
-							);
-						} else {
-							drawTrailOnCtx(
-								[{
-									ctx: ctx,
-									color: pc.darker,
-									offset: 5,
-								}, {
-									ctx: ctx,
-									color: pc.brighter,
-									offset: 4,
-								}, {
-									ctx: linesCtx,
-									color: colors.grey.diagonalLines,
-									offset: 4,
-								}],
-								thisTrail.trail,
-								lastPos,
-							);
-						}
-					}
-				}
-			}
-		}
-
-		//draw player
-		var dp = [player.drawPos[0] * 10 + 4.5, player.drawPos[1] * 10 + 4.5]; //draw position
-		var pr = 6; //player radius
-		var so = 0.3; //shadow offset
-		var gradient = ctx.createRadialGradient(dp[0] - 3, dp[1] - 3, 0, dp[0], dp[1], pr);
-		gradient.addColorStop(0, pc.slightlyBrighter);
-		gradient.addColorStop(1, pc.brighter);
-		linesCtx.fillStyle = "white";
-		if (player.isDead) {
-			player.isDeadTimer += deltaTime * 0.003;
-			ctx.fillStyle = gradient;
-
-			for (var i = 0; i < player.deadAnimParts.length - 1; i++) {
-				var arcStart = player.deadAnimParts[i];
-				var arcEnd = player.deadAnimParts[i + 1];
-				var arcAvg = lerp(arcStart, arcEnd, 0.5);
-				var dir = player.dir * Math.PI / 2 - Math.PI;
-				var distanceModifier = Math.min(
-					Math.abs(dir - arcAvg),
-					Math.abs((dir - Math.PI * 2) - arcAvg),
-					Math.abs((dir + Math.PI * 2) - arcAvg),
-				);
-				var rand = player.deadAnimPartsRandDist[i];
-				var distance = (1 - Math.pow(2, -2 * player.isDeadTimer)) * distanceModifier * 5 * (rand + 1);
-				var pOffset = [Math.cos(arcAvg) * distance, Math.sin(arcAvg) * distance]; //piece offset
-				ctx.globalAlpha = linesCtx.globalAlpha = Math.max(0, 1 - (player.isDeadTimer * 0.2));
-				ctx.beginPath();
-				ctx.arc(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1], pr, arcStart, arcEnd, false);
-				ctx.lineTo(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1]);
-				ctx.fill();
-				if (!uglyMode) {
-					linesCtx.beginPath();
-					linesCtx.arc(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1], pr, arcStart, arcEnd, false);
-					linesCtx.lineTo(dp[0] - so + pOffset[0], dp[1] - so + pOffset[1]);
-					linesCtx.fill();
-				}
-			}
-			ctx.globalAlpha = linesCtx.globalAlpha = 1;
-		} else {
-			ctx.fillStyle = pc.darker;
-			ctx.beginPath();
-			ctx.arc(dp[0] + so, dp[1] + so, pr, 0, 2 * Math.PI, false);
-			ctx.fill();
-			ctx.fillStyle = gradient;
-			ctx.beginPath();
-			ctx.arc(dp[0] - so, dp[1] - so, pr, 0, 2 * Math.PI, false);
-			ctx.fill();
-			if (player.isMyPlayer && localStorage.drawWhiteDot == "true") {
-				ctx.fillStyle = "white";
-				ctx.beginPath();
-				ctx.arc(dp[0] - so, dp[1] - so, 1, 0, 2 * Math.PI, false);
-				ctx.fill();
-			}
-
-			//lines canvas (remove lines)
-			if (!uglyMode) {
-				linesCtx.beginPath();
-				linesCtx.arc(dp[0] + so, dp[1] + so, pr, 0, 2 * Math.PI, false);
-				linesCtx.fill();
-				linesCtx.beginPath();
-				linesCtx.arc(dp[0] - so, dp[1] - so, pr, 0, 2 * Math.PI, false);
-				linesCtx.fill();
-			}
-		}
-		if (player.isMyPlayer && localStorage.drawActualPlayerPos == "true") {
-			ctx.fillStyle = "#FF0000";
-			ctx.beginPath();
-			ctx.arc(player.serverPos[0] * 10 + 5, player.serverPos[1] * 10 + 5, pr, 0, 2 * Math.PI, false);
-			ctx.fill();
-		}
-
-		//draw hitlines
-		if (player.hitLines.length > 0) {
-			for (var hitlineI = player.hitLines.length - 1; hitlineI >= 0; hitlineI--) {
-				var thisHit = player.hitLines[hitlineI];
-
-				//increase vanish timer
-				thisHit.vanishTimer += deltaTime * 0.004;
-				var t = thisHit.vanishTimer;
-				if (t > 4) {
-					player.hitLines.splice(hitlineI, 1);
-				}
-
-				x = thisHit.pos[0] * 10 + 5;
-				y = thisHit.pos[1] * 10 + 5;
-
-				//draw circle
-				if (t < 2) {
-					var radius1 = Math.max(0, ease.out(iLerp(0, 2, t)) * 18);
-					var radius2 = Math.max(0, ease.out(iLerp(0.5, 2, t)) * 18);
-					ctx.fillStyle = pc.brighter;
-					ctx.beginPath();
-					ctx.arc(x, y, radius1, 0, 2 * Math.PI, false);
-					ctx.arc(x, y, radius2, 0, 2 * Math.PI, false);
-					ctx.fill("evenodd");
-
-					if (!uglyMode) {
-						//lines canvas (remove lines)
-						linesCtx.beginPath();
-						linesCtx.arc(x, y, radius1, 0, 2 * Math.PI, false);
-						linesCtx.arc(x, y, radius2, 0, 2 * Math.PI, false);
-						linesCtx.fill("evenodd");
-					}
-				}
-
-				//draw 500+
-				if (thisHit.color !== undefined && player.isMyPlayer) {
-					ctx.save();
-					ctx.font = linesCtx.font = "6px Arial, Helvetica, sans-serif";
-					ctx.fillStyle = thisHit.color.brighter;
-					ctx.shadowColor = thisHit.color.darker;
-					ctx.shadowOffsetX = ctx.shadowOffsetY = 0.4 * MAX_PIXEL_RATIO * zoom * canvasQuality;
-					w = ctx.measureText("+500").width;
-					var hOffset;
-					var opacity;
-					if (t < 0.5) {
-						opacity = iLerp(0, 0.5, t);
-					} else if (t < 3.5) {
-						opacity = 1;
-					} else {
-						opacity = iLerp(4, 3.5, t);
-					}
-					opacity = clamp01(opacity);
-					if (t < 2) {
-						hOffset = ease.out(t / 2) * 20;
-					} else {
-						hOffset = 20;
-					}
-					ctx.globalAlpha = opacity;
-					ctx.fillText("+500", x - w / 2, y - hOffset);
-					ctx.restore();
-				}
-			}
-		}
-
-		//draw honk
-		if (player.honkTimer < player.honkMaxTime) {
-			player.honkTimer += deltaTime * 0.255;
-			ctx.fillStyle = pc.brighter;
-			ctx.globalAlpha = clamp01(iLerp(player.honkMaxTime, 0, player.honkTimer));
-			ctx.beginPath();
-			ctx.arc(
-				player.drawPos[0] * 10 + 4.5 + so,
-				player.drawPos[1] * 10 + 4.5 + so,
-				pr + player.honkTimer * 0.1,
-				0,
-				2 * Math.PI,
-				false,
-			);
-			ctx.fill();
-			ctx.globalAlpha = 1;
-
-			if (!uglyMode) {
-				linesCtx.globalAlpha = clamp01(iLerp(player.honkMaxTime, 0, player.honkTimer));
-				linesCtx.beginPath();
-				linesCtx.arc(
-					player.drawPos[0] * 10 + 4.5 + so,
-					player.drawPos[1] * 10 + 4.5 + so,
-					pr + player.honkTimer * 0.1,
-					0,
-					2 * Math.PI,
-					false,
-				);
-				linesCtx.fill();
-				linesCtx.globalAlpha = 1;
-			}
-		}
-
-		//draw name
-		if (localStorage.hidePlayerNames != "true") {
-			myNameAlphaTimer += deltaTime * 0.001;
-			ctx.font = linesCtx.font = USERNAME_SIZE + "px Arial, Helvetica, sans-serif";
-			if (player.name) {
-				var deadAlpha = 1;
-				var myAlpha = 1;
-				if (player.isMyPlayer) {
-					myAlpha = 9 - myNameAlphaTimer;
-				}
-				if (player.isDead) {
-					deadAlpha = 1 - player.isDeadTimer;
-				}
-				var alpha = Math.min(deadAlpha, myAlpha);
-				if (alpha > 0) {
-					ctx.save();
-					if (!uglyMode) {
-						linesCtx.save();
-					}
-					ctx.globalAlpha = clamp01(alpha);
-					var width = ctx.measureText(player.name).width;
-					width = Math.min(100, width);
-					x = player.drawPos[0] * 10 + 5 - width / 2;
-					y = player.drawPos[1] * 10 - 5;
-
-					ctx.rect(x - 4, y - USERNAME_SIZE * 1.2, width + 8, USERNAME_SIZE * 2);
-					ctx.clip();
-					if (!uglyMode) {
-						linesCtx.rect(x - 4, y - USERNAME_SIZE * 1.2, width + 8, USERNAME_SIZE * 2);
-						linesCtx.clip();
-						linesCtx.fillText(player.name, x, y);
-					}
-
-					ctx.shadowColor = "rgba(0,0,0,0.9)";
-					ctx.shadowBlur = 10;
-					ctx.shadowOffsetX = ctx.shadowOffsetY = 2;
-					ctx.fillStyle = pc.brighter;
-					ctx.fillText(player.name, x, y);
-
-					ctx.shadowColor = pc.darker;
-					ctx.shadowBlur = 0;
-					ctx.shadowOffsetX = ctx.shadowOffsetY = 0.8;
-					ctx.fillText(player.name, x, y);
-
-					ctx.restore();
-					if (!uglyMode) {
-						linesCtx.restore();
-					}
-				}
-			}
-		}
-
-		//draw cool shades
-		if (player.name == "Jesper" && !player.isDead) {
-			ctx.fillStyle = "black";
-			ctx.fillRect(dp[0] - 6.5, dp[1] - 2, 13, 1);
-			ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
-			ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
-			ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
-		}
-	}
-}
-
-//moves (lerp) drawPos to the actual player position
-function moveDrawPosToPos(player) {
-	// var xDist = Math.abs(player.pos[0] - player.drawPos[0]);
-	// var yDist = Math.abs(player.pos[1] - player.drawPos[1]);
-	var target = null;
-	if (player.isDead && !player.deathWasCertain) {
-		target = player.uncertainDeathPosition;
-	} else {
-		target = player.pos;
-	}
-	player.drawPos[0] = lerpt(player.drawPos[0], target[0], 0.23);
-	player.drawPos[1] = lerpt(player.drawPos[1], target[1], 0.23);
 }
 
 //move pos along dir with offset
@@ -4466,1209 +5720,11 @@ function movePos(pos, dir, offset) {
 	}
 }
 
-var dtCaps = [0, 6.5, 16, 33, 49, 99];
+const dtCaps = [0, 6.5, 16, 33, 49, 99];
 function getDtCap(index) {
 	return dtCaps[clamp(index, 0, dtCaps.length - 1)];
 }
 
-function toggleQuality() {
-	switch (localStorage.quality) {
-		case "auto":
-			lsSet("quality", "0.4");
-			break;
-		case "0.4":
-			lsSet("quality", "0.7");
-			break;
-		case "0.7":
-			lsSet("quality", "1");
-			break;
-		case "1":
-			lsSet("quality", "auto");
-			break;
-	}
-	setQuality();
-}
-
-var qualityText;
-function setQuality() {
-	if (localStorage.getItem("quality") === null) {
-		lsSet("quality", "1");
-	}
-	if (localStorage.quality != "auto") {
-		canvasQuality = parseFloat(localStorage.quality);
-		qualityText.innerHTML = "Quality: " + {
-			"0.4": "low",
-			"0.7": "medium",
-			"1": "high",
-		}[localStorage.quality];
-	} else {
-		qualityText.innerHTML = "Quality: auto";
-	}
-}
-
-var uglyText;
-function setUglyText() {
-	updateUglyMode();
-	var onOff = uglyMode ? "on" : "off";
-	uglyText.innerHTML = "Ugly mode: " + onOff;
-}
-
-function toggleUglyMode() {
-	switch (localStorage.uglyMode) {
-		case "true":
-			lsSet("uglyMode", "false");
-			break;
-		case "false":
-		default:
-			lsSet("uglyMode", "true");
-			break;
-	}
-	setUglyText();
-}
-
 function updateUglyMode() {
 	uglyMode = localStorage.uglyMode == "true";
-}
-
-function setLeaderboardVisibility() {
-	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
-}
-
-function loop(timeStamp) {
-	var i, lastTrail, t, t2;
-	var realDeltaTime = timeStamp - prevTimeStamp;
-	if (realDeltaTime > lerpedDeltaTime) {
-		lerpedDeltaTime = realDeltaTime;
-	} else {
-		lerpedDeltaTime = lerpt(lerpedDeltaTime, realDeltaTime, 0.05);
-	}
-
-	if (localStorage.quality == "auto" || localStorage.getItem("quality") === null) {
-		if (lerpedDeltaTime > 33) {
-			canvasQuality -= 0.01;
-		} else if (lerpedDeltaTime < 28) {
-			canvasQuality += 0.01;
-		}
-		canvasQuality = Math.min(1, Math.max(0.4, canvasQuality));
-	}
-
-	if (realDeltaTime < lerp(getDtCap(currentDtCap), getDtCap(currentDtCap - 1), 0.9)) {
-		gainedFrames.push(Date.now());
-		while (gainedFrames.length > 190) {
-			if (Date.now() - gainedFrames[0] > 10000) {
-				gainedFrames.splice(0, 1);
-			} else {
-				currentDtCap--;
-				gainedFrames = [];
-				currentDtCap = clamp(currentDtCap, 0, dtCaps.length - 1);
-				break;
-			}
-		}
-	}
-
-	if (realDeltaTime > lerp(getDtCap(currentDtCap), getDtCap(currentDtCap + 1), 0.05)) {
-		missedFrames.push(Date.now());
-		gainedFrames = [];
-		while (missedFrames.length > 5) {
-			if (Date.now() - missedFrames[0] > 5000) {
-				missedFrames.splice(0, 1);
-			} else {
-				currentDtCap++;
-				missedFrames = [];
-				currentDtCap = clamp(currentDtCap, 0, dtCaps.length - 1);
-				break;
-			}
-		}
-	}
-
-	deltaTime = realDeltaTime + totalDeltaTimeFromCap;
-	prevTimeStamp = timeStamp;
-
-	if (deltaTime < getDtCap(currentDtCap) && localStorage.dontCapFps != "true") {
-		totalDeltaTimeFromCap += realDeltaTime;
-	} else {
-		totalDeltaTimeFromCap = 0;
-
-		canvasTransformType = canvasTransformTypes.MAIN;
-
-		ctxCanvasSize(ctx);
-		if (!uglyMode) {
-			ctxCanvasSize(linesCtx);
-		}
-
-		//BG
-		ctx.fillStyle = colors.grey.BG;
-		ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
-		if (!uglyMode) {
-			linesCtx.fillStyle = "white";
-			linesCtx.fillRect(0, 0, linesCanvas.width, linesCanvas.height);
-		}
-
-		//cam transforms
-		camPosPrevFrame = [camPos[0], camPos[1]];
-		calcCamOffset();
-		ctxApplyCamTransform(ctx);
-		if (!uglyMode) {
-			ctxApplyCamTransform(linesCtx);
-		}
-
-		//draw blocks
-		drawBlocks(ctx, blocks, true);
-
-		//players
-		var offset = deltaTime * GLOBAL_SPEED;
-		for (var playerI = 0; playerI < players.length; playerI++) {
-			var player = players[playerI];
-
-			//move player
-			if (!player.isDead || !player.deathWasCertain) {
-				if (player.moveRelativeToServerPosNextFrame) {
-					offset = (Date.now() - player.lastServerPosSentTime) * GLOBAL_SPEED;
-				}
-				if (player.isMyPlayer) {
-					movePos(player.serverPos, player.serverDir, offset);
-					if (player.serverDir == player.dir) {
-						var clientServerDist = 0;
-						if (localStorage.dontSlowPlayersDown != "true") {
-							if (player.dir === 0 || player.dir == 2) { //left or right
-								if (player.pos.y == player.serverPos.y) {
-									if (player.dir === 0) { //right
-										clientServerDist = player.pos[0] - player.serverPos[0];
-									} else { //left
-										clientServerDist = player.serverPos[0] - player.pos[0];
-									}
-								}
-							} else { //up or down
-								if (player.pos.x == player.serverPos.x) {
-									if (player.dir == 1) { //down
-										clientServerDist = player.pos[1] - player.serverPos[1];
-									} else { //up
-										clientServerDist = player.serverPos[1] - player.pos[1];
-									}
-								}
-							}
-						}
-						clientServerDist = Math.max(0, clientServerDist);
-						offset *= lerp(0.5, 1, iLerp(5, 0, clientServerDist));
-					}
-				}
-				movePos(player.pos, player.dir, offset);
-			}
-			player.moveRelativeToServerPosNextFrame = false;
-
-			moveDrawPosToPos(player);
-
-			//test if player should be dead
-			var playerShouldBeDead = false;
-			if (
-				player.drawPos[0] <= 0 || player.drawPos[1] <= 0 || player.drawPos[0] >= mapSize - 1 ||
-				player.drawPos[1] >= mapSize - 1
-			) {
-				playerShouldBeDead = true;
-			} else if (player.trails.length > 0) {
-				lastTrail = player.trails[player.trails.length - 1].trail;
-				var roundedPos = [Math.round(player.drawPos[0]), Math.round(player.drawPos[1])];
-				if (
-					Math.abs(roundedPos[0] - player.drawPos[0]) < 0.2 &&
-					Math.abs(roundedPos[1] - player.drawPos[1]) < 0.2
-				) {
-					//only die if player.pos is close to the center of a block
-					var touchingPrevTrail = true;
-					for (i = lastTrail.length - 3; i >= 0; i--) {
-						var pos1 = [Math.round(lastTrail[i][0]), Math.round(lastTrail[i][1])];
-						var pos2 = [Math.round(lastTrail[i + 1][0]), Math.round(lastTrail[i + 1][1])];
-						var twoPos = orderTwoPos(pos1, pos2);
-						if (
-							roundedPos[0] >= twoPos[0][0] &&
-							roundedPos[0] <= twoPos[1][0] &&
-							roundedPos[1] >= twoPos[0][1] &&
-							roundedPos[1] <= twoPos[1][1]
-						) {
-							if (!touchingPrevTrail) {
-								playerShouldBeDead = true;
-							}
-							touchingPrevTrail = true;
-						} else {
-							touchingPrevTrail = false;
-						}
-					}
-				}
-			}
-			if (playerShouldBeDead) {
-				if (!player.isDead) {
-					player.die();
-				}
-			} else {
-				player.didUncertainDeathLastTick = false;
-			}
-
-			//test if player shouldn't be dead after all
-			if (player.isDead && !player.deathWasCertain && player.isDeadTimer > 1.5) {
-				player.isDead = false;
-				if (player.trails.length > 0) {
-					lastTrail = player.trails[player.trails.length - 1];
-					lastTrail.vanishTimer = 0;
-				}
-			}
-
-			//if my player
-			if (player.isMyPlayer) {
-				myPos = [player.pos[0], player.pos[1]];
-				miniMapPlayer.style.left = (myPos[0] / mapSize * 160 + 1.5) + "px";
-				miniMapPlayer.style.top = (myPos[1] / mapSize * 160 + 1.5) + "px";
-				if (camPosSet) {
-					camPos[0] = lerpt(camPos[0], player.pos[0], 0.03);
-					camPos[1] = lerpt(camPos[1], player.pos[1], 0.03);
-				} else {
-					camPos = [player.pos[0], player.pos[1]];
-					camPosSet = true;
-				}
-
-				if (myNextDir != player.dir) {
-					// console.log("myNextDir != player.dir (",myNextDir,"!=",player.dir,")");
-					var horizontal = player.dir === 0 || player.dir == 2;
-					//only change when currently traveling horizontally and new dir is not horizontal
-					//or when new dir is horizontal but not currently traveling horizontally
-					if (changeDirAtIsHorizontal != horizontal) {
-						var changeDirNow = false;
-						var currentCoord = player.pos[horizontal ? 0 : 1];
-						if (player.dir === 0 || player.dir == 1) { //right & down
-							if (changeDirAt < currentCoord) {
-								changeDirNow = true;
-							}
-						} else {
-							if (changeDirAt > currentCoord) {
-								changeDirNow = true;
-							}
-						}
-						if (changeDirNow) {
-							var newPos = [player.pos[0], player.pos[1]];
-							var tooFarTraveled = Math.abs(changeDirAt - currentCoord);
-							newPos[horizontal ? 0 : 1] = changeDirAt;
-							changeMyDir(myNextDir, newPos);
-							movePos(player.pos, player.dir, tooFarTraveled);
-						}
-					}
-				}
-			}
-
-			drawPlayer(ctx, player, timeStamp);
-		}
-
-		//change dir queue
-		if (sendDirQueue.length > 0) {
-			var thisDir = sendDirQueue[0];
-			if (
-				Date.now() - thisDir.addTime > 1.2 / GLOBAL_SPEED || // older than '1.2 blocks travel time'
-				sendDir(thisDir.dir, true) // senddir call was successful
-			) {
-				sendDirQueue.shift(); //remove item
-			}
-		}
-
-		if (!uglyMode) {
-			//draw lines canvas
-			drawDiagonalLines(linesCtx, "white", 5, 10, timeStamp * 0.008);
-		}
-
-		//restore cam transforms
-		ctx.restore();
-
-		if (!uglyMode) {
-			linesCtx.restore();
-			ctx.globalCompositeOperation = "multiply";
-			// ctx.clearRect(0,0,mainCanvas.width, mainCanvas.height)
-			ctx.drawImage(linesCanvas, 0, 0);
-			ctx.globalCompositeOperation = "source-over";
-		}
-
-		//corner stats
-		scoreStat = lerpt(scoreStat, scoreStatTarget, 0.1);
-		myScoreElem.innerHTML = Math.round(scoreStat);
-		realScoreStat = lerpt(realScoreStat, realScoreStatTarget, 0.1);
-		myRealScoreElem.innerHTML = Math.round(realScoreStat);
-
-		//transition canvas
-		if (isTransitioning) {
-			// transitionTimer = 1;
-			var DARK_EDGE_SIZE = 10, TITLE_HEIGHT = 60, TITLE_DURATION = 2, TITLE_PADDING = 10, TEXT_EXTRUDE = 5;
-			TITLE_HEIGHT *= MAX_PIXEL_RATIO;
-			TEXT_EXTRUDE *= MAX_PIXEL_RATIO;
-			transitionTimer += deltaTime * transitionDirection * 0.001;
-
-			if (
-				transitionDirection == 1 && transitionCallback1 !== null && transitionTimer >= 0.5 &&
-				transitionPrevTimer < 0.5
-			) {
-				transitionTimer = 0.5;
-				transitionCallback1();
-			}
-
-			if (
-				transitionDirection == -1 && transitionCallback2 !== null && transitionTimer <= 0.5 &&
-				transitionPrevTimer > 0.5
-			) {
-				transitionTimer = 0.5;
-				transitionCallback2();
-			}
-
-			if (
-				transitionReverseOnHalf && transitionDirection == 1 && transitionTimer >= 1 + TITLE_DURATION &&
-				transitionPrevTimer < 1 + TITLE_DURATION
-			) {
-				transitionDirection = -1;
-				transitionTimer = 1;
-			}
-
-			transitionPrevTimer = transitionTimer;
-			if (
-				(transitionTimer <= 0 && transitionReverseOnHalf) ||
-				(transitionTimer >= TITLE_DURATION + 1.5 && !transitionReverseOnHalf)
-			) {
-				transitionDirection = 0;
-				isTransitioning = false;
-				transitionCanvas.style.display = "none";
-			} else {
-				ctxCanvasSize(tCtx, true);
-
-				var w = transitionCanvas.width, h = transitionCanvas.height;
-				t = transitionTimer;
-				if (t < 0.5) {
-					t2 = t * 2;
-					t2 = ease.in(t2);
-					tCtx.fillStyle = colors.green2.darker;
-					tCtx.fillRect(0, lerp(-DARK_EDGE_SIZE, h / 2, t2), w, DARK_EDGE_SIZE);
-					tCtx.fillStyle = colors.green2.brighter;
-					tCtx.fillRect(0, -DARK_EDGE_SIZE, w, lerp(0, h / 2 + DARK_EDGE_SIZE, t2));
-					tCtx.fillRect(0, lerp(h, h / 2, t2), w, h);
-				} else if (t < 1) {
-					t2 = t * 2 - 1;
-					t2 = ease.out(t2);
-					if (transitionText) {
-						tCtx.fillStyle = colors.green2.darker;
-						tCtx.fillRect(
-							0,
-							lerp(0, h / 2 - TITLE_HEIGHT / 2, t2),
-							w,
-							lerp(h, TITLE_HEIGHT + DARK_EDGE_SIZE, t2),
-						);
-						tCtx.fillStyle = colors.green2.brighter;
-						tCtx.fillRect(0, lerp(0, h / 2 - TITLE_HEIGHT / 2, t2), w, lerp(h, TITLE_HEIGHT, t2));
-					} else {
-						tCtx.fillStyle = colors.green2.darker;
-						tCtx.fillRect(0, lerp(0, h / 2, t2), w, lerp(h, DARK_EDGE_SIZE, t2));
-						tCtx.fillStyle = colors.green2.brighter;
-						tCtx.fillRect(0, lerp(0, h / 2, t2), w, lerp(h, 0, t2));
-					}
-				} else if (t < 1 + TITLE_DURATION) {
-					if (transitionText) {
-						tCtx.fillStyle = colors.green2.darker;
-						tCtx.fillRect(0, h / 2, w, TITLE_HEIGHT / 2 + DARK_EDGE_SIZE);
-						tCtx.fillStyle = colors.green2.brighter;
-						tCtx.fillRect(0, h / 2 - TITLE_HEIGHT / 2, w, TITLE_HEIGHT);
-					} else {
-						transitionTimer = TITLE_DURATION + 1.5;
-					}
-				} else if (t < TITLE_DURATION + 1.5) {
-					t2 = (t - TITLE_DURATION - 1) * 2;
-					t2 = ease.in(t2);
-					tCtx.fillStyle = colors.green2.darker;
-					tCtx.fillRect(0, h / 2, w, lerp(TITLE_HEIGHT / 2 + DARK_EDGE_SIZE, DARK_EDGE_SIZE, t2));
-					tCtx.fillStyle = colors.green2.brighter;
-					tCtx.fillRect(0, lerp(h / 2 - TITLE_HEIGHT / 2, h / 2, t2), w, lerp(TITLE_HEIGHT, 0, t2));
-				}
-
-				if (t > 0.5 && t < 3.5) {
-					var fontHeight = TITLE_HEIGHT - TITLE_PADDING * 2;
-					tCtx.font = fontHeight + "px Arial, Helvetica, sans-serif";
-					var totalWidth = tCtx.measureText(transitionText).width;
-					var x = w / 2 - totalWidth / 2 + TEXT_EXTRUDE / 2;
-					var y = h / 2 + fontHeight * 0.37 + TEXT_EXTRUDE / 2;
-					t2 = t;
-					if (t < 1.1) {
-						t2 = iLerp(0.5, 1.1, t);
-					} else if (t < 2.9) {
-						t2 = 1;
-					} else {
-						t2 = iLerp(3.5, 2.9, t);
-					}
-					drawAnimatedText(
-						tCtx,
-						transitionText,
-						t2,
-						x,
-						y,
-						fontHeight,
-						"white",
-						"Arial, Helvetica, sans-serif",
-						TEXT_EXTRUDE,
-						3,
-						16842438,
-					);
-					// tCtx.fillStyle = "white";
-					// tCtx.fillText(transitionText, x, y);
-				}
-
-				tCtx.restore();
-			}
-
-			//skip death transition
-			if (skipDeathTransition && transitionText == "GAME OVER" && transitionTimer > 1) {
-				transitionTimer = 1.1;
-				transitionDirection = -1;
-				allowSkipDeathTransition = false;
-				skipDeathTransition = false;
-			}
-		}
-
-		//lives
-		renderAllLives(deltaTime);
-
-		//top notification
-		for (var topNotificationI = currentTopNotifications.length - 1; topNotificationI >= 0; topNotificationI--) {
-			var thisTopNotification = currentTopNotifications[topNotificationI];
-			thisTopNotification.update(deltaTime);
-		}
-
-		engagementSetIsPlaying(playingAndReady && (Date.now() - lastSendDirTime) < 20000);
-
-		//title
-		if (beginScreenVisible && timeStamp - titleLastRender > 49) {
-			if (resetTitleNextFrame) {
-				resetTitleNextFrame = false;
-				titleTimer = -1;
-				titleLastRender = timeStamp;
-			}
-			titleTimer += (timeStamp - titleLastRender) * 0.002;
-			titleLastRender = timeStamp;
-
-			canvasTransformType = canvasTransformTypes.TITLE;
-			ctxCanvasSize(titCtx, true);
-			ctxApplyCamTransform(titCtx, false, true);
-
-			drawTitle(titCtx, titleTimer, true, 0, true);
-			drawTitle(titCtx, titleTimer, true, 2.5);
-			drawTitle(titCtx, titleTimer);
-			titCtx.restore();
-		}
-
-		//tutorial canvas
-		if (beginScreenVisible) {
-			tutorialTimer += deltaTime * GLOBAL_SPEED * 0.7;
-
-			canvasTransformType = canvasTransformTypes.TUTORIAL;
-			ctxCanvasSize(tutCtx);
-			if (!uglyMode) {
-				ctxCanvasSize(linesCtx);
-			}
-
-			//BG
-			tutCtx.fillStyle = colors.grey.BG;
-			tutCtx.fillRect(0, 0, tutorialCanvas.width, tutorialCanvas.height);
-			if (!uglyMode) {
-				linesCtx.fillStyle = "white";
-				linesCtx.fillRect(0, 0, linesCanvas.width, linesCanvas.height);
-			}
-
-			//cam transforms
-			ctxApplyCamTransform(tutCtx);
-			if (!uglyMode) {
-				ctxApplyCamTransform(linesCtx);
-			}
-
-			t = tutorialTimer;
-			drawBlocks(tutCtx, tutorialBlocks);
-			var p1 = getPlayer(1, tutorialPlayers);
-			var p2 = getPlayer(2, tutorialPlayers);
-
-			//p1
-			if (t < 10) {
-				p1.pos = [2, 2];
-			} else if (t < 15) {
-				p1.pos = [t - 8, 2];
-			} else if (t < 18) {
-				p1.pos = [7, t - 13];
-			} else if (t < 23) {
-				p1.pos = [25 - t, 5];
-			} else if (t < 26) {
-				p1.pos = [2, 28 - t];
-			} else if (t < 30) {
-			} else if (t < 36) {
-				p1.pos = [2, t - 28];
-			} else if (t < 39) {
-				p1.pos = [t - 34, 8];
-			}
-
-			//p1 trail
-			if (t < 12) {
-			} else if (t < 15) {
-				p1.trails = [{
-					trail: [[4, 2]],
-					vanishTimer: 0,
-				}];
-			} else if (t < 18) {
-				p1.trails = [{
-					trail: [[4, 2], [7, 2]],
-					vanishTimer: 0,
-				}];
-			} else if (t < 23) {
-				p1.trails = [{
-					trail: [[4, 2], [7, 2], [7, 5]],
-					vanishTimer: 0,
-				}];
-			} else if (t < 24) {
-				p1.trails = [{
-					trail: [[4, 2], [7, 2], [7, 5], [2, 5]],
-					vanishTimer: 0,
-				}];
-			}
-			if (t > 24 && tutorialPrevTimer < 24) {
-				p1.trails = [{
-					trail: [[4, 2], [7, 2], [7, 5], [2, 5], [2, 4]],
-					vanishTimer: 0,
-				}, {
-					trail: [],
-					vanishTimer: 0,
-				}];
-			}
-			if (t < 34) {
-			} else if (t < 36) {
-				p1.trails = [{
-					trail: [[2, 6]],
-					vanishTimer: 0,
-				}];
-			} else if (t < 39) {
-				p1.trails = [{
-					trail: [[2, 6], [2, 8]],
-					vanishTimer: 0,
-				}];
-			}
-
-			//p2
-			if (t < 34) {
-			} else if (t < 50) {
-				p2.pos = [t - 37, 7];
-				p2.trails = [{
-					trail: [[-2, 7]],
-					vanishTimer: 0,
-				}];
-			}
-
-			if (t > 25 && tutorialPrevTimer < 25) {
-				fillArea(2, 2, 6, 4, 10, 0, tutorialBlocks);
-			}
-			if (t > 39 && tutorialPrevTimer < 39) {
-				p1.die(true);
-				fillArea(1, 1, 7, 5, 1, 0, tutorialBlocks);
-				p2.addHitLine([2, 7]);
-			}
-			if (t > 50) {
-				tutorialTimer = tutorialPrevTimer = 0;
-				fillArea(1, 1, 3, 3, 10, 0, tutorialBlocks);
-				p1.isDeadTimer = 0;
-				p1.isDead = false;
-				p1.trails = [];
-				p1.pos = [100, 100];
-				p2.trails = [{
-					trail: [[-2, 7], [12, 7]],
-					vanishTimer: 0,
-				}, {
-					trail: [],
-					vanishTimer: 0,
-				}];
-				p2.pos = p2.drawPos = [-2, 7];
-			}
-
-			//tutorial text
-			if (t > 1 && tutorialPrevTimer < 1) {
-				tutorialText.innerHTML = "Close an area to fill it with your color.";
-			}
-			if (t > 30 && tutorialPrevTimer < 30) {
-				tutorialText.innerHTML = "Don't get hit by other players.";
-			}
-			var textOpacity = clamp01(5 - Math.abs((t - 20) * 0.5));
-			textOpacity += clamp01(4 - Math.abs((t - 40) * 0.5));
-			tutorialText.style.opacity = clamp(textOpacity, 0, 0.9);
-
-			moveDrawPosToPos(p1);
-			moveDrawPosToPos(p2);
-
-			tutCtx.globalAlpha = Math.min(1, Math.max(0, t * 0.3 - 1));
-			drawPlayer(tutCtx, p1, timeStamp);
-			drawPlayer(tutCtx, p2, timeStamp);
-			tutCtx.globalAlpha = 1;
-			tutorialPrevTimer = t;
-
-			//draw lines canvas
-			if (!uglyMode) {
-				drawDiagonalLines(linesCtx, "white", 5, 10, timeStamp * 0.008);
-			}
-
-			//restore cam transforms
-			tutCtx.restore();
-
-			if (!uglyMode) {
-				linesCtx.restore();
-				tutCtx.globalCompositeOperation = "multiply";
-				tutCtx.drawImage(linesCanvas, 0, 0);
-				tutCtx.globalCompositeOperation = "source-over";
-			}
-		}
-
-		//skin button
-		if (beginScreenVisible) {
-			canvasTransformType = canvasTransformTypes.SKIN_BUTTON;
-
-			ctxApplyCamTransform(skinButtonCtx, true, true);
-
-			drawBlocks(skinButtonCtx, skinButtonBlocks);
-			skinButtonCtx.restore();
-		}
-
-		//skin screen canvas
-		if (skinScreenVisible) {
-			canvasTransformType = canvasTransformTypes.SKIN;
-
-			ctxApplyCamTransform(skinCtx, true);
-
-			drawBlocks(skinCtx, skinScreenBlocks);
-			skinCtx.restore();
-		}
-
-		//lastStats
-		if (beginScreenVisible) {
-			lastStatTimer += deltaTime;
-			t = lastStatTimer / 2000;
-			if (t > 1) {
-				lastStatTimer = 0;
-				lastStatCounter++;
-				if (lastStatCounter > 5) {
-					lastStatCounter = 0;
-				}
-
-				if (lastStatCounter === 0) {
-					if (lastStatNo1Time <= 0 && bestStatNo1Time <= 0) {
-						lastStatCounter++;
-					} else {
-						lastStatValueElem.innerHTML = parseTimeToString(lastStatNo1Time) + " on #1";
-						bestStatValueElem.innerHTML = parseTimeToString(bestStatNo1Time) + " on #1";
-					}
-				}
-				if (lastStatCounter == 1) {
-					if (lastStatKiller === "" && lastStatKiller.replace(/\s/g, "").length > 0) {
-						lastStatCounter++;
-					} else {
-						lastStatValueElem.innerHTML = "killed by " + filter(htmlEscape(lastStatKiller));
-						bestStatValueElem.innerHTML = "";
-					}
-				}
-				if (lastStatCounter == 2) {
-					if (lastStatKills <= 0 && bestStatKills <= 0) {
-						lastStatCounter++;
-					} else {
-						var killsS = lastStatKills == 1 ? "" : "s";
-						lastStatValueElem.innerHTML = lastStatKills + " player" + killsS + " killed";
-						var killsS2 = bestStatKills == 1 ? "" : "s";
-						bestStatValueElem.innerHTML = bestStatKills + " player" + killsS2 + " killed";
-					}
-				}
-				if (lastStatCounter == 3) {
-					lastStatValueElem.innerHTML = parseTimeToString(lastStatAlive) + " alive";
-					bestStatValueElem.innerHTML =
-						parseTimeToString(Math.max(lastStatAlive, localStorage.getItem("bestStatAlive"))) + " alive";
-				}
-				if (lastStatCounter == 4) {
-					if (lastStatBlocks <= 0 && bestStatBlocks <= 0) {
-						lastStatCounter++;
-					} else {
-						var blockS = lastStatBlocks == 1 ? "" : "s";
-						lastStatValueElem.innerHTML = lastStatBlocks + " block" + blockS + " captured";
-						var blockS2 = bestStatBlocks == 1 ? "" : "s";
-						bestStatValueElem.innerHTML = bestStatBlocks + " block" + blockS2 + " captured";
-					}
-				}
-				if (lastStatCounter == 5) {
-					if (lastStatLbRank <= 0 && bestStatLbRank <= 0) {
-						lastStatCounter = 0;
-					} else {
-						lastStatValueElem.innerHTML = lastStatLbRank == 0 ? "" : "#" + lastStatLbRank + " highest rank";
-						bestStatValueElem.innerHTML = bestStatLbRank == 0 ? "" : "#" + bestStatLbRank + " highest rank";
-					}
-				}
-			}
-			var speed = 5;
-			lastStatValueElem.style.opacity = bestStatValueElem.style.opacity = speed - Math.abs((t - 0.5) * speed * 2);
-		}
-
-		if (beginScreenVisible) {
-			if (Date.now() - lastNameChangeCheck > 1000) {
-				if (lastNameValue != nameInput.value) {
-					nameInputOnChange();
-					lastNameValue = nameInput.value;
-				}
-				lastNameChangeCheck = Date.now();
-			}
-		}
-
-		//debug info
-		if (localStorage.drawDebug == "true") {
-			var avg = Math.round(thisServerAvgPing);
-			var last = Math.round(thisServerLastPing);
-			var diff = Math.round(thisServerDiffPing);
-			var str = "avg:" + avg + " last:" + last + " diff:" + diff;
-			ctx.font = "14px Arial, Helvetica, sans-serif";
-			ctx.fillStyle = colors.red.brighter;
-			var textWidth = ctx.measureText(str).width;
-			ctx.fillText(str, ctx.canvas.width - textWidth - 10, ctx.canvas.height - 10);
-		}
-
-		testAdBoxLoaded();
-		testAdBox2Loaded();
-
-		//ping overload test
-		// if(Date.now() - lastPingOverloadTestTime > 10000){
-		// 	lastPingOverloadTestTime = Date.now();
-		// 	if(pingOverLoadWs !== null && pingOverLoadWs.readyState == WebSocket.OPEN){
-		// 		pingOverLoadWs.close();
-		// 	}
-		// 	pingOverLoadWs = new WebSocket("ws://37.139.24.137:7999/overloadTest");
-		// 	pingOverLoadWs.onopen = function(){
-		// 		pingOverLoadWs.send(new Uint8Array([0]));
-		// 	};
-		// }
-	}
-
-	// if my position confirmation took too long
-	var clientSideSetPosPassed = Date.now() - lastMyPosSetClientSideTime;
-	var clientSideValidSetPosPassed = Date.now() - lastMyPosSetValidClientSideTime;
-	var serverSideSetPosPassed = Date.now() - lastMyPosServerSideTime;
-	// console.log(clientSideSetPosPassed, clientSideValidSetPosPassed, serverSideSetPosPassed);
-	if (
-		clientSideValidSetPosPassed > WAIT_FOR_DISCONNECTED_MS &&
-		serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !myPlayer.isDead
-	) {
-		if (!connectionLostNotification) {
-			connectionLostNotification = doTopNotification(
-				"It seems like you're disconnected. Please check your connection.",
-			);
-		}
-	} else {
-		if (connectionLostNotification) {
-			connectionLostNotification.animateOut();
-			connectionLostNotification = null;
-		}
-	}
-
-	var maxPingTime = waitingForPing ? 10000 : 5000;
-	if (ws !== null && Date.now() - lastPingTime > maxPingTime) {
-		lastPingTime = Date.now();
-		if (wsSendMsg(sendAction.PING)) {
-			waitingForPing = true;
-		}
-	}
-
-	// if(window.innerWidth != prevWindowWidth || window.innerHeight != prevWindowHeight){
-	// 	prevWindowWidth = window.innerWidth;
-	// 	prevWindowHeight = window.innerHeight;
-	// 	onResize(prevWindowWidth, prevWindowHeight);
-	// }
-
-	parseGamepads();
-
-	window.requestAnimationFrame(loop);
-}
-
-var gamePadIsHonking = false;
-var customMappings = [
-	{
-		name: "Generic USB Joystick", //https://twitter.com/Mat2095/status/765566729812598784
-		buttonMap: {
-			0: 2,
-			1: 1,
-			2: 3,
-			3: 0,
-			4: 4,
-			5: 5,
-			6: 6,
-			7: 7,
-			8: 8,
-			9: 9,
-			10: 10,
-			11: 11,
-			12: 13,
-			13: 14,
-			14: 15,
-			15: 16,
-		},
-		axesMap: { 0: 0, 1: 1, 2: 2, 3: 4 },
-	},
-	{
-		name: "Bluetooth Gamepad", //https://twitter.com/2zqa_MC/status/765933750416994304 https://twitter.com/2zqa_MC/status/765606843339182084
-		buttonMap: {
-			0: 0,
-			1: 1,
-			2: 3,
-			3: 4,
-			4: 6,
-			5: 7,
-			6: 8,
-			7: 9,
-			8: 10,
-			9: 11,
-			10: 13,
-			11: 14,
-			12: 12,
-			13: 13,
-			14: 14,
-			15: 15,
-		},
-		axesMap: { 0: 0, 1: 1, 2: 2, 3: 5 },
-		//12 = axis 9 (-1.0)
-		//13 = axis 9 (0.142857)
-		//14 = axis 9 (0.714286)
-		//15 = axis 9 (-0.428571)
-	},
-	{
-		name: "USB DancePad",
-		buttonMap: {
-			0: 6,
-			1: 7,
-			2: 2,
-			3: 3,
-			4: 4,
-			5: 5,
-			6: 6,
-			7: 7,
-			8: 8,
-			9: 9,
-			10: 10,
-			11: 11,
-			12: 0,
-			13: 1,
-			14: 2,
-			15: 3,
-		},
-		axesMap: { 0: 0, 1: 1, 2: 2, 3: 4 },
-	},
-];
-
-var currentGamepad;
-var currentMap = {
-	buttonMap: {
-		0: 0,
-		1: 1,
-		2: 2,
-		3: 3,
-		4: 4,
-		5: 5,
-		6: 6,
-		7: 7,
-		8: 8,
-		9: 9,
-		10: 10,
-		11: 11,
-		12: 12,
-		13: 13,
-		14: 14,
-		15: 15,
-	},
-	axesMap: { 0: 0, 1: 1, 2: 2, 3: 3 },
-};
-function getButton(id) {
-	if (currentGamepad) {
-		if (currentGamepad.buttons) {
-			var button = currentGamepad.buttons[currentMap.buttonMap[id]];
-			if (button) {
-				return button.pressed;
-			}
-		}
-	}
-	return false;
-}
-
-function getAxis(id) {
-	if (currentGamepad) {
-		if (currentGamepad.axes) {
-			var axis = currentGamepad.axes[currentMap.axesMap[id]];
-			if (axis !== undefined) {
-				return axis;
-			}
-		}
-	}
-	return 0;
-}
-
-function parseGamepads() {
-	if ("getGamepads" in navigator) {
-		var gamepads = navigator.getGamepads();
-		var honkButtonPressedAnyPad = false;
-		for (var i = 0; i < gamepads.length; i++) {
-			currentGamepad = gamepads[i];
-			if (currentGamepad !== undefined && currentGamepad !== null) {
-				var validGamepad = false;
-				if (currentGamepad.mapping == "standard") {
-					currentMap = {
-						buttonMap: {
-							0: 0,
-							1: 1,
-							2: 2,
-							3: 3,
-							4: 4,
-							5: 5,
-							6: 6,
-							7: 7,
-							8: 8,
-							9: 9,
-							10: 10,
-							11: 11,
-							12: 12,
-							13: 13,
-							14: 14,
-							15: 15,
-						},
-						axesMap: { 0: 0, 1: 1, 2: 2, 3: 3 },
-					};
-					validGamepad = true;
-				} else {
-					for (var j = 0; j < customMappings.length; j++) {
-						if (currentGamepad.id.indexOf(customMappings[j].name) >= 0) {
-							validGamepad = true;
-							currentMap = customMappings[j];
-						}
-					}
-				}
-				if (validGamepad) {
-					if (getButton(12)) { //up
-						sendDir(3);
-					}
-					if (getButton(13)) { //down
-						sendDir(1);
-					}
-					if (getButton(14)) { //left
-						sendDir(2);
-					}
-					if (getButton(15)) { //right
-						sendDir(0);
-					}
-					if (getButton(0)) { // X / A
-						honkButtonPressedAnyPad = true;
-					}
-					if (getButton(1)) { // O / B
-						doSkipDeathTransition();
-					}
-					if (getButton(9)) { // pause
-						sendDir(4);
-					}
-					if (getAxis(0) < -0.9 || getAxis(2) < -0.9) { //left
-						sendDir(2);
-					}
-					if (getAxis(0) > 0.9 || getAxis(2) > 0.9) { //right
-						sendDir(0);
-					}
-					if (getAxis(1) < -0.9 || getAxis(3) < -0.9) { //up
-						sendDir(3);
-					}
-					if (getAxis(1) > 0.9 || getAxis(3) > 0.9) { //down
-						sendDir(1);
-					}
-				}
-			}
-		}
-
-		if (honkButtonPressedAnyPad) { // X / A
-			if (beginScreenVisible) {
-				connectWithTransition();
-			} else if (!gamePadIsHonking) {
-				gamePadIsHonking = true;
-				honkStart();
-			}
-		} else {
-			if (gamePadIsHonking) {
-				gamePadIsHonking = false;
-				honkEnd();
-			}
-		}
-	}
-}
-
-//stackoverflow.com/a/18729931/3625298
-function toUTF8Array(str) {
-	var utf8 = [];
-	for (var i = 0; i < str.length; i++) {
-		var charcode = str.charCodeAt(i);
-		if (charcode < 0x80) utf8.push(charcode);
-		else if (charcode < 0x800) {
-			utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
-		} else if (charcode < 0xd800 || charcode >= 0xe000) {
-			utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
-		} // surrogate pair
-		else {
-			i++;
-			// UTF-16 encodes 0x10000-0x10FFFF by
-			// subtracting 0x10000 and splitting the
-			// 20 bits of 0x0-0xFFFFF into two halves
-			charcode = 0x10000 + (((charcode & 0x3ff) << 10) |
-				(str.charCodeAt(i) & 0x3ff));
-			utf8.push(
-				0xf0 | (charcode >> 18),
-				0x80 | ((charcode >> 12) & 0x3f),
-				0x80 | ((charcode >> 6) & 0x3f),
-				0x80 | (charcode & 0x3f),
-			);
-		}
-	}
-	return utf8;
-}
-
-//http://stackoverflow.com/a/7124052/3625298
-function htmlEscape(str) {
-	return String(str)
-		.replace(/&/g, "&amp;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;");
-}
-
-var swearArr = [];
-simpleRequest("./static/swearList.txt", function (result) {
-	swearArr = result.split("\n").filter(function (n) {
-		return n;
-	});
-});
-var swearRepl = "balaboo";
-function filter(str) {
-	str = str.replace(/[卐卍]/g, "❤");
-	var words = str.split(" ");
-	for (var i = 0; i < words.length; i++) {
-		var word = words[i];
-		var wasAllUpper = word.toUpperCase() == word;
-		for (var j = 0; j < swearArr.length; j++) {
-			var swear = swearArr[j];
-			if (word.toLowerCase().indexOf(swear) >= 0) {
-				if (word.length < swear.length + 2) {
-					word = swearRepl;
-				} else {
-					word = word.toLowerCase().replace(swear, swearRepl);
-				}
-			}
-		}
-		if (wasAllUpper) {
-			word = word.toUpperCase();
-		}
-		words[i] = word;
-	}
-	return words.join(" ");
-}
-
-//stackoverflow.com/a/22373135/3625298
-// http://www.onicos.com/staff/iz/amuse/javascript/expert/utf.txt
-
-/* utf.js - UTF-8 <=> UTF-16 convertion
- *
- * Copyright (C) 1999 Masanao Izumo <iz@onicos.co.jp>
- * Version: 1.0
- * LastModified: Dec 25 1999
- * This library is free.  You can redistribute it and/or modify it.
- */
-
-function Utf8ArrayToStr(array) {
-	var out, i, len, c;
-	var char2, char3;
-
-	out = "";
-	len = array.length;
-	i = 0;
-	while (i < len) {
-		c = array[i++];
-		switch (c >> 4) {
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-				// 0xxxxxxx
-				out += String.fromCharCode(c);
-				break;
-			case 12:
-			case 13:
-				// 110x xxxx   10xx xxxx
-				char2 = array[i++];
-				out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
-				break;
-			case 14:
-				// 1110 xxxx  10xx xxxx  10xx xxxx
-				char2 = array[i++];
-				char3 = array[i++];
-				out += String.fromCharCode(
-					((c & 0x0F) << 12) |
-						((char2 & 0x3F) << 6) |
-						((char3 & 0x3F) << 0),
-				);
-				break;
-		}
-	}
-
-	return out;
-}
-
-function bytesToInt() {
-	var integer = 0;
-	var multiplier = 0;
-	for (var i = arguments.length - 1; i >= 0; i--) {
-		var thisArg = arguments[i];
-		integer = (integer | (((thisArg & 0xff) << multiplier) >>> 0)) >>> 0;
-		multiplier += 8;
-	}
-	return integer;
-}
-
-function intToBytes(integer, byteCount) {
-	var bytes = [];
-	for (var i = 0; i < byteCount; i++) {
-		var byte = integer & 0xff;
-		bytes[byteCount - i - 1] = byte;
-		integer = (integer - byte) / 256;
-	}
-	return bytes;
-}
-
-function parseTimeToString(seconds) {
-	var hours = Math.floor(seconds / 3600);
-	var minutes = Math.floor((seconds - (hours * 3600)) / 60);
-	seconds = seconds - (hours * 3600) - (minutes * 60);
-	if (hours <= 0) {
-		var secondsS = seconds == 1 ? "" : "s";
-		if (minutes <= 0) {
-			return seconds + " second" + secondsS;
-		} else {
-			var minutesS = minutes == 1 ? "" : "s";
-			return minutes + " minute" + minutesS + " and " + seconds + " second" + secondsS;
-		}
-	} else {
-		if (hours < 10) hours = "0" + hours;
-		if (minutes < 10) minutes = "0" + minutes;
-		if (seconds < 10) seconds = "0" + seconds;
-		return hours + ":" + minutes + ":" + seconds;
-	}
-}
-
-function parseQuery(url) {
-	var startIndex = url.indexOf("?");
-	if (startIndex < 0) {
-		return {};
-	}
-	var queryString = url.substr(startIndex + 1);
-	var queryItems = queryString.split("&");
-	var query = {};
-	for (var i = 0; i < queryItems.length; i++) {
-		var split = queryItems[i].split("=");
-		if (split.length == 2) {
-			query[split[0]] = split[1];
-		}
-	}
-	return query;
 }

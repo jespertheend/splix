@@ -1,5 +1,7 @@
-const serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById("serverSelect"));
-export async function initServerSelection() {
+document.addEventListener('DOMContentLoaded', ()=>{
+	serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById("serverSelect"));
+});
+async function initServerSelection() {
 	let endPoint;
 	if (!IS_DEV_BUILD) {
 		endPoint = "https://splix.io/gameservers";
@@ -74,6 +76,6 @@ export async function initServerSelection() {
 	joinButton.disabled = false;
 }
 
-export function getSelectedServer() {
+function getSelectedServer() {
 	return serverSelectEl.value;
 }
