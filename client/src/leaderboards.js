@@ -1,5 +1,3 @@
-import "./globals.js";
-
 async function loadLeaderboardData() {
 	let endPoint;
 	if (!IS_DEV_BUILD) {

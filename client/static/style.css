@@ -558,3 +558,11 @@ a:hover{
 	padding: 20px 50px;
 	margin: 20px;
 }
+
+body[data-state="playing"] .hc-menu-container {
+    opacity: var(--menu-opacity);
+}
+
+.search-negative {
+	display: none;
+}
