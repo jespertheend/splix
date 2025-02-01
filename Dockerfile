@@ -12,4 +12,6 @@ FROM debian:12-slim
 
 COPY --from=build /app/gameServer/out/linux/ .
 
+EXPOSE 8080
+
 CMD ["./splixGameServer", "--hostname", "0.0.0.0"]
