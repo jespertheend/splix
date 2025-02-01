@@ -1,8 +1,6 @@
-/** @typedef {"default" | "drawing"} GameModes */
-
 import { lerp, SingleInstancePromise, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
-import { Player } from "./Player.js";
+import { Direction, Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
 	LEADERBOARD_UPDATE_FREQUENCY,
@@ -18,8 +16,14 @@ import { ApplicationLoop } from "../ApplicationLoop.js";
  * @property {number} patternId
  */
 
-/** @type {GameModes[]} */
-export const validGamemodes = ["default", "drawing"];
+/**
+ * @readonly
+ * @enum {number}
+ */
+export const GameModes = Object.freeze({
+	default: 0,
+	drawing: 1,
+});
 
 export class Game {
 	#arena;
@@ -55,7 +59,7 @@ export class Game {
 	constructor(applicationLoop, {
 		arenaWidth = 600,
 		arenaHeight = 600,
-		gameMode = "default",
+		gameMode = GameModes.default,
 	} = {}) {
 		this.#gameMode = gameMode;
 		this.#arena = new Arena(arenaWidth, arenaHeight);
@@ -143,19 +147,19 @@ export class Game {
 		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
 		const wallDistances = [
 			{
-				direction: "up",
+				direction: Direction.UP,
 				distance: this.arena.height - position.y,
 			},
 			{
-				direction: "down",
+				direction: Direction.DOWN,
 				distance: position.y,
 			},
 			{
-				direction: "right",
+				direction: Direction.RIGHT,
 				distance: position.x,
 			},
 			{
-				direction: "left",
+				direction: Direction.LEFT,
 				distance: this.arena.width - position.x,
 			},
 		];
@@ -167,7 +171,7 @@ export class Game {
 		}
 		return {
 			position,
-			direction: closestWall?.direction || "up",
+			direction: closestWall?.direction || Direction.UP,
 		};
 	}
 

@@ -1,7 +1,7 @@
 import { Main } from "./Main.js";
 import { parse as parseArgs } from "https://deno.land/std@0.198.0/flags/mod.ts";
 import { basename } from "https://deno.land/std@0.198.0/path/mod.ts";
-import { validGamemodes } from "./gameplay/Game.js";
+import { GameModes } from "./gameplay/Game.js";
 
 /** @type {Main?} */
 let main = null;
@@ -54,7 +54,7 @@ if (import.meta.main) {
 
 -g --gameMode
     Sets the game mode of the game. Valid values are:
-    ${validGamemodes.join(" ")}
+    ${Object.keys(GameModes).join(" ")}
     Example: ${executableName} --gameMode default
 `);
 	} else {
@@ -64,7 +64,7 @@ if (import.meta.main) {
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
 		const gameMode = args.g || args.gameMode || "default";
-		if (!validGamemodes.includes(gameMode)) {
+		if (!(gameMode in GameModes)) {
 			throw new Error(`"${gameMode}" is not a valid gamemode.`);
 		}
 		if (arenaSize) {
@@ -74,7 +74,8 @@ if (import.meta.main) {
 		const main = init({
 			arenaWidth,
 			arenaHeight,
-			gameMode,
+			// @ts-expect-error: we checked earlier that `gameMode in GameModes`
+			gameMode: GameModes[gameMode],
 		});
 		main.init({ port, hostname });
 	}

@@ -9,13 +9,6 @@ import { Player } from "./gameplay/Player.js";
 import { ControlSocketConnection } from "./ControlSocketConnection.js";
 
 /**
- * - `"add-segment"` - adds a new polygon to the current trail.
- * - `"reset"` - clear the current trail
- * - `null` leave the trail unchanged
- * @typedef {"add-segment" | "reset" | null} ChangeTrailBehaviour
- */
-
-/**
  * The color ids that clients send to servers include 0,
  * which assigns a random color on the server's end.
  * But there is no need to ever send 0 to the client, so it expects the first color
@@ -29,6 +22,134 @@ function serverToClientColorId(colorId) {
 }
 
 export const initializeControlSocketMessage = "initializeControlSocket";
+
+const SendAction = Object.freeze({
+	/**
+	 * Legacy, unused.
+	 */
+	UPDATE_BLOCKS: 1,
+	/**
+	 * Updates player state such as position, direction, and trail.
+	 */
+	PLAYER_STATE: 2,
+	/**
+	 * Informs the client to replace all tiles in a rectangle with a specified color.
+	 */
+	FILL_RECT: 3,
+	/**
+	 * Updates the trail of a specific player.
+	 */
+	SET_PLAYER_TRAIL: 4,
+	/**
+	 * Lets all nearby clients know that they should play the death animation for a specific player.
+	 */
+	PLAYER_DIE: 5,
+	/**
+	 * Sends an area of the map to a player.
+	 * Each tile is sent individually with no form of compression, so the message could be quite big.
+	 */
+	CHUNK_OF_BLOCKS: 6,
+	/**
+	 * Notifies the client that they can stop rendering and remove all data from a player.
+	 * This is sent when a player moves out of another player's viewport.
+	 * When they enter each other's viewport again, data such as skin id and player name needs to be sent again.
+	 */
+	REMOVE_PLAYER: 7,
+	/**
+	 * Notifies the client about the name of a specific player.
+	 */
+	PLAYER_NAME: 8,
+	/**
+	 * Sends the captured tile count and kill count of the current player.
+	 */
+	MY_SCORE: 9,
+	MY_RANK: 10,
+	/**
+	 * Sends the player names and scores of the top 10 players, and the total amount of players in the game.
+	 */
+	LEADERBOARD: 11,
+	/**
+	 * Lets the client know about the size of the map.
+	 * This is used for correctly rendering the position on the minimap, among other things.
+	 */
+	MAP_SIZE: 12,
+	/**
+	 * Tells the client to show the game over screen.
+	 */
+	GAME_OVER: 13,
+	/**
+	 * Sends a part of the minimap to the client.
+	 */
+	MINIMAP: 14,
+	/**
+	 * Tells the client which skin a specific player has.
+	 */
+	PLAYER_SKIN: 15,
+	/**
+	 * Notifies the client that whatever trail it is currently creating for a player,
+	 * should be ended at a specific position.
+	 */
+	EMPTY_TRAIL_WITH_LAST_POS: 16,
+	/**
+	 * Lets the client know that all required data has been sent to start the game.
+	 * This will will hide the loading transition on the client.
+	 */
+	READY: 17,
+	/**
+	 * Notifies clients to render a 'hit line' circle at a location.
+	 */
+	PLAYER_HIT_LINE: 18,
+	REFRESH_AFTER_DIE: 19,
+	/**
+	 * A player honked.
+	 */
+	PLAYER_HONK: 20,
+	PONG: 21,
+	/**
+	 * Lets the client know that a player didn't die after all, and it should
+	 * start rendering and moving it again.
+	 */
+	UNDO_PLAYER_DIE: 22,
+	TEAM_LIFE_COUNT: 23,
+});
+
+const ReceiveAction = Object.freeze({
+	/**
+	 * The client changed their position and direction.
+	 */
+	UPDATE_MY_POS: 1,
+	/**
+	 * Sets the name of the player that will be created.
+	 * If this is sent after the player has been created, the message is ignored.
+	 */
+	SET_USERNAME: 2,
+	/**
+	 * Sets the skin of the connected client.
+	 * This message is ignored when it is sent after the `READY` message.
+	 */
+	SKIN: 3,
+	/**
+	 * Lets the server know that the player is ready to join the game.
+	 */
+	READY: 4,
+	REQUEST_CLOSE: 5,
+	/**
+	 * The player honked.
+	 */
+	HONK: 6,
+	PING: 7,
+	/**
+	 * The client wants to know about the state of the trail as it currently exists according to the server.
+	 */
+	REQUEST_MY_TRAIL: 8,
+	MY_TEAM_URL: 9,
+	SET_TEAM_USERNAME: 10,
+	/**
+	 * Sends the version of the client to the server.
+	 */
+	VERSION: 11,
+	PATREON_CODE: 12,
+});
 
 /**
  * Handles the messaging between server and client.
@@ -61,138 +182,6 @@ export class WebSocketConnection {
 		this.#game = game;
 	}
 
-	static get SendAction() {
-		return {
-			/**
-			 * Legacy, unused.
-			 */
-			UPDATE_BLOCKS: 1,
-			/**
-			 * Updates player state such as position, direction, and trail.
-			 */
-			PLAYER_STATE: 2,
-			/**
-			 * Informs the client to replace all tiles in a rectangle with a specified color.
-			 */
-			FILL_RECT: 3,
-			/**
-			 * Updates the trail of a specific player.
-			 */
-			SET_PLAYER_TRAIL: 4,
-			/**
-			 * Lets all nearby clients know that they should play the death animation for a specific player.
-			 */
-			PLAYER_DIE: 5,
-			/**
-			 * Sends an area of the map to a player.
-			 * Each tile is sent individually with no form of compression, so the message could be quite big.
-			 */
-			CHUNK_OF_BLOCKS: 6,
-			/**
-			 * Notifies the client that they can stop rendering and remove all data from a player.
-			 * This is sent when a player moves out of another player's viewport.
-			 * When they enter each other's viewport again, data such as skin id and player name needs to be sent again.
-			 */
-			REMOVE_PLAYER: 7,
-			/**
-			 * Notifies the client about the name of a specific player.
-			 */
-			PLAYER_NAME: 8,
-			/**
-			 * Sends the captured tile count and kill count of the current player.
-			 */
-			MY_SCORE: 9,
-			MY_RANK: 10,
-			/**
-			 * Sends the player names and scores of the top 10 players, and the total amount of players in the game.
-			 */
-			LEADERBOARD: 11,
-			/**
-			 * Lets the client know about the size of the map.
-			 * This is used for correctly rendering the position on the minimap, among other things.
-			 */
-			MAP_SIZE: 12,
-			/**
-			 * Tells the client to show the game over screen.
-			 */
-			GAME_OVER: 13,
-			/**
-			 * Sends a part of the minimap to the client.
-			 */
-			MINIMAP: 14,
-			/**
-			 * Tells the client which skin a specific player has.
-			 */
-			PLAYER_SKIN: 15,
-			/**
-			 * Notifies the client that whatever trail it is currently creating for a player,
-			 * should be ended at a specific position.
-			 */
-			EMPTY_TRAIL_WITH_LAST_POS: 16,
-			/**
-			 * Lets the client know that all required data has been sent to start the game.
-			 * This will will hide the loading transition on the client.
-			 */
-			READY: 17,
-			/**
-			 * Notifies clients to render a 'hit line' circle at a location.
-			 */
-			PLAYER_HIT_LINE: 18,
-			REFRESH_AFTER_DIE: 19,
-			/**
-			 * A player honked.
-			 */
-			PLAYER_HONK: 20,
-			PONG: 21,
-			/**
-			 * Lets the client know that a player didn't die after all, and it should
-			 * start rendering and moving it again.
-			 */
-			UNDO_PLAYER_DIE: 22,
-			TEAM_LIFE_COUNT: 23,
-		};
-	}
-
-	static get ReceiveAction() {
-		return {
-			/**
-			 * The client changed their position and direction.
-			 */
-			UPDATE_MY_POS: 1,
-			/**
-			 * Sets the name of the player that will be created.
-			 * If this is sent after the player has been created, the message is ignored.
-			 */
-			SET_USERNAME: 2,
-			/**
-			 * Sets the skin of the connected client.
-			 * This message is ignored when it is sent after the `READY` message.
-			 */
-			SKIN: 3,
-			/**
-			 * Lets the server know that the player is ready to join the game.
-			 */
-			READY: 4,
-			REQUEST_CLOSE: 5,
-			/**
-			 * The player honked.
-			 */
-			HONK: 6,
-			PING: 7,
-			/**
-			 * The client wants to know about the state of the trail as it currently exists according to the server.
-			 */
-			REQUEST_MY_TRAIL: 8,
-			MY_TEAM_URL: 9,
-			SET_TEAM_USERNAME: 10,
-			/**
-			 * Sends the version of the client to the server.
-			 */
-			VERSION: 11,
-			PATREON_CODE: 12,
-		};
-	}
-
 	#lastPingTime = performance.now();
 
 	/** @type {import("./gameplay/Player.js").SkinData?} */
@@ -223,7 +212,7 @@ export class WebSocketConnection {
 		const view = new DataView(data);
 		const messageType = view.getUint8(0);
 
-		if (messageType == WebSocketConnection.ReceiveAction.READY) {
+		if (messageType == ReceiveAction.READY) {
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
@@ -246,10 +235,10 @@ export class WebSocketConnection {
 			}
 			this.#sendReady();
 			this.#sendLegacyReady();
-		} else if (messageType == WebSocketConnection.ReceiveAction.PING) {
+		} else if (messageType == ReceiveAction.PING) {
 			this.#lastPingTime = performance.now();
 			this.#sendPong();
-		} else if (messageType == WebSocketConnection.ReceiveAction.UPDATE_MY_POS) {
+		} else if (messageType == ReceiveAction.UPDATE_MY_POS) {
 			if (view.byteLength < 6) return;
 			if (!this.#player) return;
 			let cursor = 1;
@@ -259,27 +248,14 @@ export class WebSocketConnection {
 			cursor += 2;
 			const y = view.getUint16(cursor, false);
 			cursor += 2;
-			/** @type {import("./gameplay/Player.js").Direction} */
-			let direction;
-			if (newDir == 0) {
-				direction = "right";
-			} else if (newDir == 1) {
-				direction = "down";
-			} else if (newDir == 2) {
-				direction = "left";
-			} else if (newDir == 3) {
-				direction = "up";
-			} else if (newDir == 4) {
-				direction = "paused";
-			} else {
-				return;
+			if (Number.isInteger(newDir) && 0 <= newDir && newDir <= 4) {
+				this.#player.clientPosUpdateRequested(newDir, new Vec2(x, y));
 			}
-			this.#player.clientPosUpdateRequested(direction, new Vec2(x, y));
-		} else if (messageType == WebSocketConnection.ReceiveAction.REQUEST_MY_TRAIL) {
+		} else if (messageType == ReceiveAction.REQUEST_MY_TRAIL) {
 			if (!this.#player) return;
 			const message = WebSocketConnection.createTrailMessage(0, Array.from(this.#player.getTrailVertices()));
 			this.send(message);
-		} else if (messageType == WebSocketConnection.ReceiveAction.SKIN) {
+		} else if (messageType == ReceiveAction.SKIN) {
 			if (this.#player) return;
 			if (view.byteLength != 3) return;
 			let cursor = 1;
@@ -293,7 +269,7 @@ export class WebSocketConnection {
 				colorId,
 				patternId,
 			};
-		} else if (messageType == WebSocketConnection.ReceiveAction.SET_USERNAME) {
+		} else if (messageType == ReceiveAction.SET_USERNAME) {
 			if (this.#player) return;
 			const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
 			const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
@@ -301,7 +277,7 @@ export class WebSocketConnection {
 			const decoder = new TextDecoder();
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
-		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
+		} else if (messageType == ReceiveAction.HONK) {
 			if (!this.#player) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
@@ -328,7 +304,7 @@ export class WebSocketConnection {
 	}
 
 	#sendReady() {
-		this.send(new Uint8Array([WebSocketConnection.SendAction.READY]));
+		this.send(new Uint8Array([SendAction.READY]));
 	}
 
 	/**
@@ -342,7 +318,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.CHUNK_OF_BLOCKS);
+		view.setUint8(cursor, SendAction.CHUNK_OF_BLOCKS);
 		cursor++;
 
 		// x
@@ -365,7 +341,7 @@ export class WebSocketConnection {
 	}
 
 	#sendPong() {
-		this.send(new Uint8Array([WebSocketConnection.SendAction.PONG]));
+		this.send(new Uint8Array([SendAction.PONG]));
 	}
 
 	/**
@@ -376,7 +352,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.MAP_SIZE);
+		view.setUint8(cursor, SendAction.MAP_SIZE);
 		cursor++;
 
 		view.setUint16(cursor, mapSize, false);
@@ -397,7 +373,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(9);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_STATE);
+		view.setUint8(cursor, SendAction.PLAYER_STATE);
 		cursor++;
 		view.setUint16(cursor, Math.round(x), false);
 		cursor += 2;
@@ -405,19 +381,7 @@ export class WebSocketConnection {
 		cursor += 2;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
-		let dirNumber = 0;
-		if (dir == "right") {
-			dirNumber = 0;
-		} else if (dir == "down") {
-			dirNumber = 1;
-		} else if (dir == "left") {
-			dirNumber = 2;
-		} else if (dir == "up") {
-			dirNumber = 3;
-		} else if (dir == "paused") {
-			dirNumber = 4;
-		}
-		view.setUint8(cursor, dirNumber);
+		view.setUint8(cursor, dir);
 		cursor++;
 
 		// This is legacy behaviour. The client already seems to ignore this flag when the player doesn't
@@ -436,7 +400,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(4);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_SKIN);
+		view.setUint8(cursor, SendAction.PLAYER_SKIN);
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
@@ -456,7 +420,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
+		view.setUint8(cursor, SendAction.PLAYER_NAME);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
@@ -476,7 +440,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(3);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.REMOVE_PLAYER);
+		view.setUint8(cursor, SendAction.REMOVE_PLAYER);
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
@@ -494,7 +458,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.FILL_RECT);
+		view.setUint8(cursor, SendAction.FILL_RECT);
 		cursor++;
 
 		view.setUint16(cursor, rect.min.x, false);
@@ -532,7 +496,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(bufferLength);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.SET_PLAYER_TRAIL);
+		view.setUint8(cursor, SendAction.SET_PLAYER_TRAIL);
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
@@ -554,7 +518,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.EMPTY_TRAIL_WITH_LAST_POS);
+		view.setUint8(cursor, SendAction.EMPTY_TRAIL_WITH_LAST_POS);
 		cursor++;
 
 		view.setUint16(cursor, playerId, false);
@@ -580,7 +544,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(bufferLength);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_DIE);
+		view.setUint8(cursor, SendAction.PLAYER_DIE);
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
@@ -601,7 +565,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.UNDO_PLAYER_DIE);
+		view.setUint8(cursor, SendAction.UNDO_PLAYER_DIE);
 		cursor++;
 
 		view.setUint16(cursor, playerId, false);
@@ -620,7 +584,7 @@ export class WebSocketConnection {
 		const buffer = new ArrayBuffer(9);
 		const view = new DataView(buffer);
 		let cursor = 0;
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_HIT_LINE);
+		view.setUint8(cursor, SendAction.PLAYER_HIT_LINE);
 		cursor++;
 		view.setUint16(cursor, hitByPlayerId, false);
 		cursor += 2;
@@ -644,7 +608,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_HONK);
+		view.setUint8(cursor, SendAction.PLAYER_HONK);
 		cursor++;
 
 		view.setUint16(cursor, playerId, false);
@@ -665,7 +629,7 @@ export class WebSocketConnection {
 		const view = new Uint8Array(buffer);
 		const minmapView = new Uint8Array(minimapData);
 
-		view[0] = WebSocketConnection.SendAction.MINIMAP;
+		view[0] = SendAction.MINIMAP;
 		view[1] = partId;
 
 		view.set(minmapView, 2);
@@ -691,7 +655,7 @@ export class WebSocketConnection {
 
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.GAME_OVER);
+		view.setUint8(cursor, SendAction.GAME_OVER);
 		cursor++;
 
 		view.setUint32(cursor, scoreTiles, false);
@@ -709,15 +673,7 @@ export class WebSocketConnection {
 		view.setUint32(cursor, rankingFirstSeconds, false);
 		cursor += 4;
 
-		let deathTypeInt = 0;
-		if (deathType == "player") {
-			deathTypeInt = 1;
-		} else if (deathType == "arena-bounds") {
-			deathTypeInt = 2;
-		} else if (deathType == "self") {
-			deathTypeInt = 3;
-		}
-		view.setUint8(cursor, deathTypeInt);
+		view.setUint8(cursor, deathType);
 		cursor++;
 
 		intView.set(killedByNameBytes, cursor);
@@ -735,7 +691,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.MY_SCORE);
+		view.setUint8(cursor, SendAction.MY_SCORE);
 		cursor++;
 
 		view.setUint32(cursor, capturedTiles, false);
@@ -755,7 +711,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.MY_RANK);
+		view.setUint8(cursor, SendAction.MY_RANK);
 		cursor++;
 
 		view.setUint16(cursor, rank, false);
@@ -791,7 +747,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.LEADERBOARD);
+		view.setUint8(cursor, SendAction.LEADERBOARD);
 		cursor++;
 
 		view.setUint16(cursor, totalPlayers, false);

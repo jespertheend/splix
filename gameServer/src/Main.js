@@ -1,5 +1,5 @@
 import { ApplicationLoop } from "./ApplicationLoop.js";
-import { Game } from "./gameplay/Game.js";
+import { Game, GameModes } from "./gameplay/Game.js";
 import { WebSocketManager } from "./WebSocketManager.js";
 
 export class Main {
@@ -12,7 +12,7 @@ export class Main {
 	constructor({
 		arenaWidth,
 		arenaHeight,
-		gameMode = "default",
+		gameMode = GameModes.default,
 	}) {
 		this.applicationLoop = new ApplicationLoop();
 		this.websocketManager = new WebSocketManager();
