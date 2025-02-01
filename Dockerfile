@@ -2,7 +2,7 @@ FROM denoland/deno:1.43.6 as build
 
 WORKDIR /app
 
-RUN apt-get install -y unzip
+RUN apt-get update && apt-get install -y unzip
 
 COPY . .
 
