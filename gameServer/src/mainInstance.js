@@ -64,7 +64,7 @@ if (import.meta.main) {
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
 		const gameMode = args.g || args.gameMode || "default";
-		if (!(gameMode in GameModes)) {
+		if (!(GameModes.hasOwnProperty(gameMode))) {
 			throw new Error(`"${gameMode}" is not a valid gamemode.`);
 		}
 		if (arenaSize) {
