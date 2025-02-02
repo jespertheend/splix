@@ -13,6 +13,7 @@ import { lerp, Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
 import { PlayerEventHistory } from "./PlayerEventHistory.js";
 import { getMainInstance } from "../mainInstance.js";
+import { GameModes } from "./Game.js";
 
 /**
  * When sent inside messages, these translate to an integer:
@@ -21,14 +22,43 @@ import { getMainInstance } from "../mainInstance.js";
  * - left - 2
  * - up - 3
  * - paused - 4
- * @typedef {"right" | "down" | "left" | "up" | "paused"} Direction
+ * @readonly
+ * @enum {number}
  */
+export const Direction = Object.freeze({
+	RIGHT: 0,
+	DOWN: 1,
+	LEFT: 2,
+	UP: 3,
+	PAUSED: 4,
+});
 
 /**
  * @typedef {Exclude<Direction, "paused">} UnpausedDirection
  */
 
-/** @typedef {"player" | "arena-bounds" | "self"} DeathType */
+/** Distinction between the various kinds of deaths.
+ * @readonly
+ * @enum {number}
+ */
+export const DeathType = Object.freeze({
+	/** The player was killed by another player.*/
+	PLAYER: 1,
+	/** The player was killed by the bounds of the arena (the wall). */
+	ARENA_BOUNDS: 2,
+	/** The player killed themsleves*/
+	SELF: 3,
+});
+
+/** Represents the validity of a move.
+ * @readonly
+ * @enum {number}
+ */
+const MoveValidity = Object.freeze({
+	INVALID: 0,
+	VALID: 1,
+	VALID_DIRECTION: 2,
+});
 
 /**
  * @typedef SkinData
@@ -82,13 +112,13 @@ export class Player {
 	#nextTileProgress = 0;
 
 	/** @type {Direction} */
-	#currentDirection = "paused";
+	#currentDirection = Direction.PAUSED;
 	/**
 	 * The direction the player was moving in before they paused.
 	 * Or the current direction if the player is not currently paused.
 	 * @type {Exclude<Direction, "paused">}
 	 */
-	#lastUnpausedDirection = "up";
+	#lastUnpausedDirection = Direction.UP;
 
 	get currentDirection() {
 		return this.#currentDirection;
@@ -222,7 +252,7 @@ export class Player {
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player") {
 				this.game.undoPlayerDeath(event.playerId);
-				if (event.deathType != "arena-bounds") {
+				if (event.deathType != DeathType.ARENA_BOUNDS) {
 					this.#killCount--;
 					this.#killCount = Math.max(0, this.#killCount);
 					this.#sendMyScore();
@@ -321,7 +351,7 @@ export class Player {
 		while (this.#movementQueue.length > 0) {
 			const firstItem = this.#movementQueue[0];
 			const validity = this.#checkNextMoveValidity(firstItem.desiredPosition, firstItem.direction);
-			if (validity == "invalid") {
+			if (validity == MoveValidity.INVALID) {
 				this.#movementQueue.shift();
 				lastMoveWasInvalid = true;
 				continue;
@@ -330,7 +360,7 @@ export class Player {
 			}
 
 			let desiredPosition = firstItem.desiredPosition;
-			if (validity == "valid-direction") {
+			if (validity == MoveValidity.VALID_DIRECTION) {
 				desiredPosition = this.#currentPosition.clone();
 			}
 
@@ -365,7 +395,7 @@ export class Player {
 				this.#addTrailVertex(desiredPosition);
 			}
 			this.#currentDirection = firstItem.direction;
-			if (firstItem.direction != "paused") {
+			if (firstItem.direction != Direction.PAUSED) {
 				this.#lastUnpausedDirection = firstItem.direction;
 			}
 			this.#eventHistory.undoRecentEvents(previousPosition, desiredPosition);
@@ -453,12 +483,12 @@ export class Player {
 	 */
 	#isFuturePosition(target) {
 		if (target.x == this.#currentPosition.x && target.y == this.#currentPosition.y) return false;
-		if (this.#currentDirection == "paused") return false;
+		if (this.#currentDirection == Direction.PAUSED) return false;
 
-		if (this.#currentDirection == "right" && target.x > this.#currentPosition.x) return true;
-		if (this.#currentDirection == "left" && target.x < this.#currentPosition.x) return true;
-		if (this.#currentDirection == "up" && target.y < this.#currentPosition.y) return true;
-		if (this.#currentDirection == "down" && target.y > this.#currentPosition.y) return true;
+		if (this.#currentDirection == Direction.RIGHT && target.x > this.#currentPosition.x) return true;
+		if (this.#currentDirection == Direction.LEFT && target.x < this.#currentPosition.x) return true;
+		if (this.#currentDirection == Direction.UP && target.y < this.#currentPosition.y) return true;
+		if (this.#currentDirection == Direction.DOWN && target.y > this.#currentPosition.y) return true;
 
 		return false;
 	}
@@ -491,44 +521,52 @@ export class Player {
 	 * Checks if this is a valid next move.
 	 * @param {Vec2} desiredPosition
 	 * @param {Direction} newDirection
-	 * @returns {"valid" | "invalid" | "valid-direction"}
+	 * @returns {MoveValidity}
 	 */
 	#checkNextMoveValidity(desiredPosition, newDirection) {
 		// If the player is already moving in the same or opposite direction
 		if (
-			(this.#currentDirection == "right" || this.#currentDirection == "left") &&
-			(newDirection == "right" || newDirection == "left")
+			(this.#currentDirection == Direction.RIGHT || this.#currentDirection == Direction.LEFT) &&
+			(newDirection == Direction.RIGHT || newDirection == Direction.LEFT)
 		) {
-			return "invalid";
+			return MoveValidity.INVALID;
 		}
 		if (
-			(this.#currentDirection == "up" || this.#currentDirection == "down") &&
-			(newDirection == "up" || newDirection == "down")
+			(this.#currentDirection == Direction.UP || this.#currentDirection == Direction.DOWN) &&
+			(newDirection == Direction.UP || newDirection == Direction.DOWN)
 		) {
-			return "invalid";
+			return MoveValidity.INVALID;
 		}
-		if (this.#currentDirection == newDirection) return "invalid";
+		if (this.#currentDirection == newDirection) return MoveValidity.INVALID;
 
 		// Prevent the player from going back into their own trail when paused
-		if (this.#currentDirection == "paused" && this.isGeneratingTrail) {
-			if (this.#lastUnpausedDirection == "right" && newDirection == "left") return "invalid";
-			if (this.#lastUnpausedDirection == "left" && newDirection == "right") return "invalid";
-			if (this.#lastUnpausedDirection == "up" && newDirection == "down") return "invalid";
-			if (this.#lastUnpausedDirection == "down" && newDirection == "up") return "invalid";
+		if (this.#currentDirection == Direction.PAUSED && this.isGeneratingTrail) {
+			if (this.#lastUnpausedDirection == Direction.RIGHT && newDirection == Direction.LEFT) {
+				return MoveValidity.INVALID;
+			}
+			if (this.#lastUnpausedDirection == Direction.LEFT && newDirection == Direction.RIGHT) {
+				return MoveValidity.INVALID;
+			}
+			if (this.#lastUnpausedDirection == Direction.UP && newDirection == Direction.DOWN) {
+				return MoveValidity.INVALID;
+			}
+			if (this.#lastUnpausedDirection == Direction.DOWN && newDirection == Direction.UP) {
+				return MoveValidity.INVALID;
+			}
 		}
 
 		// We'll make sure the desiredPosition is aligned with the current direction of movement
-		if (this.#lastUnpausedDirection == "left" || this.#lastUnpausedDirection == "right") {
-			if (desiredPosition.y != this.#currentPosition.y) return "valid-direction";
+		if (this.#lastUnpausedDirection == Direction.LEFT || this.#lastUnpausedDirection == Direction.RIGHT) {
+			if (desiredPosition.y != this.#currentPosition.y) return MoveValidity.VALID_DIRECTION;
 		}
-		if (this.#lastUnpausedDirection == "up" || this.#lastUnpausedDirection == "down") {
-			if (desiredPosition.x != this.#currentPosition.x) return "valid-direction";
+		if (this.#lastUnpausedDirection == Direction.UP || this.#lastUnpausedDirection == Direction.DOWN) {
+			if (desiredPosition.x != this.#currentPosition.x) return MoveValidity.VALID_DIRECTION;
 		}
 
 		// If the player is currently paused, the client will always send the current position.
-		if (this.#currentDirection == "paused") {
+		if (this.#currentDirection == Direction.PAUSED) {
 			if (desiredPosition.x != this.#currentPosition.x || desiredPosition.y != this.#currentPosition.y) {
-				return "valid-direction";
+				return MoveValidity.VALID_DIRECTION;
 			}
 		}
 
@@ -536,12 +574,13 @@ export class Player {
 		// We won't allow the client to send something equal to the lastCertainClientPosition,
 		// otherwise we would allow players to go so far back that it never made a move in the first place.
 		if (
-			(this.#lastUnpausedDirection == "left" && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
-			(this.#lastUnpausedDirection == "right" && desiredPosition.x <= this.#lastCertainClientPosition.x) ||
-			(this.#lastUnpausedDirection == "up" && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
-			(this.#lastUnpausedDirection == "down" && desiredPosition.y <= this.#lastCertainClientPosition.y)
+			(this.#lastUnpausedDirection == Direction.LEFT && desiredPosition.x >= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == Direction.RIGHT &&
+				desiredPosition.x <= this.#lastCertainClientPosition.x) ||
+			(this.#lastUnpausedDirection == Direction.UP && desiredPosition.y >= this.#lastCertainClientPosition.y) ||
+			(this.#lastUnpausedDirection == Direction.DOWN && desiredPosition.y <= this.#lastCertainClientPosition.y)
 		) {
-			return "valid-direction";
+			return MoveValidity.VALID_DIRECTION;
 		}
 
 		// Make sure players don't move back too far
@@ -551,12 +590,12 @@ export class Player {
 		) {
 			// Players having a ping higher than 500 should be rare, but when they do,
 			// marking the move as "invalid" would mean the player never gets a chance to change their direction.
-			// So we'll mark this as "valid-direction" instead.
+			// So we'll mark this as MoveValidity.VALID_DIRECTION instead.
 			// That way only the direction of the movement queue will be used.
-			return "valid-direction";
+			return MoveValidity.VALID_DIRECTION;
 		}
 
-		return "valid";
+		return MoveValidity.VALID;
 	}
 
 	/**
@@ -616,19 +655,19 @@ export class Player {
 	 * @param {number} dt
 	 */
 	loop(now, dt) {
-		if (this.currentDirection != "paused" && !this.dead) {
+		if (this.currentDirection != Direction.PAUSED && !this.dead) {
 			this.#nextTileProgress += dt * PLAYER_TRAVEL_SPEED;
 			if (this.#nextTileProgress > 1) {
 				this.#nextTileProgress -= 1;
 
 				const previousPosition = this.#currentPosition.clone();
-				if (this.currentDirection == "left") {
+				if (this.currentDirection == Direction.LEFT) {
 					this.#currentPosition.x -= 1;
-				} else if (this.currentDirection == "right") {
+				} else if (this.currentDirection == Direction.RIGHT) {
 					this.#currentPosition.x += 1;
-				} else if (this.currentDirection == "up") {
+				} else if (this.currentDirection == Direction.UP) {
 					this.#currentPosition.y -= 1;
-				} else if (this.currentDirection == "down") {
+				} else if (this.currentDirection == Direction.DOWN) {
 					this.#currentPosition.y += 1;
 				}
 
@@ -705,7 +744,7 @@ export class Player {
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
 			this.#currentPosition.y >= this.game.arena.height - 1
 		) {
-			this.#killPlayer(this, "arena-bounds");
+			this.#killPlayer(this, DeathType.ARENA_BOUNDS);
 		}
 
 		// Check if we are touching someone's trail.
@@ -715,9 +754,9 @@ export class Player {
 				const killedSelf = player == this;
 				if (player.dead) continue;
 
-				if (this.game.gameMode != "drawing") {
-					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
-						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
+				if (this.game.gameMode != GameModes.drawing) {
+					if (player.isGeneratingTrail || player.#currentDirection == Direction.PAUSED) {
+						const success = this.#killPlayer(player, killedSelf ? DeathType.SELF : DeathType.PLAYER);
 						if (success) {
 							this.game.broadcastHitLineAnimation(player, this);
 						}
@@ -729,7 +768,7 @@ export class Player {
 						player.#currentPosition.y == this.#currentPosition.y &&
 						this.isGeneratingTrail && player.isGeneratingTrail
 					) {
-						const success = player.#killPlayer(this, "player");
+						const success = player.#killPlayer(this, DeathType.PLAYER);
 						if (success) {
 							this.game.broadcastHitLineAnimation(this, player);
 						}
@@ -854,7 +893,7 @@ export class Player {
 			deathType,
 		});
 		otherPlayer.#die(deathType, this.name);
-		if (deathType != "arena-bounds") {
+		if (deathType != DeathType.ARENA_BOUNDS) {
 			this.#killCount++;
 			this.#sendMyScore();
 		}
@@ -901,7 +940,7 @@ export class Player {
 			this.#getTimeAliveSeconds(),
 			rankingFirstSeconds,
 			this.#lastDeathState.type,
-			this.#lastDeathState.type == "player" ? this.#lastDeathState.killerName : "",
+			this.#lastDeathState.type == DeathType.PLAYER ? this.#lastDeathState.killerName : "",
 		);
 	}
 
