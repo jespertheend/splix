@@ -341,6 +341,16 @@ export class Player {
 				return;
 			}
 
+			const procedure = this.#getAddTrailVertexProcedure(desiredPosition);
+			if (procedure == "vertex-between-two-previous-error") {
+				// This seems to be a rare edge case for which I'm not entirely sure when it happens.
+				// If we keep going, `#addTrailVertex()` will throw an error which would cause the player
+				// to get kicked. So instead we'll just treat the move as invalid, hopefully the issue
+				// will be resolved once the trail is resynced with the client.
+				lastMoveWasInvalid = true;
+				break;
+			}
+
 			const previousPosition = this.#currentPosition.clone();
 
 			// If the player is dead, we only want to allow moves which would undo the death of the player.
