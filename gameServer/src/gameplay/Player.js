@@ -382,22 +382,23 @@ export class Player {
 	}
 
 	/**
-	 * Adds a vertex to the current trail, deduplicating any unnecessary vertices.
-	 * Throws when a diagonal vertex is added.
-	 * @param {Vec2} pos
+	 * @typedef {"none" | "diagonal-segment-error" | "vertex-between-two-previous-error" | "update-last-vertex" | "add-new"} AddTrailVertexProcedure
 	 */
-	#addTrailVertex(pos) {
+
+	/**
+	 * @param {Vec2} pos
+	 * @returns {AddTrailVertexProcedure}
+	 */
+	#getAddTrailVertexProcedure(pos) {
 		const lastVertexA = this.#trailVertices.at(-1);
 		if (lastVertexA) {
 			if (pos.x == lastVertexA.x && pos.y == lastVertexA.y) {
 				// The last vertex is already at the same location,
 				// we won't do anything to avoid duplicate vertices.
-				return;
+				return "none";
 			}
 			if (pos.x != lastVertexA.x && pos.y != lastVertexA.y) {
-				throw new Error(
-					"Assertion failed: Attempted to add a trail vertex that would result in a diagonal segment.",
-				);
+				return "diagonal-segment-error";
 			}
 			const lastVertexB = this.#trailVertices.at(-2);
 			if (lastVertexB) {
@@ -405,30 +406,52 @@ export class Player {
 				// If so, we modify the last vertex instead of adding a new one.
 				if (lastVertexA.x == lastVertexB.x && lastVertexA.x == pos.x) {
 					if (pos.y >= lastVertexA.y && pos.y <= lastVertexB.y) {
-						throw new Error(
-							`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
-								this.#trailVertices.join(" ")
-							}`,
-						);
+						return "vertex-between-two-previous-error";
 					}
-					lastVertexA.set(pos);
-					return;
+					return "update-last-vertex";
 				}
 				if (lastVertexA.y == lastVertexB.y && lastVertexA.y == pos.y) {
 					if (pos.x >= lastVertexA.x && pos.x <= lastVertexB.x) {
-						throw new Error(
-							`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
-								this.#trailVertices.join(" ")
-							}`,
-						);
+						return "vertex-between-two-previous-error";
 					}
-					lastVertexA.set(pos);
-					return;
+					return "update-last-vertex";
 				}
 			}
 		}
-		this.#trailVertices.push(pos.clone());
-		this.#updateTrailLengthExcludingPos();
+		return "add-new";
+	}
+
+	/**
+	 * Adds a vertex to the current trail, deduplicating any unnecessary vertices.
+	 * Throws when the new vertex would either result in a diagonal segment or a vertex in between two previous vertices.
+	 * @param {Vec2} pos
+	 */
+	#addTrailVertex(pos) {
+		const procedure = this.#getAddTrailVertexProcedure(pos);
+		if (procedure == "none") {
+			return;
+		} else if (procedure == "diagonal-segment-error") {
+			throw new Error(
+				"Assertion failed: Attempted to add a trail vertex that would result in a diagonal segment.",
+			);
+		} else if (procedure == "vertex-between-two-previous-error") {
+			throw new Error(
+				`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
+					this.#trailVertices.join(" ")
+				}`,
+			);
+		} else if (procedure == "update-last-vertex") {
+			const lastVertex = this.#trailVertices.at(-1);
+			if (!lastVertex) {
+				throw new Error("Assertion failed: No last vertex exists");
+			}
+			lastVertex.set(pos);
+		} else if (procedure == "add-new") {
+			this.#trailVertices.push(pos.clone());
+			this.#updateTrailLengthExcludingPos();
+		} else {
+			throw new Error("Assertion failed: Unknown procedure: " + procedure);
+		}
 	}
 
 	#clearTrailVertices() {
