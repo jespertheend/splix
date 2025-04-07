@@ -1023,7 +1023,16 @@ export class Player {
 			// When the player comes back into their captured area, we add a final vertex to the trail,
 			// Then fill the tiles underneath the trail, and finally clear the trail.
 			if (tileValue == this.#id && this.isGeneratingTrail) {
-				this.#addTrailVertex(previousPosition);
+				const procedure = this.#getAddTrailVertexProcedure(previousPosition);
+				// There seems to be a small chance that the `previousPosition` is a vertex that lies between
+				// two previous vertices. I'm not sure under what exact conditions this happens, but since the trail
+				// is about to disappear anyway, I think it's fine to just not add the final vertex in that case.
+				// In the worst case the trail won't reach all the way to the edge of the area and the player
+				// will have to do some extra work to connect it. But that's still much better than crashing
+				// or getting kicked. (Also see #43)
+				if (procedure != "vertex-between-two-previous-error") {
+					this.#addTrailVertex(previousPosition);
+				}
 				if (this.#allMyTilesCleared) {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
