@@ -1,5 +1,4 @@
 import { PLAYER_TRAVEL_SPEED } from "./config.js";
-import { getMainInstance } from "./mainInstance.js";
 
 /**
  * Tick rate in milliseconds
@@ -14,11 +13,16 @@ const APPLICATION_LOOP_INTERVAL = 50;
 const MAX_LOOP_DURATION_MS = 3 / PLAYER_TRAVEL_SPEED;
 
 export class ApplicationLoop {
+	#mainInstance;
 	#prevNow = 0;
 	/** @type {Set<() => void>} */
 	#onSlowTickEndedCbs = new Set();
 
-	constructor() {
+	/**
+	 * @param {import("./Main.js").Main} mainInstance
+	 */
+	constructor(mainInstance) {
+		this.#mainInstance = mainInstance;
 		this.now = 0;
 		setInterval(this.loop.bind(this), APPLICATION_LOOP_INTERVAL);
 	}
@@ -32,8 +36,8 @@ export class ApplicationLoop {
 		}
 		this.#prevNow = now;
 		this.now += dt;
-		getMainInstance().game.loop(this.now, dt);
-		getMainInstance().websocketManager.loop(this.now, dt);
+		this.#mainInstance.game.loop(this.now, dt);
+		this.#mainInstance.websocketManager.loop(this.now, dt);
 	}
 
 	/**
