@@ -12,7 +12,6 @@ import {
 import { lerp, Vec2 } from "renda";
 import { checkTrailSegment } from "../util/util.js";
 import { PlayerEventHistory } from "./PlayerEventHistory.js";
-import { getMainInstance } from "../mainInstance.js";
 
 /**
  * When sent inside messages, these translate to an integer:
@@ -46,6 +45,7 @@ export class Player {
 	#id;
 	#game;
 	#connection;
+	#mainInstance;
 
 	#currentTileType = 0;
 
@@ -193,12 +193,14 @@ export class Player {
 	 * @param {number} id
 	 * @param {import("./Game.js").Game} game
 	 * @param {WebSocketConnection} connection
+	 * @param {import("../Main.js").Main} mainInstance
 	 * @param {CreatePlayerOptions} options
 	 */
-	constructor(id, game, connection, options) {
+	constructor(id, game, connection, mainInstance, options) {
 		this.#id = id;
 		this.#game = game;
 		this.#connection = connection;
+		this.#mainInstance = mainInstance;
 
 		if (options.skin) {
 			this.#skinColorId = options.skin.colorId;
@@ -296,7 +298,7 @@ export class Player {
 	 * @param {Vec2} desiredPosition
 	 */
 	clientPosUpdateRequested(direction, desiredPosition) {
-		if (getMainInstance().applicationLoop.currentTickIsSlow()) return;
+		if (this.#mainInstance.applicationLoop.currentTickIsSlow()) return;
 
 		this.#movementQueue.push({
 			direction,

@@ -47,6 +47,8 @@ if (!Deno.args.includes("--no-init")) {
 		arenaWidth: 40,
 		arenaHeight: 40,
 	});
+	// @ts-ignore
+	globalThis.gameServer = gameServer;
 
 	const persistentStoragePath = resolve("serverManager/persistentStorage.json");
 	const serverManager = initServerManager({
