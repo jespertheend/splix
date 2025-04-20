@@ -14,13 +14,13 @@ export class Main {
 		arenaHeight,
 		gameMode = "default",
 	}) {
-		this.applicationLoop = new ApplicationLoop();
-		this.websocketManager = new WebSocketManager();
-		this.game = new Game(this.applicationLoop, {
+		this.applicationLoop = new ApplicationLoop(this);
+		this.game = new Game(this.applicationLoop, this, {
 			arenaWidth,
 			arenaHeight,
 			gameMode,
 		});
+		this.websocketManager = new WebSocketManager(this.game);
 		this.game.onPlayerCountChange((playerCount) => {
 			this.websocketManager.notifyControlSocketsPlayerCount(playerCount);
 		});

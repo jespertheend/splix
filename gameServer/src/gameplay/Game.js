@@ -22,6 +22,8 @@ import { ApplicationLoop } from "../ApplicationLoop.js";
 export const validGamemodes = ["default", "drawing"];
 
 export class Game {
+	#mainInstance;
+
 	#arena;
 	#gameMode;
 	get gameMode() {
@@ -47,16 +49,18 @@ export class Game {
 
 	/**
 	 * @param {ApplicationLoop} applicationLoop
+	 * @param {import("../Main.js").Main} mainInstance
 	 * @param {Object} options
 	 * @param {number} [options.arenaWidth]
 	 * @param {number} [options.arenaHeight]
 	 * @param {GameModes} [options.gameMode]
 	 */
-	constructor(applicationLoop, {
+	constructor(applicationLoop, mainInstance, {
 		arenaWidth = 600,
 		arenaHeight = 600,
 		gameMode = "default",
 	} = {}) {
+		this.#mainInstance = mainInstance;
 		this.#gameMode = gameMode;
 		this.#arena = new Arena(arenaWidth, arenaHeight);
 		this.#arena.onRectFilled((rect, tileValue) => {
@@ -126,7 +130,7 @@ export class Game {
 	 */
 	createPlayer(connection, playerOptions) {
 		const id = this.#getNewPlayerId();
-		const player = new Player(id, this, connection, playerOptions);
+		const player = new Player(id, this, connection, this.#mainInstance, playerOptions);
 		this.#players.set(id, player);
 		this.#fireOnPlayerCountChange();
 		return player;

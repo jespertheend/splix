@@ -3,24 +3,11 @@ import { parse as parseArgs } from "https://deno.land/std@0.198.0/flags/mod.ts";
 import { basename } from "https://deno.land/std@0.198.0/path/mod.ts";
 import { validGamemodes } from "./gameplay/Game.js";
 
-/** @type {Main?} */
-let main = null;
-
 /**
  * @param {ConstructorParameters<typeof Main>} args
  */
 export function init(...args) {
-	main = new Main(...args);
-	// @ts-ignore
-	globalThis.mainInstance = main;
-	return main;
-}
-
-export function getMainInstance() {
-	if (!main) {
-		throw new Error("Main instance is not initialized");
-	}
-	return main;
+	return new Main(...args);
 }
 
 if (import.meta.main) {
