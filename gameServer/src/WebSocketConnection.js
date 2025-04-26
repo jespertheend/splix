@@ -190,6 +190,7 @@ export class WebSocketConnection {
 			 */
 			VERSION: 11,
 			PATREON_CODE: 12,
+			PROTOCOL_VERSION: 13,
 		};
 	}
 
@@ -198,6 +199,11 @@ export class WebSocketConnection {
 	/** @type {import("./gameplay/Player.js").SkinData?} */
 	#receivedSkinData = null;
 	#receivedName = "";
+
+	#protocolVersion = 0;
+	get protocolVersion() {
+		return this.#protocolVersion;
+	}
 
 	/**
 	 * @param {string} data
@@ -223,7 +229,13 @@ export class WebSocketConnection {
 		const view = new DataView(data);
 		const messageType = view.getUint8(0);
 
-		if (messageType == WebSocketConnection.ReceiveAction.READY) {
+		if (messageType == WebSocketConnection.ReceiveAction.PROTOCOL_VERSION) {
+			if (this.#protocolVersion > 0) {
+				throw new Error("Protocol version can only be specified once");
+			}
+			const version = view.getUint16(1);
+			this.#protocolVersion = version;
+		} else if (messageType == WebSocketConnection.ReceiveAction.READY) {
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,

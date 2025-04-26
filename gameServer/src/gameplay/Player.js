@@ -347,6 +347,7 @@ export class Player {
 			}
 
 			if (
+				this.#connection.protocolVersion >= 1 &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
 				desiredPosition.y == this.#lastCertainClientPosition.y
 			) {
