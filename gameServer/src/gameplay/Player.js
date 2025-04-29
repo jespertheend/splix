@@ -349,7 +349,8 @@ export class Player {
 			if (
 				this.#connection.protocolVersion >= 1 &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
-				desiredPosition.y == this.#lastCertainClientPosition.y
+				desiredPosition.y == this.#lastCertainClientPosition.y &&
+				this.#currentDirection != "paused"
 			) {
 				// The position is valid, but it is at the exact same spot as where a trail vertex has already been placed.
 				// We'll treat this in the same way as the `isFuturePosition()` check, that way
