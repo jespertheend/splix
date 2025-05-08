@@ -28,30 +28,6 @@ export class WebSocketManager {
 			socket.addEventListener("close", () => {
 				this.#activeConnections.delete(connection);
 			});
-		}, {
-			async overrideRequestHandler(request) {
-				const url = new URL(request.url);
-				if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
-					const data = mainInstance.servermanager.getServersJson();
-					const response = Response.json(data);
-					response.headers.set("Access-Control-Allow-Origin", "*");
-					return response;
-				} else if (
-					url.pathname == "/servermanager/legacygameservers" || url.pathname == "/json/servers.2.json"
-				) {
-					const data = mainInstance.legacyServerManager.getServersJson();
-					const response = Response.json(data);
-					response.headers.set("Access-Control-Allow-Origin", "*");
-					return response;
-				} else if (url.pathname == "/servermanager/leaderboards" || url.pathname == "/api/leaderboards") {
-					const data = mainInstance.leaderboardManager.getApiJson();
-					const response = Response.json(data);
-					response.headers.set("Access-Control-Allow-Origin", "*");
-					response.headers.set("Cache-Control", "max-age=300");
-					return response;
-				}
-				return null;
-			},
 		});
 	}
 

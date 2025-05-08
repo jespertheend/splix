@@ -106,7 +106,7 @@ if (!Deno.args.includes("--no-init")) {
 		} else if (url.pathname.startsWith("/servermanagerToken")) {
 			return new Response(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
 		} else if (url.pathname.startsWith("/servermanager")) {
-			return serverManager.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
+			return serverManager.handleRequest(request, remoteAddr.remoteAddr);
 		}
 
 		for (const dir of serveRootDirs) {
