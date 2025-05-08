@@ -19,4 +19,33 @@ export class Main {
 		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
 		this.authRateLimitManager = new RateLimitManager({ alwaysUseMultiConnectionLimit: true });
 	}
+
+	/**
+	 * @param {Request} request
+	 * @param {Deno.Addr} remoteAddr
+	 */
+	handleRequest(request, remoteAddr) {
+		const url = new URL(request.url);
+		if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
+			const data = this.servermanager.getServersJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			return response;
+		} else if (url.pathname == "/servermanager/legacygameservers" || url.pathname == "/json/servers.2.json") {
+			const data = this.legacyServerManager.getServersJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			return response;
+		} else if (url.pathname == "/servermanager/leaderboards" || url.pathname == "/api/leaderboards") {
+			const data = this.leaderboardManager.getApiJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			response.headers.set("Cache-Control", "max-age=300");
+			return response;
+		} else if (url.pathname == "/servermanager") {
+			return this.websocketManager.handleRequest(request, remoteAddr);
+		} else {
+			return new Response("not found", { status: 404 });
+		}
+	}
 }
