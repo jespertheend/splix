@@ -1,10 +1,10 @@
 import { WebSocketHoster } from "../../gameServer/src/util/WebSocketHoster.js";
-import { WebSocketConnection } from "./WebSocketConnection.js";
+import { AdminWebSocketConnection } from "./AdminWebSocketConnection.js";
 
-export class WebSocketManager {
+export class AdminWebSocketManager {
 	#hoster;
 
-	/** @type {Set<WebSocketConnection>} */
+	/** @type {Set<AdminWebSocketConnection>} */
 	#activeConnections = new Set();
 
 	/**
@@ -13,7 +13,7 @@ export class WebSocketManager {
 	 */
 	constructor(mainInstance, websocketAuthToken) {
 		this.#hoster = new WebSocketHoster((socket, ip) => {
-			const connection = new WebSocketConnection(socket, ip, mainInstance, websocketAuthToken);
+			const connection = new AdminWebSocketConnection(socket, ip, mainInstance, websocketAuthToken);
 			this.#activeConnections.add(connection);
 			socket.addEventListener("message", async (message) => {
 				try {
