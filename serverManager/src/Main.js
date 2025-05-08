@@ -3,7 +3,7 @@ import { LeaderboardManager } from "./LeaderboardManager.js";
 import { LegacyServerManager } from "./LegacyServerManager.js";
 import { PersistentStorage } from "./PersistentStorage.js";
 import { ServerManager } from "./ServerManager.js";
-import { WebSocketManager } from "./WebSocketManager.js";
+import { AdminWebSocketManager } from "./AdminWebSocketManager.js";
 
 export class Main {
 	/**
@@ -16,7 +16,7 @@ export class Main {
 		this.leaderboardManager = new LeaderboardManager(this.persistentStorage);
 		this.servermanager = new ServerManager(this);
 		this.legacyServerManager = new LegacyServerManager(this);
-		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
+		this.adminWebsocketManager = new AdminWebSocketManager(this, websocketAuthToken);
 		this.authRateLimitManager = new RateLimitManager({ alwaysUseMultiConnectionLimit: true });
 	}
 
@@ -43,7 +43,7 @@ export class Main {
 			response.headers.set("Cache-Control", "max-age=300");
 			return response;
 		} else if (url.pathname == "/servermanager") {
-			return this.websocketManager.handleRequest(request, remoteAddr);
+			return this.adminWebsocketManager.handleRequest(request, remoteAddr);
 		} else {
 			return new Response("not found", { status: 404 });
 		}
