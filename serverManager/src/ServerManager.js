@@ -45,7 +45,7 @@ export class ServerManager {
 
 		const server = new GameServer(id, this.#mainInstance.leaderboardManager);
 		this.#servers.set(id, server);
-		this.#mainInstance.websocketManager.sendAllServerConfigs();
+		this.#mainInstance.adminWebsocketManager.sendAllServerConfigs();
 		this.#saveServersData();
 	}
 
@@ -57,7 +57,7 @@ export class ServerManager {
 		if (server) {
 			server.destructor();
 			this.#servers.delete(id);
-			this.#mainInstance.websocketManager.sendAllServerConfigs();
+			this.#mainInstance.adminWebsocketManager.sendAllServerConfigs();
 			this.#saveServersData();
 		}
 	}
@@ -102,7 +102,7 @@ export class ServerManager {
 			throw new Error("Server does not exist");
 		}
 		server.setConfig(config);
-		this.#mainInstance.websocketManager.sendAllServerConfig(id, config);
+		this.#mainInstance.adminWebsocketManager.sendAllServerConfig(id, config);
 		this.#saveServersData();
 	}
 

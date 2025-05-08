@@ -39,7 +39,7 @@ export class LegacyServerManager {
 	 */
 	setServerData(data) {
 		this.#serverData = data;
-		this.#mainInstance.websocketManager.sendAllLegacyServerData(data);
+		this.#mainInstance.adminWebsocketManager.sendAllLegacyServerData(data);
 		this.#mainInstance.persistentStorage.set(PERSISTENT_STORAGE_KEY, data);
 	}
 
