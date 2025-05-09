@@ -53,6 +53,10 @@
     <input id="latency" type="number" min="0" style="width: 50px;" /></label>
     <div class="st">This increases the lag,<br>there's absolutely no reason why you would<br>want to enable this unless you're debugging stuff.<br>This is also makes things very unstable so you might want to avoid using it.<br>Set this to 0 to disable it.</div>
 
+    <label>Protocol version
+    <input id="protocolVersion" type="number" min="0" max="1" style="width: 50px;" /></label>
+    <div class="st">The version of the protocol that is used when communicating with the server. Setting this to a lower value disables some features and bug fixes. Leave empty to use the latest protocol version.</div>
+
     <label>Use adinplay banner ads
     <input id="adinplayBanners" type="checkbox" /></label>
 
@@ -110,6 +114,12 @@
         localStorage.simulatedLatency = this.value;
       });
       latencyEl.value = localStorage.simulatedLatency === undefined ? 0 : localStorage.simulatedLatency;
+
+      var protocolVersionEl = document.getElementById("protocolVersion");
+      protocolVersionEl.addEventListener("change", function () {
+        localStorage.protocolVersion = this.value;
+      });
+      if (localStorage.protocolVersion !== undefined) protocolVersionEl.value = localStorage.protocolVersion;
 
       var adinplayBannersEl = document.getElementById("adinplayBanners");
       adinplayBannersEl.addEventListener("change",function(){

@@ -9,6 +9,7 @@ var BLOCKS_ON_SCREEN = 1100;
 // var BLOCKS_ON_SCREEN = 20000;
 var WAIT_FOR_DISCONNECTED_MS = 1000;
 var USERNAME_SIZE = 6;
+var DEFAULT_PROTOCOL_VERSION = 1;
 
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
@@ -239,6 +240,7 @@ var sendAction = {
 	SET_TEAM_USERNAME: 10,
 	VERSION: 11,
 	PATREON_CODE: 12,
+	PROTOCOL_VERSION: 13,
 };
 
 var colors = {
@@ -942,6 +944,14 @@ function sendLegacyVersion() {
 	});
 }
 
+function sendProtocolVersion() {
+	let version = parseInt(localStorage.protocolVersion);
+	if (isNaN(version)) {
+		version = DEFAULT_PROTOCOL_VERSION;
+	}
+	wsSendMsg(sendAction.PROTOCOL_VERSION, version);
+}
+
 //sends current skin to websocket
 function sendSkin() {
 	var blockColor = localStorage.getItem("skinColor");
@@ -1393,6 +1403,7 @@ window.onload = function () {
 function onOpen() {
 	isConnecting = false;
 	sendLegacyVersion();
+	sendProtocolVersion();
 	sendPatreonCode();
 	sendName();
 	sendSkin();
@@ -2102,6 +2113,11 @@ function wsSendMsg(action, data) {
 			var verBytes = intToBytes(data.ver, 2);
 			array.push(verBytes[0]);
 			array.push(verBytes[1]);
+		}
+		if (action == sendAction.PROTOCOL_VERSION) {
+			var versionBytes = intToBytes(data, 2);
+			array.push(versionBytes[0]);
+			array.push(versionBytes[1]);
 		}
 		var payload = new Uint8Array(array);
 		try {
