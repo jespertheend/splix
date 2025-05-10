@@ -1007,7 +1007,7 @@ export class Player {
 					throw new Error("Assertion failed, player tiles have already been removed from the arena.");
 				}
 				this.game.arena.fillPlayerTrail(this.#trailVertices, this.id);
-				this.#updateCapturedArea();
+				this.updateCapturedArea();
 				this.game.broadcastPlayerEmptyTrail(this);
 				this.#clearTrailVertices();
 			}
@@ -1016,7 +1016,7 @@ export class Player {
 		}
 	}
 
-	async #updateCapturedArea() {
+	async updateCapturedArea() {
 		const totalFilledTileCount = await this.game.arena.updateCapturedArea(
 			this.id,
 			Array.from(this.game.getUnfillableLocations(this)),
@@ -1032,6 +1032,7 @@ export class Player {
 			this.#capturedTileCount = capturedTileCount;
 			this.#maxCapturedTileCount = Math.max(this.#maxCapturedTileCount, this.#capturedTileCount);
 			this.#sendMyScore();
+			this.game.updatePlayerScores(this);
 		}
 	}
 
