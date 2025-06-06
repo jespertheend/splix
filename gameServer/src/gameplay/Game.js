@@ -1,4 +1,4 @@
-/** @typedef {"default" | "drawing"} GameModes */
+/** @typedef {"default" | "drawing" | "arena"} GameModes */
 
 import { lerp, SingleInstancePromise, Vec2 } from "renda";
 import { Arena } from "./Arena.js";
@@ -19,7 +19,7 @@ import { ApplicationLoop } from "../ApplicationLoop.js";
  */
 
 /** @type {GameModes[]} */
-export const validGamemodes = ["default", "drawing"];
+export const validGamemodes = ["default", "drawing", "arena"];
 
 export class Game {
 	#mainInstance;
@@ -53,16 +53,20 @@ export class Game {
 	 * @param {Object} options
 	 * @param {number} [options.arenaWidth]
 	 * @param {number} [options.arenaHeight]
+	 * @param {number} [options.fakeArenaWidth]
+	 * @param {number} [options.fakeArenaHeight]
 	 * @param {GameModes} [options.gameMode]
 	 */
 	constructor(applicationLoop, mainInstance, {
 		arenaWidth = 600,
 		arenaHeight = 600,
+		fakeArenaWidth = 16,
+		fakeArenaHeight = 16,
 		gameMode = "default",
 	} = {}) {
 		this.#mainInstance = mainInstance;
 		this.#gameMode = gameMode;
-		this.#arena = new Arena(arenaWidth, arenaHeight);
+		this.#arena = new Arena(arenaWidth, arenaHeight, fakeArenaWidth, fakeArenaHeight, gameMode);
 		this.#arena.onRectFilled((rect, tileValue) => {
 			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
 				const { colorId, patternId } = this.getTileTypeForMessage(player, tileValue);
@@ -140,10 +144,29 @@ export class Game {
 	 * @returns {{position: Vec2, direction: import("./Player.js").UnpausedDirection}}
 	 */
 	getNewSpawnPosition() {
-		const position = new Vec2(
-			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random())),
-			Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random())),
-		);
+		const position = (() => {
+			let temp_x = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()));
+			let temp_y = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()));
+			
+			// We should prevent players from spawning directly inside of the fake arena or on the border of it.
+			// If x is within fake arena's range we then check y, while y is within the fake arena's range we generate new y (optimize later).
+			if (
+				this.#gameMode == "arena" &&
+				temp_x >= this.arena.width / 2 - this.arena.fakeArenaWidth / 2 - 2 &&
+				temp_x <= this.arena.width / 2 + this.arena.fakeArenaWidth / 2 + 1
+				) {
+					while (
+						   temp_y >= this.arena.height / 2 - this.arena.fakeArenaHeight / 2 - 2 &&
+						   temp_y <= this.arena.height / 2 + this.arena.fakeArenaHeight / 2 + 1
+						   ) {
+							   temp_y = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()));
+					}
+			}
+			return new Vec2(
+				temp_x,
+				temp_y,
+				);
+		})();
 		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
 		const wallDistances = [
 			{
@@ -168,6 +191,9 @@ export class Game {
 			if (!closestWall || wall.distance < closestWall.distance) {
 				closestWall = wall;
 			}
+		}
+		if (this.#gameMode == "arena") {
+			closestWall.direction = "paused";
 		}
 		return {
 			position,
@@ -257,7 +283,7 @@ export class Game {
 	getTileTypeForMessage(player, tileValue) {
 		if (tileValue == -1) {
 			return {
-				colorId: 0, // edge of the world
+				colorId: 0, // edge of the world or border of fake arena
 				patternId: 0,
 			};
 		}
@@ -302,7 +328,11 @@ export class Game {
 		/** @type {[player: Player, score: number][]} */
 		const playerScores = [];
 		for (const player of this.#players.values()) {
-			playerScores.push([player, player.getTotalScore()]);
+			if (this.#gameMode != "arena") {
+				playerScores.push([player, player.getTotalScore()]);
+			} else {
+				playerScores.push([player, player.getTotalKill()]);
+			}
 		}
 
 		playerScores.sort((a, b) => b[1] - a[1]);
@@ -394,7 +424,8 @@ export class Game {
 	/**
 	 * Yields a list of player positions,
 	 * and the start of their trail if they have one.
-	 * Used to prevent filling locations with other players inside.
+	 * If gameMode is arena, yields fake arena border positions.
+	 * Used to prevent filling locations with other players inside or fake arena border.
 	 * @param {import("./Player.js").Player} excludePlayer
 	 */
 	*getUnfillableLocations(excludePlayer) {
@@ -402,11 +433,22 @@ export class Game {
 			if (player == excludePlayer || player.permanentlyDead) {
 				continue;
 			}
-
+			
 			yield player.getPosition();
 			if (player.isGeneratingTrail) {
 				yield Array.from(player.getTrailVertices())[0];
 			}
+		}
+		
+		// We need to prevent the border of the fake arena to be filled by players if they capture it.
+		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
+		
+		// We could check tile type in updateCapturedArea.js instead, but doing it here
+		// is probably better performance wise and also safer for existing gamemodes.
+		// Can delete these last 3 comment lines before merging if keep it this way.
+		if (this.#gameMode == "arena") {
+			yield new Vec2(Math.floor(this.arena.width / 2 - this.arena.fakeArenaWidth / 2), Math.floor(this.arena.height / 2 - this.arena.fakeArenaHeight / 2));
+			yield new Vec2(Math.floor(this.arena.width / 2 + this.arena.fakeArenaWidth / 2 - 1), Math.floor(this.arena.height/ 2 + this.arena.fakeArenaHeight / 2 - 1));
 		}
 	}
 
