@@ -23,6 +23,7 @@ if (import.meta.main) {
 -p --port
     Configures the port of the websocket.
     Example: ${executableName} -p 5050
+
 -h --hostname
     Configures the hostname of the websocket.
     Defaults to 127.0.0.1.
@@ -39,6 +40,16 @@ if (import.meta.main) {
     Takes precedence over --arenaWidth and --arenaHeight.
     Example: ${executableName} -s 100
 
+--fakeArenaWidth, --fakeArenaHeight
+    Configures the width and height of the fake arena.
+    Both the width and height default to 16.
+    Example: ${executableName} --arenaWidth 10 --arenaHeight 20
+	
+-f --fakeArenaSize
+    Sets both the width and height of the fake arena to the same value.
+    Takes precedence over --fakeArenaWidth and --fakeArenaHeight.
+    Example: ${executableName} -s 20
+
 -g --gameMode
     Sets the game mode of the game. Valid values are:
     ${validGamemodes.join(" ")}
@@ -50,6 +61,9 @@ if (import.meta.main) {
 		let arenaWidth = parseInt(args.arenaWidth || 100);
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
+		let fakeArenaWidth = parseInt(args.fakeArenaWidth || 16);
+		let fakeArenaHeight = parseInt(args.fakeArenaHeight || 16);
+		const fakeArenaSize = parseInt(args.f || args.fakeArenaSize || 16);
 		const gameMode = args.g || args.gameMode || "default";
 		if (!validGamemodes.includes(gameMode)) {
 			throw new Error(`"${gameMode}" is not a valid gamemode.`);
@@ -58,9 +72,15 @@ if (import.meta.main) {
 			arenaWidth = arenaSize;
 			arenaHeight = arenaSize;
 		}
+		if (fakeArenaSize) {
+			fakeArenaWidth = fakeArenaSize;
+			fakeArenaHeight = fakeArenaSize;
+		}
 		const main = init({
 			arenaWidth,
 			arenaHeight,
+			fakeArenaWidth,
+			fakeArenaHeight,
 			gameMode,
 		});
 		main.init({ port, hostname });
