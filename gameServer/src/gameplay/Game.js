@@ -433,7 +433,7 @@ export class Game {
 			if (player == excludePlayer || player.permanentlyDead) {
 				continue;
 			}
-			
+
 			yield player.getPosition();
 			if (player.isGeneratingTrail) {
 				yield Array.from(player.getTrailVertices())[0];
