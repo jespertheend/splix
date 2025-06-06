@@ -26,6 +26,9 @@ export class Arena {
 
 	#width;
 	#height;
+	
+	#fakeArenaWidth;
+	#fakeArenaHeight;
 
 	get width() {
 		return this.#width;
@@ -34,7 +37,15 @@ export class Arena {
 	get height() {
 		return this.#height;
 	}
+	
+	get fakeArenaWidth() {
+		return this.#fakeArenaWidth;
+	}
 
+	get fakeArenaHeight() {
+		return this.#fakeArenaHeight;
+	}
+	
 	#worker;
 	/** @type {TypedMessenger<WorkerArenaHandlers, import("./arenaWorker/mod.js").ArenaWorkerHandlers>} */
 	#messenger;
@@ -42,12 +53,18 @@ export class Arena {
 	/**
 	 * @param {number} width
 	 * @param {number} height
+  	 * @param {number} fakeArenaWidth
+	 * @param {number} fakeArenaHeight
+  	 * @param {GameModes} gameMode
 	 */
-	constructor(width, height) {
+	constructor(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
 		this.#width = width;
 		this.#height = height;
 
-		this.#tiles = createArenaTiles(width, height);
+		this.#fakeArenaWidth = fakeArenaWidth;
+		this.#fakeArenaHeight = fakeArenaHeight;
+
+		this.#tiles = createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight, gameMode);
 
 		this.#worker = new Worker(new URL("./arenaWorker/mod.js", import.meta.url), {
 			type: "module",
@@ -64,7 +81,7 @@ export class Arena {
 				}
 			},
 		});
-		this.#messenger.send.init(width, height);
+		this.#messenger.send.init(width, height, fakeArenaWidth, fakeArenaHeight, gameMode);
 	}
 
 	/** @type {Set<OnRectFilledCallback>} */
