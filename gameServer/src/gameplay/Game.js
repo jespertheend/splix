@@ -424,7 +424,7 @@ export class Game {
 	/**
 	 * Yields a list of player positions,
 	 * and the start of their trail if they have one.
-	 * If gameMode is arena, yields fake arena border positions.
+	 * If gameMode is arena, we also yield fake arena border positions.
 	 * Used to prevent filling locations with other players inside or fake arena border.
 	 * @param {import("./Player.js").Player} excludePlayer
 	 */
@@ -441,11 +441,10 @@ export class Game {
 		}
 		
 		// We need to prevent the border of the fake arena to be filled by players if they capture it.
-		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
-		
+		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling
 		// We could check tile type in updateCapturedArea.js instead, but doing it here
 		// is probably better performance wise and also safer for existing gamemodes.
-		// Can delete these last 3 comment lines before merging if keep it this way.
+		// Can delete these last 5 comment lines before merging if keep it this way.
 		if (this.#gameMode == "arena") {
 			yield new Vec2(Math.floor(this.arena.width / 2 - this.arena.fakeArenaWidth / 2), Math.floor(this.arena.height / 2 - this.arena.fakeArenaHeight / 2));
 			yield new Vec2(Math.floor(this.arena.width / 2 + this.arena.fakeArenaWidth / 2 - 1), Math.floor(this.arena.height/ 2 + this.arena.fakeArenaHeight / 2 - 1));
