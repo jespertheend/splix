@@ -441,7 +441,7 @@ export class Game {
 		}
 		
 		// We need to prevent the border of the fake arena to be filled by players if they capture it.
-		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling
+		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
 		// We could check tile type in updateCapturedArea.js instead, but doing it here
 		// is probably better performance wise and also safer for existing gamemodes.
 		// Can delete these last 5 comment lines before merging if keep it this way.
