@@ -640,7 +640,9 @@ export class Player {
 					this.#drainMovementQueue();
 				} catch (e) {
 					console.error(e);
-					this.#connection.close();
+					if (this.game.gameMode != "arena") {
+						this.#connection.close();
+					}
 				}
 			}
 		}
@@ -701,11 +703,12 @@ export class Player {
 			}
 		}
 
-		// Check if we touch the edge of the map.
+		// Check if we are touching the edge of the map or the fake arena border.
 		if (
 			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
-			this.#currentPosition.y >= this.game.arena.height - 1
+			this.#currentPosition.y >= this.game.arena.height - 1 ||
+			this.game.gameMode == "arena" && this.game.arena.getTileValue(this.#currentPosition) === -1
 		) {
 			this.#killPlayer(this, "arena-bounds");
 		}
@@ -717,7 +720,14 @@ export class Player {
 				const killedSelf = player == this;
 				if (player.dead) continue;
 
-				if (this.game.gameMode != "drawing") {
+				// In arena mode, players cannot be killed if they are paused outside of the fake arena, so everyone can watch the battles safely.
+				if (
+					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
+					player.#currentPosition.x >= this.game.arena.width / 2 - this.game.arena.fakeArenaWidth / 2 &&
+					player.#currentPosition.x <= this.game.arena.width / 2 + this.game.arena.fakeArenaWidth / 2 - 1 &&
+					player.#currentPosition.y >= this.game.arena.height / 2 - this.game.arena.fakeArenaHeight / 2 &&
+					player.#currentPosition.y <= this.game.arena.height / 2 + this.game.arena.fakeArenaHeight / 2 - 1)
+				) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
 						if (success) {
@@ -1071,6 +1081,10 @@ export class Player {
 
 	getTotalScore() {
 		return this.#capturedTileCount + this.#killCount * 500;
+	}
+
+	getTotalKill() {
+		return this.#killCount;
 	}
 
 	/**
