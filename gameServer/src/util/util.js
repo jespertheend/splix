@@ -4,8 +4,11 @@ import { Vec2 } from "renda";
  * Creates a 2d array of numbers, each set to 0 except for the border, which is -1.
  * @param {number} width
  * @param {number} height
+ * @param {number} fakeArenaWidth
+ * @param {number} fakeArenaHeight
+ * @param {GameModes} gameMode
  */
-export function createArenaTiles(width, height) {
+export function createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
 	/** @type {number[][]} */
 	const tiles = [];
 	// Create the tiles of the arena
@@ -22,6 +25,26 @@ export function createArenaTiles(width, height) {
 	for (let y = 0; y < height; y++) {
 		tiles[0][y] = -1;
 		tiles[width - 1][y] = -1;
+	}
+	
+	// Create the border of the fake arena (make new function later which can create walls anywhere instead).
+	if(gameMode == "arena") {
+		const minX = Math.floor(width / 2 - fakeArenaWidth / 2);
+		const maxX = Math.floor(width / 2 + fakeArenaWidth / 2 - 1);
+		const minY = Math.floor(height / 2 - fakeArenaHeight / 2);
+		const maxY = Math.floor(height / 2 + fakeArenaHeight / 2 - 1);
+		for (let x = 0; x < fakeArenaWidth; x++) {
+			if(x > 0 && x < fakeArenaWidth - 3) { // If ! upper door, fill upper border with -1.
+				tiles[minX + x][minY] = -1;
+			}
+			if(x > 2) { // If ! bottom door, fill bottom border with -1. 
+				tiles[minX + x][maxY] = -1;
+			}
+		}
+		for (let y = 0; y < fakeArenaHeight; y++) {
+			tiles[minX][minY + y] = -1;
+			tiles[maxX][minY + y] = -1;
+		}
 	}
 	return tiles;
 }
