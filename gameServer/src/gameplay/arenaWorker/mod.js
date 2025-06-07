@@ -19,6 +19,8 @@ let arenaHeight = 0;
 
 const boundsTracker = new PlayerBoundsTracker();
 
+/** @typedef {"default" | "drawing" | "arena"} GameModes */
+
 const arenaWorkerHandlers = {
 	/**
 	 * @param {number} width
