@@ -145,27 +145,33 @@ export class Game {
 	 */
 	getNewSpawnPosition() {
 		const position = (() => {
-			let temp_x = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()));
-			let temp_y = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()));
-			
+			let temp_x = Math.floor(
+				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()),
+			);
+			let temp_y = Math.floor(
+				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
+			);
+
 			// We should prevent players from spawning directly inside of the fake arena or on the border of it.
 			// If x is within fake arena's range we then check y, while y is within the fake arena's range we generate new y (optimize later).
 			if (
 				this.#gameMode == "arena" &&
 				temp_x >= this.arena.width / 2 - this.arena.fakeArenaWidth / 2 - 2 &&
 				temp_x <= this.arena.width / 2 + this.arena.fakeArenaWidth / 2 + 1
+			) {
+				while (
+					temp_y >= this.arena.height / 2 - this.arena.fakeArenaHeight / 2 - 2 &&
+					temp_y <= this.arena.height / 2 + this.arena.fakeArenaHeight / 2 + 1
 				) {
-					while (
-						   temp_y >= this.arena.height / 2 - this.arena.fakeArenaHeight / 2 - 2 &&
-						   temp_y <= this.arena.height / 2 + this.arena.fakeArenaHeight / 2 + 1
-						   ) {
-							   temp_y = Math.floor(lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()));
-					}
+					temp_y = Math.floor(
+						lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
+					);
+				}
 			}
 			return new Vec2(
 				temp_x,
 				temp_y,
-				);
+			);
 		})();
 		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
 		const wallDistances = [
@@ -439,15 +445,21 @@ export class Game {
 				yield Array.from(player.getTrailVertices())[0];
 			}
 		}
-		
+
 		// We need to prevent the border of the fake arena to be filled by players if they capture it.
 		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
 		// We could check tile type in updateCapturedArea.js instead, but doing it here
 		// is probably better performance wise and also safer for existing gamemodes.
 		// Can delete these last 5 comment lines before merging if keep it this way.
 		if (this.#gameMode == "arena") {
-			yield new Vec2(Math.floor(this.arena.width / 2 - this.arena.fakeArenaWidth / 2), Math.floor(this.arena.height / 2 - this.arena.fakeArenaHeight / 2));
-			yield new Vec2(Math.floor(this.arena.width / 2 + this.arena.fakeArenaWidth / 2 - 1), Math.floor(this.arena.height/ 2 + this.arena.fakeArenaHeight / 2 - 1));
+			yield new Vec2(
+				Math.floor(this.arena.width / 2 - this.arena.fakeArenaWidth / 2),
+				Math.floor(this.arena.height / 2 - this.arena.fakeArenaHeight / 2),
+			);
+			yield new Vec2(
+				Math.floor(this.arena.width / 2 + this.arena.fakeArenaWidth / 2 - 1),
+				Math.floor(this.arena.height / 2 + this.arena.fakeArenaHeight / 2 - 1),
+			);
 		}
 	}
 
