@@ -141,7 +141,7 @@ export class Game {
 	}
 
 	/**
-	 * @returns {{position: Vec2, direction: import("./Player.js").UnpausedDirection}}
+	 * @returns {{position: Vec2, direction: import("./Player.js").Direction}}
 	 */
 	getNewSpawnPosition() {
 		const position = (() => {
@@ -198,12 +198,9 @@ export class Game {
 				closestWall = wall;
 			}
 		}
-		if (this.#gameMode == "arena") {
-			closestWall.direction = "paused";
-		}
 		return {
 			position,
-			direction: closestWall?.direction || "up",
+			direction: this.#gameMode == "arena" ? "paused" : closestWall?.direction || "up",
 		};
 	}
 
