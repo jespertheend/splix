@@ -26,7 +26,7 @@ export class Arena {
 
 	#width;
 	#height;
-	
+
 	#fakeArenaWidth;
 	#fakeArenaHeight;
 
@@ -37,7 +37,7 @@ export class Arena {
 	get height() {
 		return this.#height;
 	}
-	
+
 	get fakeArenaWidth() {
 		return this.#fakeArenaWidth;
 	}
@@ -45,7 +45,7 @@ export class Arena {
 	get fakeArenaHeight() {
 		return this.#fakeArenaHeight;
 	}
-	
+
 	#worker;
 	/** @type {TypedMessenger<WorkerArenaHandlers, import("./arenaWorker/mod.js").ArenaWorkerHandlers>} */
 	#messenger;
@@ -53,9 +53,9 @@ export class Arena {
 	/**
 	 * @param {number} width
 	 * @param {number} height
-  	 * @param {number} fakeArenaWidth
+	 * @param {number} fakeArenaWidth
 	 * @param {number} fakeArenaHeight
-  	 * @param {GameModes} gameMode
+	 * @param {GameModes} gameMode
 	 */
 	constructor(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
 		this.#width = width;
