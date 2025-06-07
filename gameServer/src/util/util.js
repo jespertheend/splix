@@ -26,18 +26,18 @@ export function createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight,
 		tiles[0][y] = -1;
 		tiles[width - 1][y] = -1;
 	}
-	
+
 	// Create the border of the fake arena (make new function later which can create walls anywhere instead).
-	if(gameMode == "arena") {
+	if (gameMode == "arena") {
 		const minX = Math.floor(width / 2 - fakeArenaWidth / 2);
 		const maxX = Math.floor(width / 2 + fakeArenaWidth / 2 - 1);
 		const minY = Math.floor(height / 2 - fakeArenaHeight / 2);
 		const maxY = Math.floor(height / 2 + fakeArenaHeight / 2 - 1);
 		for (let x = 0; x < fakeArenaWidth; x++) {
-			if(x > 0 && x < fakeArenaWidth - 3) { // If ! upper door, fill upper border with -1.
+			if (x > 0 && x < fakeArenaWidth - 3) { // If ! upper door, fill upper border with -1.
 				tiles[minX + x][minY] = -1;
 			}
-			if(x > 2) { // If ! bottom door, fill bottom border with -1. 
+			if (x > 2) { // If ! bottom door, fill bottom border with -1.
 				tiles[minX + x][maxY] = -1;
 			}
 		}
