@@ -1,4 +1,5 @@
 /** @typedef {"default" | "drawing" | "arena"} GameModes */
+
 import { Vec2 } from "renda";
 
 /**
