@@ -55,7 +55,7 @@ export class Arena {
 	 * @param {number} height
 	 * @param {number} fakeArenaWidth
 	 * @param {number} fakeArenaHeight
-	 * @param {GameModes} gameMode
+	 * @param {import("./Game.js").GameModes} gameMode
 	 */
 	constructor(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
 		this.#width = width;
