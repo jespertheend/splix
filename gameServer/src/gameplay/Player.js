@@ -214,7 +214,9 @@ export class Player {
 		const { position, direction } = game.getNewSpawnPosition();
 		this.#currentPosition = position;
 		this.#currentDirection = direction;
-		this.#lastUnpausedDirection = direction;
+		if (direction != "paused") {
+			this.#lastUnpausedDirection = direction;
+		}
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#lastCertainClientPosition = position.clone();
