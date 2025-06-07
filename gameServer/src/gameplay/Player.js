@@ -723,10 +723,14 @@ export class Player {
 				// In arena mode, players cannot be killed if they are paused outside of the fake arena, so everyone can watch the battles safely.
 				if (
 					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
-					player.#currentPosition.x >= this.game.arena.width / 2 - this.game.arena.fakeArenaWidth / 2 &&
-					player.#currentPosition.x <= this.game.arena.width / 2 + this.game.arena.fakeArenaWidth / 2 - 1 &&
-					player.#currentPosition.y >= this.game.arena.height / 2 - this.game.arena.fakeArenaHeight / 2 &&
-					player.#currentPosition.y <= this.game.arena.height / 2 + this.game.arena.fakeArenaHeight / 2 - 1)
+							player.#currentPosition.x >= // Looks ugly, deno fmt --check
+										this.game.arena.width / 2 - this.game.arena.fakeArenaWidth / 2 &&
+								player.#currentPosition.x <=
+									this.game.arena.width / 2 + this.game.arena.fakeArenaWidth / 2 - 1 &&
+								player.#currentPosition.y >=
+									this.game.arena.height / 2 - this.game.arena.fakeArenaHeight / 2 &&
+								player.#currentPosition.y <=
+									this.game.arena.height / 2 + this.game.arena.fakeArenaHeight / 2 - 1)
 				) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
