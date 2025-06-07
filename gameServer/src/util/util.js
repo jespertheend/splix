@@ -1,5 +1,3 @@
-/** @typedef {"default" | "drawing" | "arena"} GameModes */
-
 import { Vec2 } from "renda";
 
 /**
@@ -8,7 +6,7 @@ import { Vec2 } from "renda";
  * @param {number} height
  * @param {number} fakeArenaWidth
  * @param {number} fakeArenaHeight
- * @param {GameModes} gameMode
+ * @param {import("./../gameplay/Game.js").GameModes} gameMode
  */
 export function createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
 	/** @type {number[][]} */
