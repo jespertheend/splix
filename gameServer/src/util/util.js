@@ -4,11 +4,11 @@ import { Vec2 } from "renda";
  * Creates a 2d array of numbers, each set to 0 except for the border, which is -1.
  * @param {number} width
  * @param {number} height
- * @param {number} fakeArenaWidth
- * @param {number} fakeArenaHeight
+ * @param {number} pitWidth
+ * @param {number} pitHeight
  * @param {import("./../gameplay/Game.js").GameModes} gameMode
  */
-export function createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
+export function createArenaTiles(width, height, pitWidth, pitHeight, gameMode) {
 	/** @type {number[][]} */
 	const tiles = [];
 	// Create the tiles of the arena
@@ -27,21 +27,21 @@ export function createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight,
 		tiles[width - 1][y] = -1;
 	}
 
-	// Create the border of the fake arena (make new function later which can create walls anywhere instead).
+	// Create the border of the pit (make new function later which can create walls anywhere instead).
 	if (gameMode == "arena") {
-		const minX = Math.floor(width / 2 - fakeArenaWidth / 2);
-		const maxX = Math.floor(width / 2 + fakeArenaWidth / 2 - 1);
-		const minY = Math.floor(height / 2 - fakeArenaHeight / 2);
-		const maxY = Math.floor(height / 2 + fakeArenaHeight / 2 - 1);
-		for (let x = 0; x < fakeArenaWidth; x++) {
-			if (x > 0 && x < fakeArenaWidth - 3) { // If ! upper door, fill upper border with -1.
+		const minX = Math.floor(width / 2 - pitWidth / 2);
+		const maxX = Math.floor(width / 2 + pitWidth / 2 - 1);
+		const minY = Math.floor(height / 2 - pitHeight / 2);
+		const maxY = Math.floor(height / 2 + pitHeight / 2 - 1);
+		for (let x = 0; x < pitWidth; x++) {
+			if (x > 0 && x < pitWidth - 3) { // If ! upper door, fill upper border with -1.
 				tiles[minX + x][minY] = -1;
 			}
 			if (x > 2) { // If ! bottom door, fill bottom border with -1.
 				tiles[minX + x][maxY] = -1;
 			}
 		}
-		for (let y = 0; y < fakeArenaHeight; y++) {
+		for (let y = 0; y < pitHeight; y++) {
 			tiles[minX][minY + y] = -1;
 			tiles[maxX][minY + y] = -1;
 		}
