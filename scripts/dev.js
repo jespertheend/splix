@@ -42,12 +42,13 @@ generateTypes({
 	logLevel: "WARNING",
 });
 
+// pit is specific to arena gamemode and refers to the thing in the middle of the arena.
 if (!Deno.args.includes("--no-init")) {
 	const gameServer = initGameServer({
 		arenaWidth: 40,
 		arenaHeight: 40,
-		fakeArenaWidth: 16,
-		fakeArenaHeight: 16,
+		pitWidth: 16,
+		pitHeight: 16,
 		gameMode: "default",
 	});
 	// @ts-ignore
