@@ -27,8 +27,8 @@ export class Arena {
 	#width;
 	#height;
 
-	#fakeArenaWidth;
-	#fakeArenaHeight;
+	#pitWidth;
+	#pitHeight;
 
 	get width() {
 		return this.#width;
@@ -38,12 +38,12 @@ export class Arena {
 		return this.#height;
 	}
 
-	get fakeArenaWidth() {
-		return this.#fakeArenaWidth;
+	get pitWidth() {
+		return this.#pitWidth;
 	}
 
-	get fakeArenaHeight() {
-		return this.#fakeArenaHeight;
+	get pitHeight() {
+		return this.#pitHeight;
 	}
 
 	#worker;
@@ -53,18 +53,18 @@ export class Arena {
 	/**
 	 * @param {number} width
 	 * @param {number} height
-	 * @param {number} fakeArenaWidth
-	 * @param {number} fakeArenaHeight
+	 * @param {number} pitWidth
+	 * @param {number} pitHeight
 	 * @param {import("./Game.js").GameModes} gameMode
 	 */
-	constructor(width, height, fakeArenaWidth, fakeArenaHeight, gameMode) {
+	constructor(width, height, pitWidth, pitHeight, gameMode) {
 		this.#width = width;
 		this.#height = height;
 
-		this.#fakeArenaWidth = fakeArenaWidth;
-		this.#fakeArenaHeight = fakeArenaHeight;
+		this.#pitWidth = pitWidth;
+		this.#pitHeight = pitHeight;
 
-		this.#tiles = createArenaTiles(width, height, fakeArenaWidth, fakeArenaHeight, gameMode);
+		this.#tiles = createArenaTiles(width, height, pitWidth, pitHeight, gameMode);
 
 		this.#worker = new Worker(new URL("./arenaWorker/mod.js", import.meta.url), {
 			type: "module",
@@ -81,7 +81,7 @@ export class Arena {
 				}
 			},
 		});
-		this.#messenger.send.init(width, height, fakeArenaWidth, fakeArenaHeight, gameMode);
+		this.#messenger.send.init(width, height, pitWidth, pitHeight, gameMode);
 	}
 
 	/** @type {Set<OnRectFilledCallback>} */
