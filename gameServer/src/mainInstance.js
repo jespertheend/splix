@@ -40,15 +40,15 @@ if (import.meta.main) {
     Takes precedence over --arenaWidth and --arenaHeight.
     Example: ${executableName} -s 100
 
---fakeArenaWidth, --fakeArenaHeight
-    Configures the width and height of the fake arena.
+--pitWidth, --pitHeight
+    Configures the width and height of the pit (specific to arena mode).
     Both the width and height default to 16.
-    Example: ${executableName} --arenaWidth 10 --arenaHeight 20
+    Example: ${executableName} --pitWidth 10 --pitHeight 20
 	
--f --fakeArenaSize
-    Sets both the width and height of the fake arena to the same value.
-    Takes precedence over --fakeArenaWidth and --fakeArenaHeight.
-    Example: ${executableName} -s 20
+--pitSize
+    Sets both the width and height of the pit to the same value (specific to arena mode).
+    Takes precedence over --pitWidth and --pitHeight.
+    Example: ${executableName} --pitSize 10
 
 -g --gameMode
     Sets the game mode of the game. Valid values are:
@@ -61,9 +61,9 @@ if (import.meta.main) {
 		let arenaWidth = parseInt(args.arenaWidth || 100);
 		let arenaHeight = parseInt(args.arenaHeight || 100);
 		const arenaSize = parseInt(args.s || args.arenaSize || 0);
-		let fakeArenaWidth = parseInt(args.fakeArenaWidth || 16);
-		let fakeArenaHeight = parseInt(args.fakeArenaHeight || 16);
-		const fakeArenaSize = parseInt(args.f || args.fakeArenaSize || 16);
+		let pitWidth = parseInt(args.pitWidth || 16);
+		let pitHeight = parseInt(args.pitHeight || 16);
+		const pitSize = parseInt(args.pitSize || 16);
 		const gameMode = args.g || args.gameMode || "default";
 		if (!validGamemodes.includes(gameMode)) {
 			throw new Error(`"${gameMode}" is not a valid gamemode.`);
@@ -72,15 +72,15 @@ if (import.meta.main) {
 			arenaWidth = arenaSize;
 			arenaHeight = arenaSize;
 		}
-		if (fakeArenaSize) {
-			fakeArenaWidth = fakeArenaSize;
-			fakeArenaHeight = fakeArenaSize;
+		if (pitSize) {
+			pitWidth = pitSize;
+			pitHeight = pitSize;
 		}
 		const main = init({
 			arenaWidth,
 			arenaHeight,
-			fakeArenaWidth,
-			fakeArenaHeight,
+			pitWidth,
+			pitHeight,
 			gameMode,
 		});
 		main.init({ port, hostname });
