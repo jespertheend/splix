@@ -7,23 +7,23 @@ export class Main {
 	 * @param {Object} options
 	 * @param {number} options.arenaWidth
 	 * @param {number} options.arenaHeight
-	 * @param {number} options.fakeArenaWidth
-	 * @param {number} options.fakeArenaHeight
+	 * @param {number} options.pitWidth
+	 * @param {number} options.pitHeight
 	 * @param {import("./gameplay/Game.js").GameModes} [options.gameMode]
 	 */
 	constructor({
 		arenaWidth,
 		arenaHeight,
-		fakeArenaWidth,
-		fakeArenaHeight,
+		pitWidth,
+		pitHeight,
 		gameMode = "default",
 	}) {
 		this.applicationLoop = new ApplicationLoop(this);
 		this.game = new Game(this.applicationLoop, this, {
 			arenaWidth,
 			arenaHeight,
-			fakeArenaWidth,
-			fakeArenaHeight,
+			pitWidth,
+			pitHeight,
 			gameMode,
 		});
 		this.websocketManager = new WebSocketManager(this.game);
