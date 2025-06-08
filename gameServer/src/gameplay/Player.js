@@ -705,7 +705,7 @@ export class Player {
 			}
 		}
 
-		// Check if we are touching the edge of the map or the fake arena border.
+		// Check if we are touching the edge of the map or the pit border.
 		if (
 			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
@@ -722,17 +722,18 @@ export class Player {
 				const killedSelf = player == this;
 				if (player.dead) continue;
 
-				// In arena mode, players cannot be killed if they are paused outside of the fake arena, so everyone can watch the battles safely.
+				// In arena mode, players cannot be killed if they are outside of the pit and have no trail
+				// (e.g. : paused inside their territory), it allows to spec but will be changed later.
 				if (
 					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
-							player.#currentPosition.x >= // Looks ugly, deno fmt --check
-										this.game.arena.width / 2 - this.game.arena.fakeArenaWidth / 2 &&
+							player.#currentPosition.x >=
+										this.game.arena.width / 2 - this.game.arena.pitWidth / 2 &&
 								player.#currentPosition.x <=
-									this.game.arena.width / 2 + this.game.arena.fakeArenaWidth / 2 - 1 &&
+									this.game.arena.width / 2 + this.game.arena.pitWidth / 2 - 1 &&
 								player.#currentPosition.y >=
-									this.game.arena.height / 2 - this.game.arena.fakeArenaHeight / 2 &&
+									this.game.arena.height / 2 - this.game.arena.pitHeight / 2 &&
 								player.#currentPosition.y <=
-									this.game.arena.height / 2 + this.game.arena.fakeArenaHeight / 2 - 1)
+									this.game.arena.height / 2 + this.game.arena.pitHeight / 2 - 1)
 				) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
