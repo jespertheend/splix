@@ -53,20 +53,20 @@ export class Game {
 	 * @param {Object} options
 	 * @param {number} [options.arenaWidth]
 	 * @param {number} [options.arenaHeight]
-	 * @param {number} [options.fakeArenaWidth]
-	 * @param {number} [options.fakeArenaHeight]
+	 * @param {number} [options.pitWidth]
+	 * @param {number} [options.pitHeight]
 	 * @param {GameModes} [options.gameMode]
 	 */
 	constructor(applicationLoop, mainInstance, {
 		arenaWidth = 600,
 		arenaHeight = 600,
-		fakeArenaWidth = 16,
-		fakeArenaHeight = 16,
+		pitWidth = 16,
+		pitHeight = 16,
 		gameMode = "default",
 	} = {}) {
 		this.#mainInstance = mainInstance;
 		this.#gameMode = gameMode;
-		this.#arena = new Arena(arenaWidth, arenaHeight, fakeArenaWidth, fakeArenaHeight, gameMode);
+		this.#arena = new Arena(arenaWidth, arenaHeight, pitWidth, pitHeight, gameMode);
 		this.#arena.onRectFilled((rect, tileValue) => {
 			for (const player of this.getOverlappingViewportPlayersForRect(rect)) {
 				const { colorId, patternId } = this.getTileTypeForMessage(player, tileValue);
@@ -152,16 +152,16 @@ export class Game {
 				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
 			);
 
-			// We should prevent players from spawning directly inside of the fake arena or on the border of it.
-			// If x is within fake arena's range we then check y, while y is within the fake arena's range we generate new y (optimize later).
+			// We should prevent players from spawning directly inside of the pit or on the border of it.
+			// If x is within pit's range we then check y, while y is within pit's range we generate new y (optimize later).
 			if (
 				this.#gameMode == "arena" &&
-				temp_x >= this.arena.width / 2 - this.arena.fakeArenaWidth / 2 - 2 &&
-				temp_x <= this.arena.width / 2 + this.arena.fakeArenaWidth / 2 + 1
+				temp_x >= this.arena.width / 2 - this.arena.pitWidth / 2 - 2 &&
+				temp_x <= this.arena.width / 2 + this.arena.pitWidth / 2 + 1
 			) {
 				while (
-					temp_y >= this.arena.height / 2 - this.arena.fakeArenaHeight / 2 - 2 &&
-					temp_y <= this.arena.height / 2 + this.arena.fakeArenaHeight / 2 + 1
+					temp_y >= this.arena.height / 2 - this.arena.pitHeight / 2 - 2 &&
+					temp_y <= this.arena.height / 2 + this.arena.pitHeight / 2 + 1
 				) {
 					temp_y = Math.floor(
 						lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
@@ -286,7 +286,7 @@ export class Game {
 	getTileTypeForMessage(player, tileValue) {
 		if (tileValue == -1) {
 			return {
-				colorId: 0, // edge of the world or border of fake arena
+				colorId: 0, // edge of the world or border of the pit
 				patternId: 0,
 			};
 		}
@@ -427,8 +427,8 @@ export class Game {
 	/**
 	 * Yields a list of player positions,
 	 * and the start of their trail if they have one.
-	 * If gameMode is arena, we also yield fake arena border positions.
-	 * Used to prevent filling locations with other players inside or fake arena border.
+	 * If gameMode is arena, we also yield pit border positions.
+	 * Used to prevent filling locations with other players inside or pit's border.
 	 * @param {import("./Player.js").Player} excludePlayer
 	 */
 	*getUnfillableLocations(excludePlayer) {
@@ -443,19 +443,19 @@ export class Game {
 			}
 		}
 
-		// We need to prevent the border of the fake arena to be filled by players if they capture it.
+		// We need to prevent pit's border to be filled by players if they capture it.
 		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
 		// We could check tile type in updateCapturedArea.js instead, but doing it here
 		// is probably better performance wise and also safer for existing gamemodes.
-		// Can delete these last 5 comment lines before merging if keep it this way.
+		// Can delete these 5 comment lines before merging if keep it this way.
 		if (this.#gameMode == "arena") {
 			yield new Vec2(
-				Math.floor(this.arena.width / 2 - this.arena.fakeArenaWidth / 2),
-				Math.floor(this.arena.height / 2 - this.arena.fakeArenaHeight / 2),
+				Math.floor(this.arena.width / 2 - this.arena.pitWidth / 2),
+				Math.floor(this.arena.height / 2 - this.arena.pitHeight / 2),
 			);
 			yield new Vec2(
-				Math.floor(this.arena.width / 2 + this.arena.fakeArenaWidth / 2 - 1),
-				Math.floor(this.arena.height / 2 + this.arena.fakeArenaHeight / 2 - 1),
+				Math.floor(this.arena.width / 2 + this.arena.pitWidth / 2 - 1),
+				Math.floor(this.arena.height / 2 + this.arena.pitHeight / 2 - 1),
 			);
 		}
 	}
