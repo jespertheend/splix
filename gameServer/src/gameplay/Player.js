@@ -214,7 +214,9 @@ export class Player {
 		const { position, direction } = game.getNewSpawnPosition();
 		this.#currentPosition = position;
 		this.#currentDirection = direction;
-		this.#lastUnpausedDirection = direction;
+		if (direction != "paused") {
+			this.#lastUnpausedDirection = direction;
+		}
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#lastCertainClientPosition = position.clone();
@@ -640,7 +642,9 @@ export class Player {
 					this.#drainMovementQueue();
 				} catch (e) {
 					console.error(e);
-					this.#connection.close();
+					if (this.game.gameMode != "arena") {
+						this.#connection.close();
+					}
 				}
 			}
 		}
@@ -701,11 +705,12 @@ export class Player {
 			}
 		}
 
-		// Check if we touch the edge of the map.
+		// Check if we are touching the edge of the map or the pit border.
 		if (
 			this.#currentPosition.x <= 0 || this.#currentPosition.y <= 0 ||
 			this.#currentPosition.x >= this.game.arena.width - 1 ||
-			this.#currentPosition.y >= this.game.arena.height - 1
+			this.#currentPosition.y >= this.game.arena.height - 1 ||
+			(this.game.gameMode == "arena" && this.game.arena.getTileValue(this.#currentPosition) === -1)
 		) {
 			this.#killPlayer(this, "arena-bounds");
 		}
@@ -717,7 +722,19 @@ export class Player {
 				const killedSelf = player == this;
 				if (player.dead) continue;
 
-				if (this.game.gameMode != "drawing") {
+				// In arena mode, players cannot be killed if they are outside of the pit and have no trail
+				// (e.g. : paused inside their territory), it allows to spec but will be changed later.
+				if (
+					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
+							player.#currentPosition.x >=
+										this.game.arena.width / 2 - this.game.arena.pitWidth / 2 &&
+								player.#currentPosition.x <=
+									this.game.arena.width / 2 + this.game.arena.pitWidth / 2 - 1 &&
+								player.#currentPosition.y >=
+									this.game.arena.height / 2 - this.game.arena.pitHeight / 2 &&
+								player.#currentPosition.y <=
+									this.game.arena.height / 2 + this.game.arena.pitHeight / 2 - 1)
+				) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
 						if (success) {
@@ -1071,6 +1088,10 @@ export class Player {
 
 	getTotalScore() {
 		return this.#capturedTileCount + this.#killCount * 500;
+	}
+
+	getTotalKill() {
+		return this.#killCount;
 	}
 
 	/**

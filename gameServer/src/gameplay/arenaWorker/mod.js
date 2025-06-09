@@ -23,11 +23,14 @@ const arenaWorkerHandlers = {
 	/**
 	 * @param {number} width
 	 * @param {number} height
+	 * @param {number} pitWidth
+	 * @param {number} pitHeight
+	 * @param {import("./../Game.js").GameModes} gameMode
 	 */
-	init(width, height) {
+	init(width, height, pitWidth, pitHeight, gameMode) {
 		arenaWidth = width;
 		arenaHeight = height;
-		arenaTiles = createArenaTiles(width, height);
+		arenaTiles = createArenaTiles(width, height, pitWidth, pitHeight, gameMode);
 		initializeMask(width, height);
 	},
 	/**

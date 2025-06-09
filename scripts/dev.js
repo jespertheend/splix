@@ -46,6 +46,9 @@ if (!Deno.args.includes("--no-init")) {
 	const gameServer = initGameServer({
 		arenaWidth: 40,
 		arenaHeight: 40,
+		pitWidth: 16,
+		pitHeight: 16,
+		gameMode: "default",
 	});
 	// @ts-ignore
 	globalThis.gameServer = gameServer;
