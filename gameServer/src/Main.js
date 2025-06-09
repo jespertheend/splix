@@ -7,17 +7,23 @@ export class Main {
 	 * @param {Object} options
 	 * @param {number} options.arenaWidth
 	 * @param {number} options.arenaHeight
+	 * @param {number} [options.pitWidth] pit is specific to arena gamemode and refers to the thing in the middle of the arena.
+	 * @param {number} [options.pitHeight] pit is specific to arena gamemode and refers to the thing in the middle of the arena.
 	 * @param {import("./gameplay/Game.js").GameModes} [options.gameMode]
 	 */
 	constructor({
 		arenaWidth,
 		arenaHeight,
+		pitWidth = 16,
+		pitHeight = 16,
 		gameMode = "default",
 	}) {
 		this.applicationLoop = new ApplicationLoop(this);
 		this.game = new Game(this.applicationLoop, this, {
 			arenaWidth,
 			arenaHeight,
+			pitWidth,
+			pitHeight,
 			gameMode,
 		});
 		this.websocketManager = new WebSocketManager(this.game);
