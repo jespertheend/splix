@@ -129,10 +129,15 @@ export class Arena {
 	/**
 	 * Finds unfilled areas of the player and fills them.
 	 * @param {number} playerId
+	 * @param {[x: number, y: number][]} vertices
 	 * @param {Vec2[]} otherPlayerLocations
 	 */
-	updateCapturedArea(playerId, otherPlayerLocations) {
-		return this.#messenger.send.updateCapturedArea(playerId, otherPlayerLocations.map((v) => v.toArray()));
+	updateCapturedArea(playerId, vertices, otherPlayerLocations) {
+		return this.#messenger.send.updateCapturedArea(
+			playerId,
+			vertices,
+			otherPlayerLocations.map((v) => v.toArray()),
+		);
 	}
 
 	/**

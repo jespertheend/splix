@@ -29,7 +29,7 @@ export const PLAYER_SPAWN_RADIUS = 2;
 /**
  * How many tiles players move per millisecond. This should be the same value as on the client.
  */
-export const PLAYER_TRAVEL_SPEED = 0.006;
+export const PLAYER_TRAVEL_SPEED = 0.015;
 
 /**
  * Time in milliseconds that we allow the player to undo events.
