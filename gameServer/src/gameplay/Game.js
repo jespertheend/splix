@@ -145,10 +145,10 @@ export class Game {
 	 */
 	getNewSpawnPosition() {
 		const position = (() => {
-			let temp_x = Math.floor(
+			let tempX = Math.floor(
 				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()),
 			);
-			let temp_y = Math.floor(
+			let tempY = Math.floor(
 				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
 			);
 
@@ -156,21 +156,21 @@ export class Game {
 			// If x is within pit's range we then check y, while y is within pit's range we generate new y (optimize later).
 			if (
 				this.#gameMode == "arena" &&
-				temp_x >= this.arena.width / 2 - this.arena.pitWidth / 2 - 2 &&
-				temp_x <= this.arena.width / 2 + this.arena.pitWidth / 2 + 1
+				tempX >= this.arena.width / 2 - this.arena.pitWidth / 2 - 2 &&
+				tempX <= this.arena.width / 2 + this.arena.pitWidth / 2 + 1
 			) {
 				while (
-					temp_y >= this.arena.height / 2 - this.arena.pitHeight / 2 - 2 &&
-					temp_y <= this.arena.height / 2 + this.arena.pitHeight / 2 + 1
+					tempY >= this.arena.height / 2 - this.arena.pitHeight / 2 - 2 &&
+					tempY <= this.arena.height / 2 + this.arena.pitHeight / 2 + 1
 				) {
-					temp_y = Math.floor(
+					tempY = Math.floor(
 						lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
 					);
 				}
 			}
 			return new Vec2(
-				temp_x,
-				temp_y,
+				tempX,
+				tempY,
 			);
 		})();
 		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
@@ -447,7 +447,6 @@ export class Game {
 		// We only yield top-left and bottom-right pos instead of the whole border to improve performance when filling.
 		// We could check tile type in updateCapturedArea.js instead, but doing it here
 		// is probably better performance wise and also safer for existing gamemodes.
-		// Can delete these 5 comment lines before merging if keep it this way.
 		if (this.#gameMode == "arena") {
 			yield new Vec2(
 				Math.floor(this.arena.width / 2 - this.arena.pitWidth / 2),
