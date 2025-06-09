@@ -642,7 +642,9 @@ export class Player {
 					this.#drainMovementQueue();
 				} catch (e) {
 					console.error(e);
-					this.#connection.close();
+					if (this.game.gameMode != "arena") {
+						this.#connection.close();
+					}
 				}
 			}
 		}
