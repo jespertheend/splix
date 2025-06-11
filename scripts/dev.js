@@ -46,6 +46,9 @@ if (!Deno.args.includes("--no-init")) {
 	const gameServer = initGameServer({
 		arenaWidth: 40,
 		arenaHeight: 40,
+		pitWidth: 16,
+		pitHeight: 16,
+		gameMode: "default",
 	});
 	// @ts-ignore
 	globalThis.gameServer = gameServer;
@@ -106,7 +109,7 @@ if (!Deno.args.includes("--no-init")) {
 		} else if (url.pathname.startsWith("/servermanagerToken")) {
 			return new Response(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
 		} else if (url.pathname.startsWith("/servermanager")) {
-			return serverManager.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
+			return serverManager.handleRequest(request, remoteAddr.remoteAddr);
 		}
 
 		for (const dir of serveRootDirs) {

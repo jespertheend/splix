@@ -1,8 +1,8 @@
 import { TypedMessenger } from "renda";
 
-/** @typedef {ReturnType<WebSocketConnection["getResponseHandlers"]>} ServerManagerResponseHandlers */
+/** @typedef {ReturnType<AdminWebSocketConnection["getResponseHandlers"]>} ServerManagerResponseHandlers */
 
-export class WebSocketConnection {
+export class AdminWebSocketConnection {
 	/** @type {TypedMessenger<ServerManagerResponseHandlers, import("../../adminPanel/src/WebsocketManager.js").AdminPanelResponseHandlers>} */
 	#messenger = new TypedMessenger();
 	#ip;

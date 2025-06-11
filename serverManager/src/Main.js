@@ -3,7 +3,7 @@ import { LeaderboardManager } from "./LeaderboardManager.js";
 import { LegacyServerManager } from "./LegacyServerManager.js";
 import { PersistentStorage } from "./PersistentStorage.js";
 import { ServerManager } from "./ServerManager.js";
-import { WebSocketManager } from "./WebSocketManager.js";
+import { AdminWebSocketManager } from "./AdminWebSocketManager.js";
 
 export class Main {
 	/**
@@ -16,7 +16,36 @@ export class Main {
 		this.leaderboardManager = new LeaderboardManager(this.persistentStorage);
 		this.servermanager = new ServerManager(this);
 		this.legacyServerManager = new LegacyServerManager(this);
-		this.websocketManager = new WebSocketManager(this, websocketAuthToken);
+		this.adminWebsocketManager = new AdminWebSocketManager(this, websocketAuthToken);
 		this.authRateLimitManager = new RateLimitManager({ alwaysUseMultiConnectionLimit: true });
+	}
+
+	/**
+	 * @param {Request} request
+	 * @param {Deno.Addr} remoteAddr
+	 */
+	handleRequest(request, remoteAddr) {
+		const url = new URL(request.url);
+		if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
+			const data = this.servermanager.getServersJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			return response;
+		} else if (url.pathname == "/servermanager/legacygameservers" || url.pathname == "/json/servers.2.json") {
+			const data = this.legacyServerManager.getServersJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			return response;
+		} else if (url.pathname == "/servermanager/leaderboards" || url.pathname == "/api/leaderboards") {
+			const data = this.leaderboardManager.getApiJson();
+			const response = Response.json(data);
+			response.headers.set("Access-Control-Allow-Origin", "*");
+			response.headers.set("Cache-Control", "max-age=300");
+			return response;
+		} else if (url.pathname == "/servermanager") {
+			return this.adminWebsocketManager.handleRequest(request, remoteAddr);
+		} else {
+			return new Response("not found", { status: 404 });
+		}
 	}
 }

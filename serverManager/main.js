@@ -17,4 +17,7 @@ const mainInstance = init({
 	persistentStoragePath,
 	websocketAuthToken,
 });
-mainInstance.websocketManager.startServer(port, hostname);
+
+Deno.serve({ port, hostname }, async (request, connInfo) => {
+	return await mainInstance.handleRequest(request, connInfo.remoteAddr);
+});

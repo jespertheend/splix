@@ -27,12 +27,23 @@ export class Arena {
 	#width;
 	#height;
 
+	#pitWidth;
+	#pitHeight;
+
 	get width() {
 		return this.#width;
 	}
 
 	get height() {
 		return this.#height;
+	}
+
+	get pitWidth() {
+		return this.#pitWidth;
+	}
+
+	get pitHeight() {
+		return this.#pitHeight;
 	}
 
 	#worker;
@@ -42,12 +53,18 @@ export class Arena {
 	/**
 	 * @param {number} width
 	 * @param {number} height
+	 * @param {number} pitWidth
+	 * @param {number} pitHeight
+	 * @param {import("./Game.js").GameModes} gameMode
 	 */
-	constructor(width, height) {
+	constructor(width, height, pitWidth, pitHeight, gameMode) {
 		this.#width = width;
 		this.#height = height;
 
-		this.#tiles = createArenaTiles(width, height);
+		this.#pitWidth = pitWidth;
+		this.#pitHeight = pitHeight;
+
+		this.#tiles = createArenaTiles(width, height, pitWidth, pitHeight, gameMode);
 
 		this.#worker = new Worker(new URL("./arenaWorker/mod.js", import.meta.url), {
 			type: "module",
@@ -64,7 +81,7 @@ export class Arena {
 				}
 			},
 		});
-		this.#messenger.send.init(width, height);
+		this.#messenger.send.init(width, height, pitWidth, pitHeight, gameMode);
 	}
 
 	/** @type {Set<OnRectFilledCallback>} */
