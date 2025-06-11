@@ -99,6 +99,9 @@ export class Player {
 	 * we'll keep track of the last valid position we received from the client.
 	 * We'll use this in combination with the lastUnpausedDirection to verify that the client
 	 * is not trying to move to locations it has never been in the first place.
+	 *
+	 * On top of this, this is also used to ensure players don't send multiple direction changes on a
+	 * single position.
 	 */
 	#lastCertainClientPosition;
 
@@ -342,6 +345,18 @@ export class Player {
 				// The position is valid, but the player hasn't reached this location yet.
 				// We'll wait until the player is there, and then handle it accordingly.
 				// If we handle the movement item now, we would allow players to teleport ahead and move very fast.
+				return;
+			}
+
+			if (
+				this.#connection.protocolVersion >= 1 &&
+				desiredPosition.x == this.#lastCertainClientPosition.x &&
+				desiredPosition.y == this.#lastCertainClientPosition.y &&
+				this.#currentDirection != "paused"
+			) {
+				// The position is valid, but it is at the exact same spot as where a trail vertex has already been placed.
+				// We'll treat this in the same way as the `isFuturePosition()` check, that way
+				// the move is still applied, just one tile later.
 				return;
 			}
 
