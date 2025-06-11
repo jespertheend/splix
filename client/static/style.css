@@ -469,7 +469,7 @@ a:hover{
 	text-decoration: underline;
 }
 
-#qualityText, #uglyText{
+#qualityText, #uglyText, #specText{
 	cursor: pointer;
 }
 
