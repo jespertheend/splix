@@ -424,22 +424,26 @@ export class Player {
 				// If so, we modify the last vertex instead of adding a new one.
 				if (lastVertexA.x == lastVertexB.x && lastVertexA.x == pos.x) {
 					if (pos.y >= lastVertexA.y && pos.y <= lastVertexB.y) {
-						throw new Error(
-							`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
-								this.#trailVertices.join(" ")
-							}`,
-						);
+						if (this.game.gameMode != "arena") {
+							throw new Error(
+								`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
+									this.#trailVertices.join(" ")
+								}`,
+							);
+						}
 					}
 					lastVertexA.set(pos);
 					return;
 				}
 				if (lastVertexA.y == lastVertexB.y && lastVertexA.y == pos.y) {
 					if (pos.x >= lastVertexA.x && pos.x <= lastVertexB.x) {
-						throw new Error(
-							`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
-								this.#trailVertices.join(" ")
-							}`,
-						);
+						if (this.game.gameMode != "arena") {
+							throw new Error(
+								`Assertion failed: Attempted to add a trail vertex (${pos}) in between two previous vertices. Full trail: ${
+									this.#trailVertices.join(" ")
+								}`,
+							);
+						}
 					}
 					lastVertexA.set(pos);
 					return;
@@ -657,9 +661,7 @@ export class Player {
 					this.#drainMovementQueue();
 				} catch (e) {
 					console.error(e);
-					if (this.game.gameMode != "arena") {
-						this.#connection.close();
-					}
+					this.#connection.close();
 				}
 			}
 		}
