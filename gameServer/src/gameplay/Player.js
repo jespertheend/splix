@@ -88,7 +88,8 @@ export class Player {
 	 * Or the current direction if the player is not currently paused.
 	 * @type {Exclude<Direction, "paused">}
 	 */
-	#lastUnpausedDirection = "up";
+	// @ts-ignore
+	#lastUnpausedDirection;
 
 	get currentDirection() {
 		return this.#currentDirection;
@@ -219,6 +220,10 @@ export class Player {
 		this.#currentDirection = direction;
 		if (direction != "paused") {
 			this.#lastUnpausedDirection = direction;
+		}
+		// Anti-cheat for Arena mode. We add some trail vertex to prevent players from flying.
+		if (this.game.gameMode == "arena") {
+			this.#addTrailVertex(position);
 		}
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
