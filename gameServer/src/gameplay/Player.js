@@ -88,6 +88,7 @@ export class Player {
 	 * Or the current direction if the player is not currently paused.
 	 * @type {Exclude<Direction, "paused">}
 	 */
+	// @ts-ignore
 	#lastUnpausedDirection;
 
 	get currentDirection() {
