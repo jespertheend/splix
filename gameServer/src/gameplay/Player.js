@@ -86,9 +86,9 @@ export class Player {
 	/**
 	 * The direction the player was moving in before they paused.
 	 * Or the current direction if the player is not currently paused.
-	 * @type {Exclude<Direction, "paused">}
+	 * @type {Exclude<Direction, "paused">?}
 	 */
-	#lastUnpausedDirection = "up";
+	#lastUnpausedDirection = null;
 
 	get currentDirection() {
 		return this.#currentDirection;
@@ -220,6 +220,12 @@ export class Player {
 		if (direction != "paused") {
 			this.#lastUnpausedDirection = direction;
 		}
+		
+		// Anti-cheat.
+		// We add some trail vertex to prevent the second way of flying.
+		if (this.#connection.protocolVersion >= 1) {
+			this.#addTrailVertex(position);
+		}
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#lastCertainClientPosition = position.clone();
@@ -348,6 +354,8 @@ export class Player {
 				return;
 			}
 
+			// Anti-cheat.
+			// We prevent the first way of flying, non-paused back and forth stacking immortal and OBP.
 			if (
 				this.#connection.protocolVersion >= 1 &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
