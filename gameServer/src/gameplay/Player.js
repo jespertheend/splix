@@ -1,6 +1,7 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
 	FREE_SKINS_COUNT,
+	GM_ALLOW_TRAIL_CANCEL,
 	MAX_UNDO_EVENT_TIME,
 	MAX_UNDO_TILE_COUNT,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
@@ -27,7 +28,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @typedef {Exclude<Direction, "paused">} UnpausedDirection
  */
 
-/** @typedef {"player" | "arena-bounds" | "self"} DeathType */
+/** @typedef {"player" | "arena-bounds" | "self" | "trail-cancel"} DeathType */
 
 /**
  * @typedef SkinData
@@ -147,6 +148,8 @@ export class Player {
 	#rankingFirstSeconds = 0;
 	#maxTrailLength = 0;
 
+	#trailCancelStep = -1;
+
 	/**
 	 * @typedef DeathState
 	 * @property {number} dieTime
@@ -233,6 +236,12 @@ export class Player {
 					this.#killCount--;
 					this.#killCount = Math.max(0, this.#killCount);
 					this.#sendMyScore();
+				}
+				if (event.deathType == "trail-cancel") {
+					if (GM_ALLOW_TRAIL_CANCEL.includes(this.game.gameMode)) {
+						this.#trailCancel();
+						this.game.broadcastPlayerTrail(this);
+					}
 				}
 			} else if (event.type == "start-trail") {
 				// The player started creating a trail, we reset it in order to prevent
@@ -391,6 +400,20 @@ export class Player {
 			this.game.broadcastPlayerState(this);
 			this.#updateCurrentTile(this.#currentPosition);
 			this.#currentPositionChanged();
+			if (GM_ALLOW_TRAIL_CANCEL.includes(this.game.gameMode)) {
+				// It is very important to make trail cancel as consistent as it was in legacy,
+				// ideally we should probably rework the client but it's a lot of work,
+				// and most players using trail cancel are using some modded client,
+				// so instead we simulate legacy trail cancel behaviour,
+				// by sending some high nextTileProgress value.
+				this.#nextTileProgress = 0.75;
+				if (this.#trailCancelStep >= 0 && this.#trailCancelStep < 2) {
+					if (this.#trailCancelStep == 0 && this.#currentDirection != "paused") {
+						this.#trailCancelStep += 1;
+					}
+					this.#trailCancelStep += 1;
+				}
+			}
 		}
 
 		// If the last move was invalid, we want to let the client know so they can
@@ -453,6 +476,11 @@ export class Player {
 	#clearTrailVertices() {
 		this.#trailVertices = [];
 		this.#currentTrailLengthExcludingPos = 0;
+	}
+
+	#trailCancel() {
+		this.#clearTrailVertices();
+		this.#trailCancelStep = 0;
 	}
 
 	#updateTrailLengthExcludingPos() {
@@ -740,7 +768,7 @@ export class Player {
 				// In arena mode, players cannot be killed if they are outside of the pit and have no trail
 				// (e.g. : paused inside their territory), it allows to spec but will be changed later.
 				if (
-					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
+					this.game.gameMode != "arena" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
 							player.#currentPosition.x >=
 										this.game.arena.width / 2 - this.game.arena.pitWidth / 2 &&
 								player.#currentPosition.x <=
@@ -751,7 +779,13 @@ export class Player {
 									this.game.arena.height / 2 + this.game.arena.pitHeight / 2 - 1)
 				) {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
-						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
+						const isTrailCancel = this.isGeneratingTrail &&
+							this.#currentPosition.x == this.#trailVertices[0].x &&
+							this.#currentPosition.y == this.#trailVertices[0].y;
+						const success = this.#killPlayer(
+							player,
+							killedSelf ? (isTrailCancel ? "trail-cancel" : "self") : "player",
+						);
 						if (success) {
 							this.game.broadcastHitLineAnimation(player, this);
 						}
@@ -1023,12 +1057,15 @@ export class Player {
 	 */
 	#updateCurrentTile(previousPosition) {
 		const tileValue = this.#game.arena.getTileValue(this.#currentPosition);
-		if (this.#currentTileType != tileValue) {
+		if (this.#currentTileType != tileValue || this.#trailCancelStep == 2) {
 			// When the player moves out of their captured area, we will start a new trail.
 			if (tileValue != this.#id && !this.isGeneratingTrail) {
-				this.#eventHistory.addEvent(this.getPosition(), { type: "start-trail" });
-				this.#addTrailVertex(this.#currentPosition);
-				this.game.broadcastPlayerTrail(this);
+				if (this.#trailCancelStep == -1 || this.#trailCancelStep == 2) {
+					this.#eventHistory.addEvent(this.getPosition(), { type: "start-trail" });
+					this.#addTrailVertex(this.#currentPosition);
+					this.game.broadcastPlayerTrail(this);
+					this.#trailCancelStep = -1;
+				}
 			}
 
 			// When the player comes back into their captured area, we add a final vertex to the trail,
