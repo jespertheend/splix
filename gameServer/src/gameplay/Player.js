@@ -220,7 +220,7 @@ export class Player {
 		if (direction != "paused") {
 			this.#lastUnpausedDirection = direction;
 		}
-		
+
 		// Anti-cheat.
 		// We add some trail vertex to prevent the second way of flying.
 		if (this.#connection.protocolVersion >= 1) {
