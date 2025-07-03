@@ -86,9 +86,9 @@ export class Player {
 	/**
 	 * The direction the player was moving in before they paused.
 	 * Or the current direction if the player is not currently paused.
-	 * @type {Exclude<Direction, "paused">?}
+	 * @type {Exclude<Direction, "paused">}
 	 */
-	#lastUnpausedDirection = null;
+	#lastUnpausedDirection = "up";
 
 	get currentDirection() {
 		return this.#currentDirection;
@@ -220,12 +220,6 @@ export class Player {
 		if (direction != "paused") {
 			this.#lastUnpausedDirection = direction;
 		}
-
-		// Anti-cheat.
-		// We add some trail vertex to prevent the second way of flying.
-		if (this.#connection.protocolVersion >= 1) {
-			this.#addTrailVertex(position);
-		}
 		this.#lastEdgeChunkSendX = this.#currentPosition.x;
 		this.#lastEdgeChunkSendY = this.#currentPosition.y;
 		this.#lastCertainClientPosition = position.clone();
@@ -251,6 +245,12 @@ export class Player {
 
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
+
+		// Anti-cheat.
+		// Prevent the second way of flying.
+		if (this.#connection.protocolVersion >= 1) {
+			this.#currentTileType = id;
+		}
 
 		this.#joinTime = performance.now();
 
