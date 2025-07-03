@@ -247,7 +247,7 @@ export class Player {
 		this.#setCapturedTileCount(capturedTileCount);
 
 		// Anti-cheat.
-		// Prevent the second way of flying.
+		// We prevent the second way of flying.
 		if (this.#connection.protocolVersion >= 1) {
 			this.#currentTileType = id;
 		}
