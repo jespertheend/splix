@@ -80,3 +80,18 @@ export const LEADERBOARD_UPDATE_FREQUENCY = 3_000;
  * allowing players to at least get their current progress on the leaderboard.
  */
 export const REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD = 10;
+
+/**
+ * List of game modes where scores are reported to the global leaderboard.
+ */
+export const GM_REPORT_SCORES = ["default"];
+
+/**
+ * List of game modes where players are allowed to use trail cancel.
+ */
+export const GM_ALLOW_TRAIL_CANCEL = ["arena", "drawing"];
+
+/**
+ * List of game modes where anti-cheat applies (PROTOCOL_VERSION forced to 1).
+ */
+export const GM_APPLY_ANTI_CHEAT = ["arena"];
