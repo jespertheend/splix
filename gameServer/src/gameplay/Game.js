@@ -5,6 +5,7 @@ import { Arena } from "./Arena.js";
 import { Player } from "./Player.js";
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
+	GM_REPORT_SCORES,
 	LEADERBOARD_UPDATE_FREQUENCY,
 	MINIMAP_PART_UPDATE_FREQUENCY,
 	PLAYER_SPAWN_RADIUS,
@@ -257,7 +258,12 @@ export class Game {
 	 * @param {import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData} score
 	 */
 	#reportPlayerScore(score) {
-		if (this.#players.size < REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD) return;
+		if (
+			this.#players.size < REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD ||
+			!GM_REPORT_SCORES.includes(this.#gameMode)
+		) {
+			return;
+		}
 		this.#onPlayerScoreReportedCbs.forEach((cb) => cb(score));
 	}
 
