@@ -20,6 +20,15 @@ import { MAX_UNDO_EVENT_TIME } from "../config.js";
  * @property {"kill-player"} type
  * @property {number} playerId
  * @property {import("./Player.js").DeathType} deathType
+ * @property {number} eventId
+ */
+
+/**
+ * @typedef PlayerEventKilledBy
+ * @property {"killed-by"} type
+ * @property {number} playerId
+ * @property {import("./Player.js").DeathType} deathType
+ * @property {number} eventId
  */
 
 /**
@@ -28,7 +37,7 @@ import { MAX_UNDO_EVENT_TIME } from "../config.js";
  */
 
 /**
- * @typedef {PlayerEventKillPlayer | PlayerEventStartTrail} PlayerEvent
+ * @typedef {PlayerEventKillPlayer | PlayerEventKilledBy | PlayerEventStartTrail} PlayerEvent
  */
 
 /**

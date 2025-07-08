@@ -106,6 +106,15 @@ export class Game {
 		}
 	}
 
+	#lastEventId = 0;
+	getNewEventId() {
+		if (this.#lastEventId >= Math.pow(2, 16) - 1) {
+			this.#lastEventId = 0;
+		}
+		this.#lastEventId++;
+		return this.#lastEventId;
+	}
+
 	#lastPlayerId = 0;
 	#getNewPlayerId() {
 		while (true) {
@@ -368,6 +377,13 @@ export class Game {
 
 	getPlayerCount() {
 		return this.#players.size;
+	}
+
+	/**
+	 * @param {number} playerId
+	 */
+	getPlayer(playerId) {
+		return this.#players.get(playerId);
 	}
 
 	/**
