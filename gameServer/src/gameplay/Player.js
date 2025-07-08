@@ -231,6 +231,7 @@ export class Player {
 
 		this.#eventHistory.onUndoEvent((event) => {
 			if (event.type == "kill-player" || event.type == "killed-by") {
+				// REWRITE THIS PART (BAD & REDUNDANT)
 				const isAlreadyUndone = this.#eventsAlreadyUndone.includes(event.eventId);
 				if (!isAlreadyUndone) {
 					const isKillEvent = event.type == "kill-player";
@@ -248,6 +249,9 @@ export class Player {
 								const otherPlayer = isKillEvent ? killed : killer;
 								if (otherPlayer) {
 									otherPlayer.#eventsAlreadyUndone.push(event.eventId);
+									// Remove the setTimeout ideally
+									// Could clear array while draining movement queue,
+									// But need to compare performance. Add new event instead?
 									setTimeout(() => {
 										const index = otherPlayer.#eventsAlreadyUndone.indexOf(event.eventId);
 										if (index > -1) {
