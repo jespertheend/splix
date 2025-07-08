@@ -134,6 +134,9 @@ export class Player {
 	/** @type {MovementQueueItem[]} */
 	#movementQueue = [];
 
+	/** @type {Number[]} */
+	#eventsAlreadyUndone = [];
+
 	#eventHistory = new PlayerEventHistory();
 
 	#capturedTileCount = 0;
@@ -227,12 +230,34 @@ export class Player {
 		this.#currentPositionChanged();
 
 		this.#eventHistory.onUndoEvent((event) => {
-			if (event.type == "kill-player") {
-				this.game.undoPlayerDeath(event.playerId);
-				if (event.deathType != "arena-bounds") {
-					this.#killCount--;
-					this.#killCount = Math.max(0, this.#killCount);
-					this.#sendMyScore();
+			if (event.type == "kill-player" || event.type == "killed-by") {
+				const isAlreadyUndone = this.#eventsAlreadyUndone.includes(event.eventId);
+				if (!isAlreadyUndone) {
+					const isKillEvent = event.type == "kill-player";
+					const killedId = isKillEvent ? event.playerId : this.id;
+					this.game.undoPlayerDeath(killedId);
+					if (event.deathType != "arena-bounds") {
+						const killerId = isKillEvent ? this.id : event.playerId;
+						const killer = this.game.getPlayer(killerId);
+						if (killer) {
+							killer.#killCount--;
+							killer.#killCount = Math.max(0, killer.#killCount);
+							killer.#sendMyScore();
+							const killed = this.game.getPlayer(killedId);
+							if (event.deathType == "player" && killed) {
+								const otherPlayer = isKillEvent ? killed : killer;
+								if (otherPlayer) {
+									otherPlayer.#eventsAlreadyUndone.push(event.eventId);
+									setTimeout(() => {
+										const index = otherPlayer.#eventsAlreadyUndone.indexOf(event.eventId);
+										if (index > -1) {
+											otherPlayer.#eventsAlreadyUndone.splice(index, 1);
+										}
+									}, MAX_UNDO_EVENT_TIME * 2);
+								}
+							}
+						}
+					}
 				}
 			} else if (event.type == "start-trail") {
 				// The player started creating a trail, we reset it in order to prevent
@@ -366,7 +391,7 @@ export class Player {
 			if (this.dead) {
 				let hasUndoDeathEvent = false;
 				for (const event of this.#eventHistory.getRecentEvents(previousPosition, desiredPosition)) {
-					if (event.type == "kill-player" && event.playerId == this.id) {
+					if ((event.type == "kill-player" && event.playerId == this.id) || event.type == "killed-by") {
 						hasUndoDeathEvent = true;
 						break;
 					}
@@ -882,11 +907,21 @@ export class Player {
 	 */
 	#killPlayer(otherPlayer, deathType) {
 		if (otherPlayer.dead) return false;
+		const eventId = this.game.getNewEventId();
 		this.#eventHistory.addEvent(this.getPosition(), {
 			type: "kill-player",
 			playerId: otherPlayer.id,
 			deathType,
+			eventId: eventId,
 		});
+		if (deathType == "player") {
+			otherPlayer.#eventHistory.addEvent(this.getPosition(), {
+				type: "killed-by",
+				playerId: this.id,
+				deathType,
+				eventId: eventId,
+			});
+		}
 		otherPlayer.#die(deathType, this.name);
 		if (deathType != "arena-bounds") {
 			this.#killCount++;
