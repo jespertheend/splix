@@ -177,14 +177,6 @@ body {
 	padding: 0px 20px;
 }
 
-#adbox2 {
-	position: absolute;
-	padding: 20px;
-	left: 50%;
-	transform: translate(-50%, 0);
-	z-index: 20;
-}
-
 .sideboxContent {
 	overflow-y: scroll;
 	max-height: 360px;
@@ -501,12 +493,6 @@ a:hover {
 	font-size: 20px;
 	left: 50%;
 	transform: translateX(-50%);
-}
-
-#preroll {
-	width: 960px;
-	height: 540px;
-	margin: auto;
 }
 
 #patreonOverlay {

@@ -1,5 +1,8 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.7.1/mod.js";
-import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
+import {
+	downloadNpmPackage,
+	vendor,
+} from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { resolve } from "$std/path/mod.ts";
 import { setCwd } from "chdir-anywhere";
@@ -16,6 +19,18 @@ vendor({
 		"https://raw.githubusercontent.com/rendajs/Renda/705c5a01bc4d3ca4a282fff1a7a8567d1be7ce04/mod.js",
 	],
 	outDir: "./deps",
+});
+downloadNpmPackage({
+	package: "@adlad/adlad@0.14.0",
+	destination: "./deps/adlad/0.14.0",
+});
+downloadNpmPackage({
+	package: "@adlad/plugin-dummy@0.3.0",
+	destination: "./deps/adlad-plugin-dummy/0.3.0",
+});
+downloadNpmPackage({
+	package: "@adlad/plugin-adinplay@0.0.3",
+	destination: "./deps/adlad-plugin-adinplay/0.0.3",
 });
 
 generateTypes({

@@ -1,5 +1,7 @@
+import { initAdLad, showFullScreenAd } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+import { lsSet } from "./util.js";
 
 var GLOBAL_SPEED = 0.006;
 var VIEWPORT_RADIUS = 30;
@@ -147,7 +149,7 @@ var miniMapPlayer,
 	lastNameChangeCheck = 0;
 var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
 var linesCanvas, linesCtx, tempCanvas, tempCtx;
-var showCouldntConnectAfterTransition = false, playingAndReady = false, canRunAds = false;
+var showCouldntConnectAfterTransition = false, playingAndReady = false;
 var transitionCanvas,
 	tCtx,
 	transitionTimer = 0,
@@ -190,11 +192,7 @@ var joinButton,
 	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
 
-//adinplay banner ads
-var aiptag = window["aiptag"] = window["aiptag"] || {};
-aiptag.cmd = aiptag.cmd || [];
-aiptag.cmd.display = aiptag.cmd.display || [];
-aiptag.cmd.player = aiptag.cmd.player || [];
+initAdLad();
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -865,16 +863,6 @@ function getPlayer(id, array) {
 	return player;
 }
 
-//localStorage with ios private mode error handling
-function lsSet(name, value) {
-	try {
-		localStorage.setItem(name, value);
-		return true;
-	} catch (error) {
-		return false;
-	}
-}
-
 function checkUsername(name) {
 	var lower = name.toLowerCase();
 
@@ -1196,19 +1184,6 @@ function honkEnd() {
 
 //when page is finished loading
 window.onload = function () {
-	//piwik
-	// _paq = _paq || [];
-	// _paq.push(["setDomains", ["*.splix.io"]]);
-	// _paq.push(['trackPageView']);
-	// _paq.push(['enableLinkTracking']);
-	// (function() {
-	//   var u="//139.59.211.221/";
-	//   _paq.push(['setTrackerUrl', u+'piwik.php']);
-	//   _paq.push(['setSiteId', '1']);
-	//   var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-	//   g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-	// })();
-
 	mainCanvas = document.getElementById("mainCanvas");
 	ctx = mainCanvas.getContext("2d");
 	minimapCanvas = document.getElementById("minimapCanvas");
@@ -1233,8 +1208,6 @@ window.onload = function () {
 	qualityText = document.getElementById("qualityText");
 	uglyText = document.getElementById("uglyText");
 	lifeBox = document.getElementById("lifeBox");
-	adBox = document.getElementById("adbox");
-	adBox2 = document.getElementById("adbox2");
 
 	window.onkeydown = function (e) {
 		var c = e.keyCode;
@@ -1297,7 +1270,6 @@ window.onload = function () {
 	uiElems.push(document.getElementById("miniMap"));
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
-	prerollElem = document.getElementById("preroll");
 
 	nameInput = document.getElementById("nameInput");
 	if (localStorage.name) {
@@ -1305,12 +1277,12 @@ window.onload = function () {
 	}
 	nameInput.focus();
 	if (localStorage.autoConnect) {
-		doConnect();
+		doConnect(true);
 	}
 	formElem = document.getElementById("nameForm");
 	formElem.onsubmit = function () {
 		try {
-			connectWithTransition();
+			connectWithTransition(true);
 		} catch (e) {
 			console.log("Error", e.stack);
 			console.log("Error", e.name);
@@ -1342,21 +1314,6 @@ window.onload = function () {
 	initSkinScreen();
 	initTitle();
 	setLeaderboardVisibility();
-
-	//init video ads if refreshed during ad
-	if (localStorage.refreshDuringAd) {
-		initVideoAdsScript();
-	}
-
-	//banner ads
-	{
-		setUpAdBoxContent();
-		var script = document.createElement("script");
-		script.src = "//api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js";
-		script.type = "text/javascript";
-		document.head.appendChild(script);
-		refreshBanner();
-	}
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
@@ -1438,7 +1395,6 @@ function showBegin() {
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
 	nameInput.focus();
-	setAdBoxLeft();
 }
 
 function hideMainCanvas() {
@@ -1513,10 +1469,13 @@ function couldntConnect() {
 
 //called by form, connects with transition and error handling
 var isConnectingWithTransition = false;
-function connectWithTransition(dontDoAds) {
-	if (!isConnectingWithTransition && !isWaitingForAd) {
+/**
+ * @param {boolean} showFullScreenAd
+ */
+function connectWithTransition(showFullScreenAd) {
+	if (!isConnectingWithTransition) {
 		isConnectingWithTransition = true;
-		if (doConnect(dontDoAds)) {
+		if (doConnect(showFullScreenAd)) {
 			doTransition("", false, function () {
 				if (!playingAndReady) {
 					isTransitioning = false;
@@ -1538,19 +1497,13 @@ function connectWithTransition(dontDoAds) {
 //starts websocket connection
 //return true if it should start the transition on submit
 var isConnecting = false;
-function doConnect(dontDoAds) {
+/**
+ * @param {boolean} showFullScreenAdBeforeConnect
+ */
+async function doConnect(showFullScreenAdBeforeConnect) {
 	if (!ws && !isConnecting && !isTransitioning) {
-		if (canRunAds && !dontDoAds) {
-			var adCounter = getAdCounter();
-			var lastAdTime = localStorage.lastAdTime;
-			lastAdTime = parseInt(lastAdTime);
-			lastAdTime = Date.now() - lastAdTime;
-			if (adCounter == 1 || (!isNaN(lastAdTime) && lastAdTime > 300000)) {
-				displayAd();
-				return false;
-			} else {
-				countAd();
-			}
+		if (showFullScreenAdBeforeConnect) {
+			await showFullScreenAd();
 		}
 		isConnecting = true;
 		showCouldntConnectAfterTransition = false;
@@ -1951,8 +1904,6 @@ function onMessage(evt) {
 		}
 		closedBecauseOfDeath = true;
 		allowSkipDeathTransition = true;
-		hideBanners();
-		refreshBanner();
 		//show newsbox
 		document.getElementById("newsbox").style.display = null;
 		deathTransitionTimeout = window.setTimeout(function () {
@@ -1967,7 +1918,6 @@ function onMessage(evt) {
 				doTransition("GAME OVER", true, null, function () {
 					onClose();
 					resetAll();
-					initVideoAdsScript();
 				}, true);
 				// console.log("after doTransition",isTransitioning);
 			}
@@ -2276,185 +2226,6 @@ function openSplixApp(data) {
 	if (deviceType == DeviceTypes.ANDROID && navigator.userAgent.toLowerCase().indexOf("chrome") > -1) {
 		window.document.body.innerHTML = "Chrome doesn't like auto redirecting, click <a href=\"" + url +
 			'">here</a> to open the splix.io app.';
-	}
-}
-
-//request canrunads js
-var canRunAdsRequested = false;
-function requestCanRunAds() {
-	if (!canRunAdsRequested) {
-		fetch("https://api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js", { mode: "no-cors" }).then(
-			function () {
-				canRunAds = true;
-				canRunAdsRequested = true;
-			},
-			function () {
-				//failed, can't run ads
-				canRunAdsRequested = true;
-			},
-		);
-	}
-}
-
-var initVidAdsCalled = false;
-var adplayer;
-function initVideoAdsScript() {
-	requestCanRunAds();
-
-	if (!initVidAdsCalled) {
-		initVidAdsCalled = true;
-		aiptag.cmd.player.push(function () {
-			adplayer = new aipPlayer({
-				AD_WIDTH: 960,
-				AD_HEIGHT: 540,
-				AD_FULLSCREEN: false,
-				AD_CENTERPLAYER: false,
-				LOADING_TEXT: "loading advertisement",
-				PREROLL_ELEM: function () {
-					return prerollElem;
-				},
-				AIP_COMPLETE: function (AD_TYPE) {
-					console.log("Ad: " + AD_TYPE + " Completed");
-					onAdFinish();
-				},
-				AIP_REMOVE: function () {},
-			});
-		});
-	}
-}
-
-var prerollElem, isWaitingForAd = false, boltIsRendered = false;
-function displayAd() {
-	isWaitingForAd = true;
-	formElem.style.display = "none";
-	prerollElem.style.display = null;
-
-	aiptag.cmd.player.push(function () {
-		adplayer.startPreRoll();
-	});
-	onAdLoaded();
-
-	scrollAd();
-}
-
-var prerollIsVisible = false;
-function onAdLoaded(evt) {
-	lsSet("refreshDuringAd", "true");
-	prerollIsVisible = true;
-	hideBanners();
-}
-
-function scrollAd() {
-	var top = prerollElem.offsetTop;
-	var bottom = top + prerollElem.offsetHeight;
-	var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-	var scrollBottom = scrollTop + window.innerHeight;
-	var middle = (top + bottom) / 2;
-	if (top < scrollTop || bottom > scrollBottom) {
-		window.scroll(0, middle - window.innerHeight / 2);
-	}
-}
-
-function onAdFinish() {
-	countAd();
-	lsSet("refreshDuringAd", "");
-	prerollIsVisible = false;
-	lsSet("lastAdTime", Date.now());
-	formElem.style.display = null;
-	prerollElem.style.display = "none";
-	isConnectingWithTransition = false;
-	isWaitingForAd = false;
-	connectWithTransition(true);
-}
-
-function getAdCounter() {
-	var adCounter = localStorage.adCounter;
-	if (adCounter === undefined) {
-		adCounter = 0;
-	}
-	adCounter = parseInt(adCounter);
-	if (isNaN(adCounter)) {
-		adCounter = 0;
-	}
-	return adCounter;
-}
-
-function countAd() {
-	var adCounter = getAdCounter();
-	adCounter++;
-	if (adCounter > 5) {
-		adCounter = 0;
-	}
-	lsSet("adCounter", adCounter);
-}
-/* jshint ignore:end */
-
-function refreshBanner() {
-	aiptag.cmd.display.push(function () {
-		aipDisplayTag.display("JTE_splix-io_300x250");
-	});
-}
-
-function showBanner() {
-	if (!prerollIsVisible) {
-		adBox.style.visibility = null;
-	}
-}
-
-function showBanner2() {
-	if (!prerollIsVisible) {
-		adBox2.style.visibility = null;
-	}
-}
-
-function hideBanners() {
-	adBox.style.visibility = adBox2.style.visibility = "hidden";
-}
-
-function setAdBoxLeft() {
-	adBox.style.left = "-" + (adBox.clientWidth + 20) + "px";
-}
-
-function setUpAdBoxContent() {
-	adBoxContentDiv = document.createElement("div");
-	adBoxContentDiv2 = document.createElement("div");
-	adBoxContentDiv.id = "JTE_splix-io_300x250";
-	adBox.appendChild(adBoxContentDiv);
-	adBox2.appendChild(adBoxContentDiv2);
-}
-
-function onAdBoxLoaded() {
-	showBanner();
-	setAdBoxLeft();
-}
-
-function onAdBox2Loaded() {
-	showBanner2();
-}
-
-var adBoxContentDiv = null, prevAdboxContentWidth = 0, prevAdboxContentHeight = 0, adBox = null;
-function testAdBoxLoaded() {
-	if (!adBoxContentDiv) {
-		return;
-	}
-	if (
-		prevAdboxContentWidth != adBoxContentDiv.clientWidth || prevAdboxContentHeight != adBoxContentDiv.clientHeight
-	) {
-		prevAdboxContentWidth = adBoxContentDiv.clientWidth;
-		prevAdboxContentHeight = adBoxContentDiv.clientHeight;
-		onAdBoxLoaded();
-	}
-}
-var adBoxContentDiv2 = null, prevAdbox2ContentWidth = 0, prevAdbox2ContentHeight = 0, adBox2 = null;
-function testAdBox2Loaded() {
-	if (!adBoxContentDiv2) return;
-	if (
-		prevAdbox2ContentWidth != adBoxContentDiv2.clientWidth ||
-		prevAdbox2ContentHeight != adBoxContentDiv2.clientHeight
-	) {
-		prevAdbox2ContentWidth = adBoxContentDiv2.clientWidth;
-		prevAdbox2ContentHeight = adBoxContentDiv2.clientHeight;
-		onAdBox2Loaded();
 	}
 }
 
@@ -3721,9 +3492,6 @@ function doSkipDeathTransition() {
 			deathTransitionTimeout = null;
 			onClose();
 			doTransition("", false, function () {
-				window.setTimeout(() => {
-					initVideoAdsScript();
-				}, 700);
 				resetAll();
 			});
 		}
@@ -5115,21 +4883,6 @@ function loop(timeStamp) {
 			var textWidth = ctx.measureText(str).width;
 			ctx.fillText(str, ctx.canvas.width - textWidth - 10, ctx.canvas.height - 10);
 		}
-
-		testAdBoxLoaded();
-		testAdBox2Loaded();
-
-		//ping overload test
-		// if(Date.now() - lastPingOverloadTestTime > 10000){
-		// 	lastPingOverloadTestTime = Date.now();
-		// 	if(pingOverLoadWs !== null && pingOverLoadWs.readyState == WebSocket.OPEN){
-		// 		pingOverLoadWs.close();
-		// 	}
-		// 	pingOverLoadWs = new WebSocket("ws://37.139.24.137:7999/overloadTest");
-		// 	pingOverLoadWs.onopen = function(){
-		// 		pingOverLoadWs.send(new Uint8Array([0]));
-		// 	};
-		// }
 	}
 
 	// if my position confirmation took too long
@@ -5371,7 +5124,7 @@ function parseGamepads() {
 
 		if (honkButtonPressedAnyPad) { // X / A
 			if (beginScreenVisible) {
-				connectWithTransition();
+				connectWithTransition(true);
 			} else if (!gamePadIsHonking) {
 				gamePadIsHonking = true;
 				honkStart();
