@@ -1,4 +1,4 @@
-import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
+import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.7.1/mod.js";
 import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { resolve } from "$std/path/mod.ts";

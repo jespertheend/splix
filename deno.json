@@ -11,6 +11,7 @@
 		"fmt": "deno fmt"
 	},
 	"importMap": "importmap.json",
+	"lock": false,
 	"fmt": {
 		"files": {
 			"exclude": [
