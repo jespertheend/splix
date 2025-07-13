@@ -1,177 +1,321 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>splix.io</title>
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-    <meta content="utf-8" http-equiv="encoding">
-    <link rel="stylesheet" href="./static/style.css" />
-    <script type="module" src="./src/main.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=0.8, maximum-scale=0.8, user-scalable=no" />
-    <meta name="description" content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl." />
-    <meta name="keywords" content="splixio, splix.io, online multiplayer, strategy, game, strategy game, io games, agar.io, multiplayer, conquer, conquer land, capture, games, fun, massive multiplayer, web browser games, html5, flash, web game">
-    <link rel="icon" type="image/png" href="./static/img/favicon-196x196.png" sizes="196x196" />
-    <link rel="icon" type="image/png" href="./static/img/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/png" href="./static/img/favicon-32x32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="./static/img/favicon-16x16.png" sizes="16x16" />
-    <link rel="icon" type="image/png" href="./static/img/favicon-128.png" sizes="128x128" />
-    <link rel="canonical" href="http://splix.io"/>
-    <meta property="og:title" content="splix.io"/>
-    <meta property="og:description" content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl." />
-    <meta property="og:url" content="http://splix.io"/>
-    <meta property="og:image" content="http://splix.io/static/img/fbthumb.png"/>
-    <link rel="image_src" href="http://splix.io/static/img/fbthumb.png" />
-    <script type="application/ld+json">
-      {"@context":"http://schema.org","@type":"Videogame","name":"splix.io","url":"http://splix.io","sameAs":["https://twitter.com/splixio","https://www.facebook.com/splix.io/","https://www.reddit.com/r/Splixio/","https://www.youtube.com/c/splixio","https://en.wikipedia.org/wiki/Splix.io"],"image":"http://splix.io/img/poster.png","screenshot":"nyi","description":"The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl.","inLanguage":["English"],"genre":["MMO","Massively multiplayer online","RTS","Real-time strategy","Casual game"],"creator":{"@type":"Person","name":"Jesper the End","url":"https://twitter.com/jespertheend"},"gamePlatform":"webgame","applicationCategory":["Game","webgame","GameApplication"],"operatingSystem":["Windows","OSX","Linux"],"exampleOfWork":[{"@type":"VideoGame","gamePlatform":["http://wikipedia.org/wiki/Windows_7","https://en.wikipedia.org/wiki/Windows_8","https://en.wikipedia.org/wiki/Windows_10","https://en.wikipedia.org/wiki/OS_X","https://en.wikipedia.org/wiki/Windows_XP","https://en.wikipedia.org/wiki/Windows_Vista"],"contentRating":"ithink 3+",}]}
-    </script>
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@splixio">
-    <meta name="twitter:title" content="splix.io">
-    <meta name="twitter:description" content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl.">
-    <meta name="twitter:image" content="http://splix.io/static/img/fbthumb.png">
-    <meta name="apple-itunes-app" content="app-id=1150901618">
-  </head>
-  <body ontouchstart="">
-    <div id="touchControls" style="display: none;"></div>
-    <div id="patreonOverlay" style="display: none;">
-      <div id="patreonBox" class="fancyBox greenBox">
-        <h2 style="margin-top: 0;">Thank you for pledging!</h2>
-        <p>Just one step left, log in with patreon to claim your reward</p>
-        <a class="fancyBox fancyBtn" href="javascript:loginWithPatreon()">Log in with Patreon</a>
-      </div>
-    </div>
-    <div id="beginScreen">
-      <canvas id="logoCanvas"></canvas><br>
-      <div id="notification" style="display: none;"></div>
-      <div id="lastStats" style="display: none;">
-        <div id="lastStatsLeft" class="lastStatsBlock" style="text-align: right;">Last game:</div>  <div id="lastStatsRight" class="lastStatsBlock" style="text-align: left;"></div>
-      </div>
-      <div id="bestStats" style="display: none;">
-        <div id="bestStatsLeft" class="lastStatsBlock" style="text-align: right;">Best game:</div>  <div id="bestStatsRight" class="lastStatsBlock" style="text-align: left;"></div>
-      </div>
-      <div id="preroll" style="display: none;">
-      </div>
-      <form id="nameForm" class="fancyBox greenBox" method="get">
-        <div id="adbox" class="sidebox fancyBox greenBox" style="visibility: hidden;">
-          <!-- <center><div class="fb-ad" data-placementid="1812921762327343_1812922822327237" data-format="300x250" data-testmode="false"></div></center> -->
-          <!-- <div id='gpt-banner-1'></div> -->
-        </div>
-        <div id="newsbox" class="sidebox sideboxRight fancyBox greenBox">
-          <div id="newsboxContent" class="sideboxContent">
-            <h1>Recent updates!</h1>
-            <h3>Global leaderboards</h3>
-            <p>After being gone for a long time, the global leaderboards are now available again. <a href="/leaderboards">Check them out</a>!</p>
-            <h3>Server selection</h3>
-            <p>As you may have noticed, Splix has changed a bit recently. Connecting to the teams gamemode has been broken for a while. So it's UI has been removed for now. Instead, you can now select a server that you'd like to connect to from the dropdown menu. Don't worry though! The plan is to bring back teams, hopefully within the next few weeks.</p>
-            <h3>New server rewrite</h3>
-            <p>The server code has been completely rewritten from scratch. There shouldn't be much of a difference though, the core gameplay is still the same, but there are some subtle differences. These servers may have some new bugs, but some long standing bugs have also been fixed. If you wish, you may select the 'Legacy' server from the dropdown menu to play on the old server.</p>
-            <p>Overal, the new servers should be more stable than the old one, but more importantly: Their code is much more modern and better organised, which makes it easier to maintain them. Which brings me to my next point...</p>
-            <h3>Splix is now open source</h3>
-            <p>That's right, you can view or contribute to the code <a href="https://github.com/jespertheend/splix" target="_blank">on GitHub</a>. This also allows you to host your own server instance. If you wish to play with just your friends, or if you want custom gameplay, the GitHub repository contains info on how to host and connect to your own instance.</p>
-            <p>Feel free to contact @jespertheend on <a href="https://discord.gg/Zr3r5fJ" target="_blank">the splix Discord</a> if you'd like your server to be added to the 'unofficial' section in the server selection dropdown menu.</p>
-            <h3>Changelog</h3>
-            <p>Changes for each version can be found <a href="https://github.com/jespertheend/splix/releases" target="_blank">on GitHub</a>. Older changes are listed below:</p>
-            <ul>
-              <li>Fixed 'o' key toggling leaderboard even in the login screen.</li>
-              <li>Fixed being able to kill yourself by pausing and then moving in the opposite direcion (making a 180 degree turn).</li>
-              <li>Fixed keys getting stuck when holding them and clicking away the focus from the browser window.</li>
-              <li>Fixed an issue where other players would have a ghost trail while they were in their own land.</li>
-              <li>Fixed #animal names of servers changing every minute.</li>
-              <li>Fixed an issue that would break servers entirely, causing a 'Couldn't connect' error to appear whenever you tried to join.</li>
-              <li>You can now toggle leaderboard visibility using the 'o' key.</li>
-              <li>When opening a team url on a mobile browser, the page will ask to redirect to the app since the app now has team mode support.</li>
-              <li>Added an ugly mode toggle to the home screen.</li>
-              <li>If you're the creator of the game you'll get fancy goggles</li>
-              <li>Holding an arrow key while pressing another arrow key now remembers your direction</li>
-              <li>Removed the letters L and i from team urls because they look too much like each other</li>
-              <li>Fixed not being able to connect to a team server when starting a game too quickly after creating a team.</li>
-              <li>Opening a #team url or a url with an #animal in it now asks if you want to open the app on mobile devices. wext mobile update will have support for teams :)</li>
-              <li>Fixed dying after having just killed another player.</li>
-              <li>Fixed two players being able to kill the same player at once.</li>
-              <li>Changed the map size back to 600x600 to lower the chance of spawning in someones land. Player count is now between 60 and 90 players per lobby. There are also only two lobbies per server now, which should also decrease the amount of lag.</li>
-              <li>Changed the port of the team server, if you weren't able to connect to the team server first you might be now.</li>
-              <li>Added Patreon support</li>
-              <li>Added patreon pattern and gold color.</li>
-              <li>Added luh pattern.</li>
-              <li>Changed the limit of amount of players per server to about 70, the map is now 500x500 in size.</li>
-              <li>Fixed kills being counted twice.</li>
-              <li>Made the spawn algorithm a bit less accurate when a lot of players are spawning at once, this was causing a lot of lag.</li>
-              <li>Added new teams gamemode.</li>
-              <li>Added local high scores.</li>
-              <li>Fixed players not having the same color as their land.</li>
-              <li>+500 is now only shown when you are the one who killed a player.</li>
-              <li>Made the changelog scrollable.</li>
-              <li>Fixed key strokes not getting registered.</li>
-              <li>Fixed the disconnected message from being spammed.</li>
-              <li>Quality is now set to high by default.</li>
-              <li>Fixed players spawning all at the same position.</li>
-              <li>Fixed blocks being captured at the edge of your area because of lag.</li>
-              <li>Fixed border blocks turning into player blocks.</li>
-              <li>Added an ugly mode which can be enabled on <a href="http://splix.io/flags" target="_blank">splix.io/flags</a>.</li>
-              <li>Added a box with the latest changes and news.</li>
-              <li>Use the P key to freeze your player, in case you need a toilet break. But watch out! Anyone can kill you when paused, even on your own land.</li>
-            </ul>
-          </div>
-        </div>
-        <input type="text" class="fancyBox inputFancy" maxlength="20" id="nameInput" placeholder="Enter your name"/><br>
-        <select id="serverSelect" disabled class="fancyBox inputFancy">
-          <option>Loading...</option>
-        </select>
-        <input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
-      </form>
-      <br><br>
-      <div id="tutorialText" style="opacity: 0;"></div>
-      <canvas id="tutorialCanvas" width="300" height="300"></canvas>
-      <div id="adbox2" class="fancyBox greenBox" style="visibility: hidden;"></div>
-      <div id="expandPage"></div>
-      <canvas id="skinButton" title="block customization" width="30" height="30"></canvas>
-      <div id="skinButtonShadow"></div>
-      <div id="cornerLinks">
-        <a href="/about">about</a>
-        <a href="/leaderboards">leaderboards</a>
-        <a href="/privacy">privacy</a><br>
-        <a id="qualityText">Quality: high</a><br>
-        <a id="uglyText">Ugly mode: off</a>
-      </div>
-    </div>
-    <div id="skinScreen" style="display: none;">
-      <div class="skinButtonContainer">
-        <div id="prevColor" class="skinButton skinButtonLeft"></div>
-        <div class="skinValue">Color</div>
-        <div id="nextColor" class="skinButton skinButtonRight"></div>
-      </div>
-      <div class="skinButtonContainer">
-        <div id="prevPattern" class="skinButton skinButtonLeft"></div>
-        <div class="skinValue">Pattern</div>
-        <div id="nextPattern" class="skinButton skinButtonRight"></div>
-      </div>
-      <div class="skinButtonContainer">
-        <div class="skinValue" id="skinSave">Save</div>
-      </div>
-      <canvas id="skinScreenCanvas" class="fullscreenCanvas"></canvas>
-    </div>
-    <div id="playUI" style="display: none;">
-      <div id="scoreBlock" class="greenBox">
-        <span>
-          <span>Kills: </span>
-          <span id="myKills" class="rank"></span>
-        </span>
-        <br>
-        <span>Blocks captured: <span id="blockCaptureCount" class="rank"></span></span>
-        <br>
-        <span title="blocks + kills x 500">Score: <span id="score"></span></span>
-        <br>
-        <span>Your rank: <span id="myRank" class="rank"></span> of <span id="totalPlayers" class="rank"></span></span>
-      </div>
-      <div id="leaderboard" class="greenBox">
-      </div>
-      <div id="miniMap" class="greenBox">
-        <div id="miniMapPlayer"></div>
-        <canvas id="minimapCanvas" width="160" height="160" ></canvas>
-      </div>
-      <div id="lifeBox"></div>
-      <div id="topNotifications"></div>
-    </div>
-    <canvas id="transitionCanvas" class="fullscreenCanvas" style="z-index: 1000; display: none;"></canvas>
-    <canvas id="mainCanvas" class="fullscreenCanvas" style="z-index: -100; display: none;"></canvas>
-  </body>
+	<head>
+		<title>splix.io</title>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<meta content="utf-8" http-equiv="encoding">
+		<link rel="stylesheet" href="./static/style.css" />
+		<script type="module" src="./src/main.js"></script>
+		<meta name="viewport" content="width=device-width, initial-scale=0.8, maximum-scale=0.8, user-scalable=no" />
+		<meta
+			name="description"
+			content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl."
+		/>
+		<meta
+			name="keywords"
+			content="splixio, splix.io, online multiplayer, strategy, game, strategy game, io games, agar.io, multiplayer, conquer, conquer land, capture, games, fun, massive multiplayer, web browser games, html5, flash, web game"
+		>
+		<link rel="icon" type="image/png" href="./static/img/favicon-196x196.png" sizes="196x196" />
+		<link rel="icon" type="image/png" href="./static/img/favicon-96x96.png" sizes="96x96" />
+		<link rel="icon" type="image/png" href="./static/img/favicon-32x32.png" sizes="32x32" />
+		<link rel="icon" type="image/png" href="./static/img/favicon-16x16.png" sizes="16x16" />
+		<link rel="icon" type="image/png" href="./static/img/favicon-128.png" sizes="128x128" />
+		<link rel="canonical" href="http://splix.io" />
+		<meta property="og:title" content="splix.io" />
+		<meta
+			property="og:description"
+			content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl."
+		/>
+		<meta property="og:url" content="http://splix.io" />
+		<meta property="og:image" content="http://splix.io/static/img/fbthumb.png" />
+		<link rel="image_src" href="http://splix.io/static/img/fbthumb.png" />
+		<script type="application/ld+json">
+			{
+				"@context": "http://schema.org",
+				"@type": "Videogame",
+				"name": "splix.io",
+				"url": "http://splix.io",
+				"sameAs": [
+					"https://twitter.com/splixio",
+					"https://www.facebook.com/splix.io/",
+					"https://www.reddit.com/r/Splixio/",
+					"https://www.youtube.com/c/splixio",
+					"https://en.wikipedia.org/wiki/Splix.io"
+				],
+				"image": "http://splix.io/img/poster.png",
+				"screenshot": "nyi",
+				"description": "The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl.",
+				"inLanguage": ["English"],
+				"genre": ["MMO", "Massively multiplayer online", "RTS", "Real-time strategy", "Casual game"],
+				"creator": {
+					"@type": "Person",
+					"name": "Jesper the End",
+					"url": "https://twitter.com/jespertheend"
+				},
+				"gamePlatform": "webgame",
+				"applicationCategory": ["Game", "webgame", "GameApplication"],
+				"operatingSystem": ["Windows", "OSX", "Linux"],
+				"exampleOfWork": [
+					{
+						"@type": "VideoGame",
+						"gamePlatform": [
+							"http://wikipedia.org/wiki/Windows_7",
+							"https://en.wikipedia.org/wiki/Windows_8",
+							"https://en.wikipedia.org/wiki/Windows_10",
+							"https://en.wikipedia.org/wiki/OS_X",
+							"https://en.wikipedia.org/wiki/Windows_XP",
+							"https://en.wikipedia.org/wiki/Windows_Vista"
+						],
+						"contentRating": "ithink 3+"
+					}
+				]
+			}
+		</script>
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:site" content="@splixio">
+		<meta name="twitter:title" content="splix.io">
+		<meta
+			name="twitter:description"
+			content="The not so latest trend in io games. Conquer as much land as possible and try to become biggest of them all. It's not a bowl."
+		>
+		<meta name="twitter:image" content="http://splix.io/static/img/fbthumb.png">
+		<meta name="apple-itunes-app" content="app-id=1150901618">
+	</head>
+	<body ontouchstart="">
+		<div id="touchControls" style="display: none"></div>
+		<div id="patreonOverlay" style="display: none">
+			<div id="patreonBox" class="fancyBox greenBox">
+				<h2 style="margin-top: 0">Thank you for pledging!</h2>
+				<p>Just one step left, log in with patreon to claim your reward</p>
+				<a class="fancyBox fancyBtn" href="javascript:loginWithPatreon()">Log in with Patreon</a>
+			</div>
+		</div>
+		<div id="beginScreen">
+			<canvas id="logoCanvas"></canvas>
+			<br>
+			<div id="notification" style="display: none"></div>
+			<div id="lastStats" style="display: none">
+				<div id="lastStatsLeft" class="lastStatsBlock" style="text-align: right">Last game:</div>
+				<div id="lastStatsRight" class="lastStatsBlock" style="text-align: left"></div>
+			</div>
+			<div id="bestStats" style="display: none">
+				<div id="bestStatsLeft" class="lastStatsBlock" style="text-align: right">Best game:</div>
+				<div id="bestStatsRight" class="lastStatsBlock" style="text-align: left"></div>
+			</div>
+			<div id="preroll" style="display: none"></div>
+			<form id="nameForm" class="fancyBox greenBox" method="get">
+				<div id="adbox" class="sidebox fancyBox greenBox" style="visibility: hidden">
+					<!-- <center><div class="fb-ad" data-placementid="1812921762327343_1812922822327237" data-format="300x250" data-testmode="false"></div></center> -->
+					<!-- <div id='gpt-banner-1'></div> -->
+				</div>
+				<div id="newsbox" class="sidebox sideboxRight fancyBox greenBox">
+					<div id="newsboxContent" class="sideboxContent">
+						<h1>Recent updates!</h1>
+						<h3>Global leaderboards</h3>
+						<p>
+							After being gone for a long time, the global leaderboards are now available again. <a
+								href="/leaderboards"
+							>Check them out</a>!
+						</p>
+						<h3>Server selection</h3>
+						<p>
+							As you may have noticed, Splix has changed a bit recently. Connecting to the teams gamemode
+							has been broken for a while. So it's UI has been removed for now. Instead, you can now
+							select a server that you'd like to connect to from the dropdown menu. Don't worry though!
+							The plan is to bring back teams, hopefully within the next few weeks.
+						</p>
+						<h3>New server rewrite</h3>
+						<p>
+							The server code has been completely rewritten from scratch. There shouldn't be much of a
+							difference though, the core gameplay is still the same, but there are some subtle
+							differences. These servers may have some new bugs, but some long standing bugs have also
+							been fixed. If you wish, you may select the 'Legacy' server from the dropdown menu to play
+							on the old server.
+						</p>
+						<p>
+							Overal, the new servers should be more stable than the old one, but more importantly: Their
+							code is much more modern and better organised, which makes it easier to maintain them. Which
+							brings me to my next point...
+						</p>
+						<h3>Splix is now open source</h3>
+						<p>
+							That's right, you can view or contribute to the code <a
+								href="https://github.com/jespertheend/splix"
+								target="_blank"
+							>on GitHub</a>. This also allows you to host your own server instance. If you wish to play
+							with just your friends, or if you want custom gameplay, the GitHub repository contains info
+							on how to host and connect to your own instance.
+						</p>
+						<p>
+							Feel free to contact @jespertheend on <a href="https://discord.gg/Zr3r5fJ" target="_blank"
+							>the splix Discord</a> if you'd like your server to be added to the 'unofficial' section in
+							the server selection dropdown menu.
+						</p>
+						<h3>Changelog</h3>
+						<p>
+							Changes for each version can be found <a
+								href="https://github.com/jespertheend/splix/releases"
+								target="_blank"
+							>on GitHub</a>. Older changes are listed below:
+						</p>
+						<ul>
+							<li>Fixed 'o' key toggling leaderboard even in the login screen.</li>
+							<li>
+								Fixed being able to kill yourself by pausing and then moving in the opposite direcion
+								(making a 180 degree turn).
+							</li>
+							<li>
+								Fixed keys getting stuck when holding them and clicking away the focus from the browser
+								window.
+							</li>
+							<li>
+								Fixed an issue where other players would have a ghost trail while they were in their own
+								land.
+							</li>
+							<li>Fixed #animal names of servers changing every minute.</li>
+							<li>
+								Fixed an issue that would break servers entirely, causing a 'Couldn't connect' error to
+								appear whenever you tried to join.
+							</li>
+							<li>You can now toggle leaderboard visibility using the 'o' key.</li>
+							<li>
+								When opening a team url on a mobile browser, the page will ask to redirect to the app
+								since the app now has team mode support.
+							</li>
+							<li>Added an ugly mode toggle to the home screen.</li>
+							<li>If you're the creator of the game you'll get fancy goggles</li>
+							<li>Holding an arrow key while pressing another arrow key now remembers your direction</li>
+							<li>
+								Removed the letters L and i from team urls because they look too much like each other
+							</li>
+							<li>
+								Fixed not being able to connect to a team server when starting a game too quickly after
+								creating a team.
+							</li>
+							<li>
+								Opening a #team url or a url with an #animal in it now asks if you want to open the app
+								on mobile devices. wext mobile update will have support for teams :)
+							</li>
+							<li>Fixed dying after having just killed another player.</li>
+							<li>Fixed two players being able to kill the same player at once.</li>
+							<li>
+								Changed the map size back to 600x600 to lower the chance of spawning in someones land.
+								Player count is now between 60 and 90 players per lobby. There are also only two lobbies
+								per server now, which should also decrease the amount of lag.
+							</li>
+							<li>
+								Changed the port of the team server, if you weren't able to connect to the team server
+								first you might be now.
+							</li>
+							<li>Added Patreon support</li>
+							<li>Added patreon pattern and gold color.</li>
+							<li>Added luh pattern.</li>
+							<li>
+								Changed the limit of amount of players per server to about 70, the map is now 500x500 in
+								size.
+							</li>
+							<li>Fixed kills being counted twice.</li>
+							<li>
+								Made the spawn algorithm a bit less accurate when a lot of players are spawning at once,
+								this was causing a lot of lag.
+							</li>
+							<li>Added new teams gamemode.</li>
+							<li>Added local high scores.</li>
+							<li>Fixed players not having the same color as their land.</li>
+							<li>+500 is now only shown when you are the one who killed a player.</li>
+							<li>Made the changelog scrollable.</li>
+							<li>Fixed key strokes not getting registered.</li>
+							<li>Fixed the disconnected message from being spammed.</li>
+							<li>Quality is now set to high by default.</li>
+							<li>Fixed players spawning all at the same position.</li>
+							<li>Fixed blocks being captured at the edge of your area because of lag.</li>
+							<li>Fixed border blocks turning into player blocks.</li>
+							<li>
+								Added an ugly mode which can be enabled on <a
+									href="http://splix.io/flags"
+									target="_blank"
+								>splix.io/flags</a>.
+							</li>
+							<li>Added a box with the latest changes and news.</li>
+							<li>
+								Use the P key to freeze your player, in case you need a toilet break. But watch out!
+								Anyone can kill you when paused, even on your own land.
+							</li>
+						</ul>
+					</div>
+				</div>
+				<input
+					type="text"
+					class="fancyBox inputFancy"
+					maxlength="20"
+					id="nameInput"
+					placeholder="Enter your name"
+				/>
+				<br>
+				<select id="serverSelect" disabled class="fancyBox inputFancy">
+					<option>Loading...</option>
+				</select>
+				<input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
+			</form>
+			<br>
+			<br>
+			<div id="tutorialText" style="opacity: 0"></div>
+			<canvas id="tutorialCanvas" width="300" height="300"></canvas>
+			<div id="adbox2" class="fancyBox greenBox" style="visibility: hidden"></div>
+			<div id="expandPage"></div>
+			<canvas id="skinButton" title="block customization" width="30" height="30"></canvas>
+			<div id="skinButtonShadow"></div>
+			<div id="cornerLinks">
+				<a href="/about">about</a>
+				<a href="/leaderboards">leaderboards</a>
+				<a href="/privacy">privacy</a>
+				<br>
+				<a id="qualityText">Quality: high</a>
+				<br>
+				<a id="uglyText">Ugly mode: off</a>
+			</div>
+		</div>
+		<div id="skinScreen" style="display: none">
+			<div class="skinButtonContainer">
+				<div id="prevColor" class="skinButton skinButtonLeft"></div>
+				<div class="skinValue">Color</div>
+				<div id="nextColor" class="skinButton skinButtonRight"></div>
+			</div>
+			<div class="skinButtonContainer">
+				<div id="prevPattern" class="skinButton skinButtonLeft"></div>
+				<div class="skinValue">Pattern</div>
+				<div id="nextPattern" class="skinButton skinButtonRight"></div>
+			</div>
+			<div class="skinButtonContainer">
+				<div class="skinValue" id="skinSave">Save</div>
+			</div>
+			<canvas id="skinScreenCanvas" class="fullscreenCanvas"></canvas>
+		</div>
+		<div id="playUI" style="display: none">
+			<div id="scoreBlock" class="greenBox">
+				<span>
+					<span>Kills: </span>
+					<span id="myKills" class="rank"></span>
+				</span>
+				<br>
+				<span>Blocks captured: <span id="blockCaptureCount" class="rank"></span></span>
+				<br>
+				<span title="blocks + kills x 500">Score: <span id="score"></span></span>
+				<br>
+				<span>Your rank: <span id="myRank" class="rank"></span> of <span
+						id="totalPlayers"
+						class="rank"
+					></span></span>
+			</div>
+			<div id="leaderboard" class="greenBox"></div>
+			<div id="miniMap" class="greenBox">
+				<div id="miniMapPlayer"></div>
+				<canvas id="minimapCanvas" width="160" height="160"></canvas>
+			</div>
+			<div id="lifeBox"></div>
+			<div id="topNotifications"></div>
+		</div>
+		<canvas id="transitionCanvas" class="fullscreenCanvas" style="z-index: 1000; display: none"></canvas>
+		<canvas id="mainCanvas" class="fullscreenCanvas" style="z-index: -100; display: none"></canvas>
+	</body>
 </html>

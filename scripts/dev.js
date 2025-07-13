@@ -1,4 +1,4 @@
-import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.1.2/mod.js";
+import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.7.1/mod.js";
 import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { resolve } from "$std/path/mod.ts";
@@ -69,7 +69,7 @@ if (!Deno.args.includes("--no-init")) {
 
 	Deno.serve({
 		port: 8080,
-	}, async (request, remoteAddr) => {
+	}, async (request, info) => {
 		const url = new URL(request.url);
 		if (url.pathname == "/") {
 			return new Response(
@@ -105,11 +105,11 @@ if (!Deno.args.includes("--no-init")) {
 				},
 			);
 		} else if (url.pathname == "/gameserver") {
-			return gameServer.websocketManager.handleRequest(request, remoteAddr.remoteAddr);
+			return gameServer.websocketManager.handleRequest(request, info);
 		} else if (url.pathname.startsWith("/servermanagerToken")) {
 			return new Response(INSECURE_LOCALHOST_SERVERMANAGER_TOKEN);
 		} else if (url.pathname.startsWith("/servermanager")) {
-			return serverManager.handleRequest(request, remoteAddr.remoteAddr);
+			return serverManager.handleRequest(request, info);
 		}
 
 		for (const dir of serveRootDirs) {

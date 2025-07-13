@@ -18,6 +18,6 @@ const mainInstance = init({
 	websocketAuthToken,
 });
 
-Deno.serve({ port, hostname }, async (request, connInfo) => {
-	return await mainInstance.handleRequest(request, connInfo.remoteAddr);
+Deno.serve({ port, hostname }, async (request, info) => {
+	return await mainInstance.handleRequest(request, info);
 });
