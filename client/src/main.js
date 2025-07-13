@@ -41,13 +41,11 @@ var deviceType = (function () {
 })();
 testHashForMobile();
 
-var patreonQueryWasFound = checkPatreonQuery();
-
 function redirectQuery() {
 	var hashIndex = location.href.indexOf("#");
 	var queryIndex = location.href.indexOf("?");
 	if ((queryIndex >= 0 && (hashIndex == -1 || queryIndex < hashIndex)) || isIframe()) {
-		if (!patreonQueryWasFound || isIframe()) {
+		if (isIframe()) {
 			var allowedSearchParams = ["gp", "siteId", "channelId", "siteLocale", "storageId"];
 			var query = parseQuery(location.href);
 			for (var key in query) {
@@ -98,9 +96,6 @@ function isIframe() {
 var i, w;
 
 var IS_SECURE = location.protocol.indexOf("https") >= 0;
-// if(IS_SECURE && (["#nohttpsredirect", "#pledged"].indexOf(location.hash) < 0) && !isIframe() && !patreonQueryWasFound){
-// 	location.protocol = "http:";
-// }
 var SECURE_WS = IS_SECURE ? "wss://" : "ws://";
 
 // var flashIsInstalled = false;
@@ -239,6 +234,9 @@ var sendAction = {
 	MY_TEAM_URL: 9,
 	SET_TEAM_USERNAME: 10,
 	VERSION: 11,
+	/**
+	 * @deprecated
+	 */
 	PATREON_CODE: 12,
 	PROTOCOL_VERSION: 13,
 };
@@ -968,12 +966,6 @@ function sendSkin() {
 	});
 }
 
-function sendPatreonCode() {
-	if (localStorage.patreonLastSplixCode !== "" && localStorage.patreonLastSplixCode !== undefined) {
-		wsSendMsg(sendAction.PATREON_CODE, localStorage.patreonLastSplixCode);
-	}
-}
-
 function parseDirKey(c) {
 	var pd = false;
 	//up
@@ -1351,22 +1343,13 @@ window.onload = function () {
 	initTitle();
 	setLeaderboardVisibility();
 
-	//pledged
-	if (location.hash.indexOf("#pledged") === 0) {
-		var hrefQuerry = parseQuery(location.href);
-		if (!("action" in hrefQuerry) || ["update", "create"].indexOf(hrefQuerry.action) != -1) {
-			setPatreonOverlay(true);
-		}
-	}
-	requestPatreonPledgeData();
-
 	//init video ads if refreshed during ad
 	if (localStorage.refreshDuringAd) {
 		initVideoAdsScript();
 	}
 
 	//banner ads
-	if (testPatreonAdsAllowed()) {
+	{
 		setUpAdBoxContent();
 		var script = document.createElement("script");
 		script.src = "//api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js";
@@ -1404,7 +1387,6 @@ function onOpen() {
 	isConnecting = false;
 	sendLegacyVersion();
 	sendProtocolVersion();
-	sendPatreonCode();
 	sendName();
 	sendSkin();
 	wsSendMsg(sendAction.READY);
@@ -1558,7 +1540,7 @@ function connectWithTransition(dontDoAds) {
 var isConnecting = false;
 function doConnect(dontDoAds) {
 	if (!ws && !isConnecting && !isTransitioning) {
-		if (canRunAds && !dontDoAds && testPatreonAdsAllowed()) {
+		if (canRunAds && !dontDoAds) {
 			var adCounter = getAdCounter();
 			var lastAdTime = localStorage.lastAdTime;
 			lastAdTime = parseInt(lastAdTime);
@@ -2086,8 +2068,7 @@ function wsSendMsg(action, data) {
 			array.push(coordBytesY[1]);
 		}
 		if (
-			action == sendAction.SET_USERNAME || action == sendAction.SET_TEAM_USERNAME ||
-			action == sendAction.PATREON_CODE
+			action == sendAction.SET_USERNAME || action == sendAction.SET_TEAM_USERNAME
 		) {
 			utf8Array = toUTF8Array(data);
 			array.push.apply(array, utf8Array);
@@ -2301,7 +2282,7 @@ function openSplixApp(data) {
 //request canrunads js
 var canRunAdsRequested = false;
 function requestCanRunAds() {
-	if (!canRunAdsRequested && testPatreonAdsAllowed()) {
+	if (!canRunAdsRequested) {
 		fetch("https://api.adinplay.com/libs/aiptag/pub/JTE/splix.io/tag.min.js", { mode: "no-cors" }).then(
 			function () {
 				canRunAds = true;
@@ -2320,7 +2301,7 @@ var adplayer;
 function initVideoAdsScript() {
 	requestCanRunAds();
 
-	if (!initVidAdsCalled && testPatreonAdsAllowed()) {
+	if (!initVidAdsCalled) {
 		initVidAdsCalled = true;
 		aiptag.cmd.player.push(function () {
 			adplayer = new aipPlayer({
@@ -2409,11 +2390,9 @@ function countAd() {
 /* jshint ignore:end */
 
 function refreshBanner() {
-	if (testPatreonAdsAllowed()) {
-		aiptag.cmd.display.push(function () {
-			aipDisplayTag.display("JTE_splix-io_300x250");
-		});
-	}
+	aiptag.cmd.display.push(function () {
+		aipDisplayTag.display("JTE_splix-io_300x250");
+	});
 }
 
 function showBanner() {
@@ -2532,11 +2511,8 @@ function skinButton(add, type) {
 	if (type === 0) {
 		var oldC = localStorage.getItem("skinColor");
 		var hiddenCs = [];
-		if (localStorage.patreonLastPledgedValue >= 300) {
-			//access to patreon color
-		} else {
-			hiddenCs.push(13);
-		}
+		// TODO: Unlock this when subscribed
+		hiddenCs.push(13);
 		if (oldC === null) {
 			oldC = 0;
 		}
@@ -2553,11 +2529,8 @@ function skinButton(add, type) {
 	} else if (type == 1) {
 		var oldP = localStorage.getItem("skinPattern");
 		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
-		if (localStorage.patreonLastPledgedValue > 0) {
-			//access to patreon pattern
-		} else {
-			hiddenPs.push(27);
-		}
+		// TODO: Unlock this when subscribed
+		hiddenPs.push(27);
 		if (oldP === null) {
 			oldP = 0;
 		}
@@ -2810,101 +2783,6 @@ function engagementSetIsPlaying(set) {
 	} else {
 		engagementLastNoPlayTime = now;
 	}
-}
-
-//patreon stuff
-/* jshint ignore:start */
-function loginWithPatreon() {
-	lsSet("clickedLoginWithPatreonButton", "true");
-	var redirectUri = getPatreonRedirectUri();
-	window.location =
-		"//www.patreon.com/oauth2/authorize?response_type=code&client_id=29edae8672a352342c2ecda5ff440eda65e5e52ebc7500b02eefb481c94c88b1&scope=users%20pledges-to-me%20my-campaign&redirect_uri=" +
-		encodeURIComponent(redirectUri);
-}
-/* jshint ignore:end */
-
-function getPatreonRedirectUri() {
-	return location.origin + location.pathname;
-}
-
-function setPatreonOverlay(visible, content) {
-	var el = document.getElementById("patreonOverlay");
-	el.style.display = visible ? null : "none";
-	if (content !== undefined) {
-		document.getElementById("patreonBox").innerHTML = content;
-	}
-}
-
-function requestPatreonPledgeData(showMessageWhenDone) {
-	if (localStorage.patreonDeviceId === undefined || localStorage.patreonDeviceId == "") {
-		resetPatreonPledgedData();
-	} else {
-		simpleRequest(
-			"https://patreon.splix.io/requestPledge2.php?deviceId=" + localStorage.patreonDeviceId,
-			function (data) {
-				data = JSON.parse(data);
-				if ("pledged" in data && "splixCode" in data) {
-					lsSet("patreonLastPledgedValue", data.pledged);
-					lsSet("patreonLastSplixCode", data.splixCode);
-					if (showMessageWhenDone) {
-						setPatreonOverlay(
-							true,
-							'<h2 style="margin-top: 0;">All set!</h2><p>Successfully logged in with patreon.<br>Reload the page to activate your pledge.</p><a class="fancyBox fancyBtn" href="javascript:window.location.href = window.location.origin + window.location.pathname + \'#nohttpsredirect\'">Reload</a>',
-						);
-					}
-				} else {
-					//@fixme show notification
-					resetPatreonPledgedData();
-				}
-			},
-		);
-	}
-}
-
-function resetPatreonPledgedData() {
-	lsSet("patreonLastPledgedValue", 0);
-	lsSet("patreonLastSplixCode", "");
-}
-
-function testPatreonAdsAllowed() {
-	if (localStorage.fuckAds == "true") {
-		return false;
-	}
-	if (localStorage.patreonLastPledgedValue > 0) {
-		return false;
-	} else {
-		return true;
-	}
-}
-
-//checks href query for patreon data
-//returns true if a patreon code was found
-function checkPatreonQuery() {
-	//if referred after patreon api login
-	var query = parseQuery(location.href);
-	var found = false;
-	if ("code" in query && localStorage.clickedLoginWithPatreonButton == "true") {
-		if (localStorage.skipPatreon == "true") {
-			console.log("code: ", query.code);
-		} else {
-			if (deviceType != DeviceTypes.DESKTOP && confirm("Would you like to activate patreon in the app?")) {
-				openSplixApp("patreoncode-" + query.code);
-			} else {
-				setPatreonOverlay(true, "Logging in with patreon...");
-				simpleRequest(
-					"https://patreon.splix.io/login2.php?code=" + query.code + "&redirectUri=" +
-						encodeURIComponent(getPatreonRedirectUri()),
-					function (data) {
-						lsSet("patreonDeviceId", data);
-						requestPatreonPledgeData(true);
-					},
-				);
-			}
-			found = true;
-		}
-	}
-	lsSet("clickedLoginWithPatreonButton", "false");
-	return found;
 }
 
 //remove blocks that are too far away from the camera and are likely

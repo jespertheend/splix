@@ -189,6 +189,9 @@ export class WebSocketConnection {
 			 * Sends the version of the client to the server.
 			 */
 			VERSION: 11,
+			/**
+			 * @deprecated
+			 */
 			PATREON_CODE: 12,
 			PROTOCOL_VERSION: 13,
 		};
