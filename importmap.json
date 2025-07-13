@@ -6,6 +6,8 @@
 		"$rollup": "npm:rollup@3.20.2",
 		"$rollup-plugin-replace": "npm:@rollup/plugin-replace@5.0.4",
 		"$rollup-plugin-alias": "npm:@rollup/plugin-alias@4.0.2",
-		"$terser": "npm:terser@5.15.0"
+		"$terser": "npm:terser@5.15.0",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/studioStyles.js": "https://raw.githubusercontent.com/rendajs/renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/dummyStylesModule.js",
+		"https://raw.githubusercontent.com/rendajs/Renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/shadowStyles.js": "https://raw.githubusercontent.com/rendajs/renda/5722ef6433ed217715bb4ef0ab2bbd6a96b3992d/studio/src/styles/dummyStylesModule.js"
 	}
 }

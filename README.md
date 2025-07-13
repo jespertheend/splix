@@ -42,8 +42,8 @@ location ~* /(ws)$ {
 
 If you want to make changes to the code, you can run the server in a development environment.
 
-1. Install Deno 1.37.0
-   - Either [install Deno normally](https://docs.deno.com/runtime/getting_started/installation/) and run `deno upgrade --version=1.37.0`
+1. Install Deno 2.4.1
+   - Either [install Deno normally](https://docs.deno.com/runtime/getting_started/installation/) and run `deno upgrade --version=2.4.1`
    - Or [install Deno Version Manager](https://github.com/justjavac/dvm?tab=readme-ov-file#installation) and run `dvm use` after cloning. Deno Version Manager will then use the [.dvmrc](./.dvmrc) file of this repository to determine which version to use.
 2. [Clone this repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
 3. `cd` into the cloned repository and run `deno task dev`

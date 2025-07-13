@@ -22,9 +22,9 @@ export class Main {
 
 	/**
 	 * @param {Request} request
-	 * @param {Deno.Addr} remoteAddr
+	 * @param {Deno.ServeHandlerInfo<Deno.NetAddr>} info
 	 */
-	handleRequest(request, remoteAddr) {
+	handleRequest(request, info) {
 		const url = new URL(request.url);
 		if (url.pathname == "/servermanager/gameservers" || url.pathname == "/gameservers") {
 			const data = this.servermanager.getServersJson();
@@ -43,7 +43,7 @@ export class Main {
 			response.headers.set("Cache-Control", "max-age=300");
 			return response;
 		} else if (url.pathname == "/servermanager") {
-			return this.adminWebsocketManager.handleRequest(request, remoteAddr);
+			return this.adminWebsocketManager.handleRequest(request, info);
 		} else {
 			return new Response("not found", { status: 404 });
 		}

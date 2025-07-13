@@ -11,19 +11,17 @@
 		"fmt": "deno fmt"
 	},
 	"importMap": "importmap.json",
+	"lock": false,
 	"fmt": {
-		"files": {
-			"exclude": [
-				".denoTypes",
-				"deps",
-				"client/out"
-			]
-		},
-		"options": {
-			"indentWidth": 4,
-			"useTabs": true,
-			"lineWidth": 120,
-			"proseWrap": "preserve"
-		}
+		"exclude": [
+			".denoTypes",
+			"deps",
+			"client/out",
+			".github/workflows"
+		],
+		"indentWidth": 4,
+		"useTabs": true,
+		"lineWidth": 120,
+		"proseWrap": "preserve"
 	}
 }
