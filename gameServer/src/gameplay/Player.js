@@ -246,6 +246,11 @@ export class Player {
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
 
+		// We prevent the second way of flying.
+		if (this.#connection.protocolVersion >= 1) {
+			this.#currentTileType = id;
+		}
+
 		this.#joinTime = performance.now();
 
 		// We add one because at this point the current player hasn't been added to the game yet.
@@ -348,6 +353,7 @@ export class Player {
 				return;
 			}
 
+			// We prevent the first way of flying, non-paused back and forth stacking immortal and OBP.
 			if (
 				this.#connection.protocolVersion >= 1 &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
