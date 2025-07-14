@@ -246,7 +246,6 @@ export class Player {
 		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
 
-		// Anti-cheat.
 		// We prevent the second way of flying.
 		if (this.#connection.protocolVersion >= 1) {
 			this.#currentTileType = id;
@@ -354,7 +353,6 @@ export class Player {
 				return;
 			}
 
-			// Anti-cheat.
 			// We prevent the first way of flying, non-paused back and forth stacking immortal and OBP.
 			if (
 				this.#connection.protocolVersion >= 1 &&
