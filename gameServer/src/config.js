@@ -94,4 +94,4 @@ export const GM_ALLOW_TRAIL_CANCEL = ["arena", "drawing"];
 /**
  * List of game modes where anti-cheat applies (PROTOCOL_VERSION forced to 1).
  */
-export const GM_APPLY_ANTI_CHEAT = ["arena"];
+export const GM_FORCE_LATEST_PROTOCOL_VERSION = ["arena"];
