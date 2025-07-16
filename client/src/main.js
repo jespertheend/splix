@@ -165,6 +165,8 @@ var touchControlsElem;
 var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
 var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
+var specImg = new Image();
+specImg.src="./static/img/spectator-128x128.png";
 var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
@@ -179,7 +181,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode = false;
+var uiElems = [], zoom, myColorId, uglyMode, specMode = false;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -209,7 +211,7 @@ var receiveAction = {
 	PLAYER_DIE: 5,
 	CHUNK_OF_BLOCKS: 6,
 	REMOVE_PLAYER: 7,
-	PLAYER_NAME: 8,
+	PLAYER_INFO: 8,
 	MY_SCORE: 9,
 	MY_RANK: 10,
 	LEADERBOARD: 11,
@@ -241,6 +243,7 @@ var sendAction = {
 	VERSION: 11,
 	PATREON_CODE: 12,
 	PROTOCOL_VERSION: 13,
+	SPEC_MODE: 14,
 };
 
 var colors = {
@@ -792,6 +795,7 @@ function getPlayer(id, array) {
 		serverPos: [0, 0],
 		dir: 0,
 		isMyPlayer: id === 0,
+		spec: false,
 		isDead: false,
 		deathWasCertain: false,
 		didUncertainDeathLastTick: false,
@@ -966,6 +970,12 @@ function sendSkin() {
 		blockColor: blockColor,
 		pattern: pattern,
 	});
+}
+
+function sendSpecMode() {
+	var specMode = localStorage.getItem("specMode");
+	wsSendMsg(sendAction.SPEC_MODE, specMode);
+	specMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
 function sendPatreonCode() {
@@ -1240,6 +1250,7 @@ window.onload = function () {
 	joinButton = document.getElementById("joinButton");
 	qualityText = document.getElementById("qualityText");
 	uglyText = document.getElementById("uglyText");
+	specText = document.getElementById("specText");
 	lifeBox = document.getElementById("lifeBox");
 	adBox = document.getElementById("adbox");
 	adBox2 = document.getElementById("adbox2");
@@ -1343,8 +1354,10 @@ window.onload = function () {
 	//quality button
 	qualityText.onclick = toggleQuality;
 	uglyText.onclick = toggleUglyMode;
+	specText.onclick = toggleSpecMode;
 	setQuality();
 	setUglyText();
+	setSpecText();
 
 	initTutorial();
 	initSkinScreen();
@@ -1407,6 +1420,7 @@ function onOpen() {
 	sendPatreonCode();
 	sendName();
 	sendSkin();
+	sendSpecMode();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
 		onConnectOrMiddleOfTransition();
@@ -1857,11 +1871,12 @@ function onMessage(evt) {
 			}
 		}
 	}
-	if (data[0] == receiveAction.PLAYER_NAME) {
+	if (data[0] == receiveAction.PLAYER_INFO) {
 		id = bytesToInt(data[1], data[2]);
-		nameBytes = data.subarray(3, data.length);
+		nameBytes = data.subarray(4, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
+		player.spec = data[3] === 0 ? false : true;
 		player.name = filter(name);
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
@@ -2118,6 +2133,10 @@ function wsSendMsg(action, data) {
 			var versionBytes = intToBytes(data, 2);
 			array.push(versionBytes[0]);
 			array.push(versionBytes[1]);
+		}
+		if (action == sendAction.SPEC_MODE) {
+			data = data == "false" ? 0 : 1;
+			array.push(data);
 		}
 		var payload = new Uint8Array(array);
 		try {
@@ -4447,6 +4466,11 @@ function drawPlayer(ctx, player, timeStamp) {
 			ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
 			ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
 		}
+
+		//draw spectator image
+		if (player.spec && !player.isDead) {
+			ctx.drawImage(specImg,dp[0]-6.5,dp[1]-6.7,13,13);
+		}
 	}
 }
 
@@ -4546,8 +4570,32 @@ function updateUglyMode() {
 	uglyMode = localStorage.uglyMode == "true";
 }
 
+var specText;
+function setSpecText() {
+	updateSpecMode();
+	var onOff = specMode ? "on" : "off";
+	specText.innerHTML = "Spectator mode: " + onOff;
+}
+
+function toggleSpecMode() {
+	switch (localStorage.specMode) {
+		case "true":
+			lsSet("specMode", "false");
+			break;
+		case "false":
+		default:
+			lsSet("specMode", "true");
+			break;
+	}
+	setSpecText();
+}
+
 function setLeaderboardVisibility() {
 	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
+}
+
+function updateSpecMode() {
+	specMode = localStorage.specMode == "true";
 }
 
 function loop(timeStamp) {
@@ -4767,8 +4815,9 @@ function loop(timeStamp) {
 					}
 				}
 			}
-
-			drawPlayer(ctx, player, timeStamp);
+			if (player.isMyPlayer || !player.spec || localStorage.showSpectators == "true") {
+				drawPlayer(ctx, player, timeStamp);
+			}
 		}
 
 		//change dir queue
