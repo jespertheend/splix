@@ -193,7 +193,7 @@ export class WebSocketConnection {
 			PROTOCOL_VERSION: 13,
 			/**
 			 * Lets the server know if the player is using spectator mode.
-			*/
+			 */
 			SPEC_MODE: 14,
 		};
 	}
