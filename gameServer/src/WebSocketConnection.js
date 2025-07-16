@@ -483,7 +483,7 @@ export class WebSocketConnection {
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
