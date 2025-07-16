@@ -435,11 +435,12 @@ export class Game {
 	 * and the start of their trail if they have one.
 	 * If gameMode is arena, we also yield pit border positions.
 	 * Used to prevent filling locations with other players inside or pit's border.
+	 * We do not yield spectator player positions because they shouldn't prevent filling.
 	 * @param {import("./Player.js").Player} excludePlayer
 	 */
 	*getUnfillableLocations(excludePlayer) {
 		for (const player of this.#players.values()) {
-			if (player == excludePlayer || player.permanentlyDead) {
+			if (player == excludePlayer || player.permanentlyDead || player.spec) {
 				continue;
 			}
 
