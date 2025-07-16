@@ -166,7 +166,7 @@ var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
 var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
 var specImg = new Image();
-specImg.src="./static/img/spectator-128x128.png";
+specImg.src = "./static/img/spectator-128x128.png";
 var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
@@ -4469,7 +4469,7 @@ function drawPlayer(ctx, player, timeStamp) {
 
 		//draw spectator image
 		if (player.spec && !player.isDead) {
-			ctx.drawImage(specImg,dp[0]-6.5,dp[1]-6.7,13,13);
+			ctx.drawImage(specImg,dp[0] - 6.5,dp[1] - 6.7,13,13);
 		}
 	}
 }
