@@ -4469,7 +4469,7 @@ function drawPlayer(ctx, player, timeStamp) {
 
 		//draw spectator image
 		if (player.spec && !player.isDead) {
-			ctx.drawImage(specImg,dp[0] - 6.5,dp[1] - 6.7,13,13);
+			ctx.drawImage(specImg, dp[0] - 6.5, dp[1] - 6.7, 13, 13);
 		}
 	}
 }
