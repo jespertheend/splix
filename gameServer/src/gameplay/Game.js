@@ -216,9 +216,11 @@ export class Game {
 			// Global scores are deduplicated based on the player name,
 			// so the fact that we might report a score for these players a second time shouldn't be an issue.
 			for (const player of this.#players.values()) {
-				this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+				if (!player.spec) {
+					this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+				}
 			}
-		} else {
+		} else if (!player.spec) {
 			this.#reportPlayerScore(player.getGlobalLeaderboardScore());
 		}
 		player.removedFromGame();
