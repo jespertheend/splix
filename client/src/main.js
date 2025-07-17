@@ -974,6 +974,9 @@ function sendSkin() {
 
 function sendSpecMode() {
 	var specMode = localStorage.getItem("specMode");
+	if (specMode === null) {
+		specMode = "false";
+	}
 	wsSendMsg(sendAction.SPEC_MODE, specMode);
 	specMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
@@ -2135,8 +2138,8 @@ function wsSendMsg(action, data) {
 			array.push(versionBytes[1]);
 		}
 		if (action == sendAction.SPEC_MODE) {
-			data = data == "false" ? 0 : 1;
-			array.push(data);
+			var isSpec = data != "true" ? 0 : 1;
+			array.push(isSpec);
 		}
 		var payload = new Uint8Array(array);
 		try {
