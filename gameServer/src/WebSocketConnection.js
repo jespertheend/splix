@@ -332,7 +332,7 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPEC_MODE) {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;
-			this.#receivedSpecMode = view.getUint8(1) === 0 ? false : true;
+			this.#receivedSpecMode = view.getUint8(1) != 1 ? false : true;
 		}
 	}
 
