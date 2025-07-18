@@ -39,6 +39,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @typedef CreatePlayerOptions
  * @property {SkinData?} skin
  * @property {string} name
+ * @property {boolean} spec
  */
 
 export class Player {
@@ -173,6 +174,11 @@ export class Player {
 		return this.#name;
 	}
 
+	#spec = false;
+	get spec() {
+		return this.#spec;
+	}
+
 	/**
 	 * The list of other players that this player currently has in their viewport.
 	 * We use this to keep track of when new players have entered this player's viewport.
@@ -213,6 +219,7 @@ export class Player {
 		if (this.#skinColorId == 0) {
 			this.#skinColorId = Math.floor(lerp(1, FREE_SKINS_COUNT + 1, Math.random()));
 		}
+		this.#spec = options.spec;
 
 		const { position, direction } = game.getNewSpawnPosition();
 		this.#currentPosition = position;
@@ -243,7 +250,7 @@ export class Player {
 			}
 		});
 
-		const capturedTileCount = game.arena.fillPlayerSpawn(this.#currentPosition, id);
+		const capturedTileCount = this.#spec ? 0 : game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
 
 		this.#joinTime = performance.now();
@@ -389,7 +396,9 @@ export class Player {
 			}
 			this.#eventHistory.undoRecentEvents(previousPosition, desiredPosition);
 			this.game.broadcastPlayerState(this);
-			this.#updateCurrentTile(this.#currentPosition);
+			if (!this.spec) {
+				this.#updateCurrentTile(this.#currentPosition);
+			}
 			this.#currentPositionChanged();
 		}
 
@@ -652,7 +661,9 @@ export class Player {
 				}
 
 				try {
-					this.#updateCurrentTile(previousPosition);
+					if (!this.spec) {
+						this.#updateCurrentTile(previousPosition);
+					}
 					this.#currentPositionChanged();
 					this.#drainMovementQueue();
 				} catch (e) {
@@ -735,21 +746,9 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
-				if (player.dead) continue;
+				if (player.dead || player.spec || this.spec) continue;
 
-				// In arena mode, players cannot be killed if they are outside of the pit and have no trail
-				// (e.g. : paused inside their territory), it allows to spec but will be changed later.
-				if (
-					this.game.gameMode == "default" || this.game.gameMode == "arena" && (player.isGeneratingTrail ||
-							player.#currentPosition.x >=
-										this.game.arena.width / 2 - this.game.arena.pitWidth / 2 &&
-								player.#currentPosition.x <=
-									this.game.arena.width / 2 + this.game.arena.pitWidth / 2 - 1 &&
-								player.#currentPosition.y >=
-									this.game.arena.height / 2 - this.game.arena.pitHeight / 2 &&
-								player.#currentPosition.y <=
-									this.game.arena.height / 2 + this.game.arena.pitHeight / 2 - 1)
-				) {
+				if (this.game.gameMode != "drawing") {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
 						const success = this.#killPlayer(player, killedSelf ? "self" : "player");
 						if (success) {
@@ -790,7 +789,7 @@ export class Player {
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
 		this.#connection.sendPlayerSkin(playerId, colorId);
-		this.#connection.sendPlayerName(playerId, player.#name);
+		this.#connection.sendPlayerInfo(playerId, player.#spec, player.#name);
 		if (player.dead) {
 			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
 			this.#connection.send(playerDeadMessage);
@@ -966,7 +965,7 @@ export class Player {
 	 * made to add new tiles of this player to the arena.
 	 */
 	#clearAllMyTiles() {
-		if (this.#allMyTilesCleared) return;
+		if (this.#allMyTilesCleared || this.#spec) return;
 		this.#allMyTilesCleared = true;
 		this.game.arena.clearAllPlayerTiles(this.id);
 	}
