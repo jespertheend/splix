@@ -324,7 +324,7 @@ export class WebSocketConnection {
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
-			if (!this.#player) return;
+			if (!this.#player || this.#player.spec) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
