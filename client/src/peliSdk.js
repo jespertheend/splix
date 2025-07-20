@@ -1,3 +1,6 @@
+/** @type {import("./peliSdkTypes.ts").PeliSdk?} */
+let peliSdk = null;
+
 export async function initPeliSdk() {
 	let sdk;
 	try {
@@ -19,5 +22,11 @@ export async function initPeliSdk() {
 		console.error(e);
 		return null;
 	}
+	peliSdk = sdk;
 	return sdk;
+}
+
+export function hasPlusRewards() {
+	if (!peliSdk) return false;
+	return peliSdk.entitlements.has("plusRewards");
 }

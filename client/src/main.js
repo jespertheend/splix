@@ -1,7 +1,7 @@
 import { refreshBanner, showFullScreenAd, updateAdlad } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
-import { initPeliSdk } from "./peliSdk.js";
+import { hasPlusRewards, initPeliSdk } from "./peliSdk.js";
 import { lsSet } from "./util.js";
 
 var GLOBAL_SPEED = 0.006;
@@ -2292,8 +2292,9 @@ function skinButton(add, type) {
 	if (type === 0) {
 		var oldC = localStorage.getItem("skinColor");
 		var hiddenCs = [];
-		// TODO: Unlock this when subscribed
-		hiddenCs.push(13);
+		if (!hasPlusRewards()) {
+			hiddenCs.push(13);
+		}
 		if (oldC === null) {
 			oldC = 0;
 		}
@@ -2310,8 +2311,9 @@ function skinButton(add, type) {
 	} else if (type == 1) {
 		var oldP = localStorage.getItem("skinPattern");
 		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
-		// TODO: Unlock this when subscribed
-		hiddenPs.push(27);
+		if (!hasPlusRewards()) {
+			hiddenPs.push(27);
+		}
 		if (oldP === null) {
 			oldP = 0;
 		}
