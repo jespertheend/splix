@@ -62,7 +62,6 @@ export class LegacyServerManager {
 				],
 				doBanner: true,
 				promoBannerUrl: "https://splix.io/banners/ducklings/index.html",
-				showPromoForPatreonUsers: true,
 			},
 			locations: [
 				{
