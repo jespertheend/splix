@@ -1,15 +1,10 @@
-import { AdLad } from "../../deps/adlad/0.14.0/dist/AdLad.js";
+import { AdLad } from "../../deps/adlad/1.0.0/dist/AdLad.js";
 import { dummyPlugin } from "../../deps/adlad-plugin-dummy/0.4.0/dist/adlad-plugin-dummy.js";
 import { adinPlayPlugin } from "../../deps/adlad-plugin-adinplay/0.0.3/dist/adlad-plugin-adinplay.js";
 import { lsSet } from "./util.js";
 
 /** @type {ReturnType<typeof loadAdLad>?} */
 let adLad = null;
-
-export function initAdLad() {
-	// TODO: wait for peligames entitlements to be ready
-	updateAdlad();
-}
 
 function getAdCounter() {
 	var adCounter = localStorage.adCounter;
@@ -61,7 +56,10 @@ export async function showFullScreenAd() {
 
 const adboxContainer = document.getElementById("adboxContainer");
 export function refreshBanner() {
-	if (!adLad) return;
+	if (!adLad) {
+		adboxContainer.style.display = "none";
+		return;
+	}
 	adboxContainer.style.display = adLad.canShowBannerAd ? "" : "none";
 	adLad.destroyBannerAd("adboxContent");
 	adLad.showBannerAd("adboxContent", {
@@ -73,12 +71,14 @@ export function refreshBanner() {
 	});
 }
 
-function updateAdlad() {
+/**
+ * @param {import("./peliSdkTypes.js").PeliSdk?} peliSdk
+ */
+export function updateAdlad(peliSdk) {
 	let needsAdLad = true;
-	// TODO:
-	// if (peligames && peligames.entitlements.has("removeAds")) {
-	// 	needsAdLad = false;
-	// }
+	if (peliSdk && peliSdk.entitlements.has("removeAds")) {
+		needsAdLad = false;
+	}
 	if (Boolean(adLad) != needsAdLad) {
 		if (needsAdLad) {
 			adLad = loadAdLad();
@@ -94,7 +94,7 @@ function updateAdlad() {
 }
 
 function loadAdLad() {
-	/** @type {import("../../deps/adlad/0.14.0/mod.js").AdLadPlugin[]} */
+	/** @type {import("../../deps/adlad/1.0.0/mod.js").AdLadPlugin[]} */
 	const plugins = [
 		adinPlayPlugin({
 			publisher: "JTE",

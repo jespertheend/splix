@@ -1,6 +1,7 @@
-import { initAdLad, refreshBanner, showFullScreenAd } from "./ads.js";
+import { refreshBanner, showFullScreenAd, updateAdlad } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+import { initPeliSdk } from "./peliSdk.js";
 import { lsSet } from "./util.js";
 
 var GLOBAL_SPEED = 0.006;
@@ -192,7 +193,15 @@ var joinButton,
 	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
 
-initAdLad();
+(async () => {
+	const peliSdk = await initPeliSdk();
+	updateAdlad(peliSdk);
+	if (peliSdk) {
+		peliSdk.entitlements.onChange(() => {
+			updateAdlad(peliSdk);
+		});
+	}
+})();
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
