@@ -25,8 +25,8 @@ downloadNpmPackage({
 	destination: "./deps/adlad/0.14.0",
 });
 downloadNpmPackage({
-	package: "@adlad/plugin-dummy@0.3.0",
-	destination: "./deps/adlad-plugin-dummy/0.3.0",
+	package: "@adlad/plugin-dummy@0.4.0",
+	destination: "./deps/adlad-plugin-dummy/0.4.0",
 });
 downloadNpmPackage({
 	package: "@adlad/plugin-adinplay@0.0.3",

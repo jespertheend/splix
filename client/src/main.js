@@ -1,4 +1,4 @@
-import { initAdLad, showFullScreenAd } from "./ads.js";
+import { initAdLad, refreshBanner, showFullScreenAd } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 import { lsSet } from "./util.js";
@@ -1904,6 +1904,7 @@ function onMessage(evt) {
 		}
 		closedBecauseOfDeath = true;
 		allowSkipDeathTransition = true;
+		refreshBanner();
 		//show newsbox
 		document.getElementById("newsbox").style.display = null;
 		deathTransitionTimeout = window.setTimeout(function () {

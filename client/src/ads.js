@@ -1,5 +1,5 @@
 import { AdLad } from "../../deps/adlad/0.14.0/dist/AdLad.js";
-import { dummyPlugin } from "../../deps/adlad-plugin-dummy/0.3.0/dist/adlad-plugin-dummy.js";
+import { dummyPlugin } from "../../deps/adlad-plugin-dummy/0.4.0/dist/adlad-plugin-dummy.js";
 import { adinPlayPlugin } from "../../deps/adlad-plugin-adinplay/0.0.3/dist/adlad-plugin-adinplay.js";
 import { lsSet } from "./util.js";
 
@@ -59,6 +59,20 @@ export async function showFullScreenAd() {
 	}
 }
 
+const adboxContainer = document.getElementById("adboxContainer");
+export function refreshBanner() {
+	if (!adLad) return;
+	adboxContainer.style.display = adLad.canShowBannerAd ? "" : "none";
+	adLad.destroyBannerAd("adboxContent");
+	adLad.showBannerAd("adboxContent", {
+		pluginOptions: {
+			adinplay: {
+				ids: "JTE_splix-io_300x250",
+			},
+		},
+	});
+}
+
 function updateAdlad() {
 	let needsAdLad = true;
 	// TODO:
@@ -75,6 +89,7 @@ function updateAdlad() {
 		if (IS_DEV_BUILD) {
 			globalThis.adLad = adLad;
 		}
+		refreshBanner();
 	}
 }
 
@@ -105,13 +120,8 @@ function loadAdLad() {
 	/** @type {AdLad<ReturnType<typeof adinPlayPlugin | typeof dummyPlugin>>} */
 	const adLad = new AdLad(adLadOpts);
 	adLad.onCanShowBannerAdChange(() => {
-		updateBannerVisibilities();
+		refreshBanner();
 	});
 
 	return adLad;
-}
-
-function updateBannerVisibilities() {
-	// JTE_splix-io_300x250
-	// JTE_splix-io_300x250
 }
