@@ -497,7 +497,7 @@ export class Player {
 	 */
 	sendPlayerColorToPlayer(receivingPlayer) {
 		const playerId = this == receivingPlayer ? 0 : this.id;
-		const colorId = receivingPlayer.skinColorIdForPlayer(this);
+		const colorId = this.skinColorIdForPlayer(receivingPlayer);
 		receivingPlayer.connection.sendPlayerSkin(playerId, colorId);
 	}
 
@@ -645,6 +645,7 @@ export class Player {
 
 	updateNearbyPlayerSkinColors() {
 		for (const player of this.#playersInViewport) {
+			if (player == this) continue;
 			player.sendPlayerColorToPlayer(this);
 		}
 	}
