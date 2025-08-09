@@ -219,6 +219,14 @@ export class WebSocketConnection {
 	#plusSkinsAllowed = false;
 	set plusSkinsAllowed(value) {
 		this.#plusSkinsAllowed = value;
+		if (this.#game && this.#player) {
+			this.#game.broadcastPlayerColor(this.#player);
+
+			// The color of other players is adjusted to prevent other players from rendering with the same color as us.
+			// This means that if our own color changes, there's a chance that the color of other players changed as well.
+			// So we need to resend the player colors of all other players as well.
+			this.#player.updateNearbyPlayerSkinColors();
+		}
 	}
 
 	get plusSkinsAllowed() {

@@ -495,6 +495,16 @@ export class Player {
 	 * Sends the state of this player to `receivingPlayer`.
 	 * @param {import("./Player.js").Player} receivingPlayer
 	 */
+	sendPlayerColorToPlayer(receivingPlayer) {
+		const playerId = this == receivingPlayer ? 0 : this.id;
+		const colorId = receivingPlayer.skinColorIdForPlayer(this);
+		receivingPlayer.connection.sendPlayerSkin(playerId, colorId);
+	}
+
+	/**
+	 * Sends the state of this player to `receivingPlayer`.
+	 * @param {import("./Player.js").Player} receivingPlayer
+	 */
 	sendTrailToPlayer(receivingPlayer) {
 		const playerId = this == receivingPlayer ? 0 : this.id;
 		const message = WebSocketConnection.createTrailMessage(playerId, Array.from(this.#trailVertices));
@@ -630,6 +640,12 @@ export class Player {
 			// Now fakeSkinId could range anywhere from 1 to (otherPlayer.skinId - 1)
 			// or from (otherPlayer.skinId + 1) to FREE_SKINS_COUNT.
 			return fakeSkinId;
+		}
+	}
+
+	updateNearbyPlayerSkinColors() {
+		for (const player of this.#playersInViewport) {
+			player.sendPlayerColorToPlayer(this);
 		}
 	}
 

@@ -476,6 +476,16 @@ export class Game {
 	}
 
 	/**
+	 * Sends the current color of the player to all nearby players.
+	 * @param {import("./Player.js").Player} player
+	 */
+	broadcastPlayerColor(player) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
+			player.sendPlayerColorToPlayer(nearbyPlayer);
+		}
+	}
+
+	/**
 	 * Sends the current trail of a player to all nearby players.
 	 * @param {import("./Player.js").Player} player
 	 */
