@@ -1009,6 +1009,14 @@ export class Player {
 	}
 
 	/**
+	 * This will cause the arena worker to fire fill rect events which cover all filled tiles for this player.
+	 * This can be used to update the color of this player.
+	 */
+	fireAllMyTileUpdates() {
+		this.game.arena.fireAllPlayerTileUpdates(this.id);
+	}
+
+	/**
 	 * @param {Vec2} point
 	 */
 	rectOverlapsTrailBounds(point) {

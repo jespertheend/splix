@@ -228,6 +228,7 @@ export class WebSocketConnection {
 			this.#player.updateNearbyPlayerSkinColors();
 
 			this.#player.sendCurrentViewportChunk();
+			this.#player.fireAllMyTileUpdates();
 		}
 	}
 
