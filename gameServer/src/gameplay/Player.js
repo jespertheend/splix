@@ -899,6 +899,17 @@ export class Player {
 	}
 
 	/**
+	 * (re)sends a chunk of tiles from the arena containing entire visible viewport to this player.
+	 */
+	sendCurrentViewportChunk() {
+		const pos = this.getPosition();
+		this.sendChunk({
+			min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
+			max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
+		});
+	}
+
+	/**
 	 * Kills another player (or this player itself) and records an event in the event history.
 	 * So that the death can be undone should the player move back in time.
 	 *

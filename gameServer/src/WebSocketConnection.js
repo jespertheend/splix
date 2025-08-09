@@ -226,6 +226,8 @@ export class WebSocketConnection {
 			// This means that if our own color changes, there's a chance that the color of other players changed as well.
 			// So we need to resend the player colors of all other players as well.
 			this.#player.updateNearbyPlayerSkinColors();
+
+			this.#player.sendCurrentViewportChunk();
 		}
 	}
 
@@ -284,11 +286,7 @@ export class WebSocketConnection {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
 			});
-			const pos = this.#player.getPosition();
-			this.#player.sendChunk({
-				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
-				max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
-			});
+			this.#player.sendCurrentViewportChunk();
 			// Clients only really expect a single number, so we'll just take the maximum size of the map.
 			const mapSize = Math.max(this.#game.arena.width, this.#game.arena.height);
 			this.#sendMapSize(mapSize);
