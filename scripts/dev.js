@@ -71,6 +71,11 @@ if (!Deno.args.includes("--no-init")) {
 		pitWidth: 16,
 		pitHeight: 16,
 		gameMode: "default",
+		hooks: {
+			peliAuthCodeReceived(connection, code) {
+				connection.plusSkinsAllowed = true;
+			},
+		},
 	});
 	// @ts-ignore
 	globalThis.gameServer = gameServer;

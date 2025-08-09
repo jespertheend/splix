@@ -314,7 +314,7 @@ export class Game {
 		const colorId = tilePlayer.skinColorIdForPlayer(player) + 1;
 		return {
 			colorId,
-			patternId: tilePlayer.skinPatternId,
+			patternId: tilePlayer.visibleSkinPatternId,
 		};
 	}
 

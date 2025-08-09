@@ -1,7 +1,7 @@
 import { refreshBanner, showFullScreenAd, updateAdlad } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
-import { hasPlusRewards, initPeliSdk } from "./peliSdk.js";
+import { getPeliAuthCode, hasPlusRewards, initPeliSdk } from "./peliSdk.js";
 import { lsSet } from "./util.js";
 
 var GLOBAL_SPEED = 0.006;
@@ -246,6 +246,7 @@ var sendAction = {
 	 */
 	PATREON_CODE: 12,
 	PROTOCOL_VERSION: 13,
+	PELI_AUTH_CODE: 14,
 };
 
 var colors = {
@@ -963,6 +964,13 @@ function sendSkin() {
 	});
 }
 
+async function sendPeliCode() {
+	const code = await getPeliAuthCode();
+	if (!code) return;
+
+	wsSendMsg(sendAction.PELI_AUTH_CODE, code);
+}
+
 function parseDirKey(c) {
 	var pd = false;
 	//up
@@ -1354,6 +1362,7 @@ function onOpen() {
 	sendLegacyVersion();
 	sendProtocolVersion();
 	sendName();
+	sendPeliCode();
 	sendSkin();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
@@ -2028,7 +2037,8 @@ function wsSendMsg(action, data) {
 			array.push(coordBytesY[1]);
 		}
 		if (
-			action == sendAction.SET_USERNAME || action == sendAction.SET_TEAM_USERNAME
+			action == sendAction.SET_USERNAME || action == sendAction.SET_TEAM_USERNAME ||
+			action == sendAction.PELI_AUTH_CODE
 		) {
 			utf8Array = toUTF8Array(data);
 			array.push.apply(array, utf8Array);

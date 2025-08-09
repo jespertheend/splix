@@ -2,7 +2,12 @@
  * How many of the skins should be randomly assigned to players if they either didn't provide one,
  * or when two players have the same skin and a new color needs to be picked to distinguish the two players.
  */
-export const FREE_SKINS_COUNT = 12;
+export const FREE_SKIN_COLOR_COUNT = 12;
+
+/**
+ * Used to determine which skin patterns are available freely and which ones require a subscription.
+ */
+export const PAID_SKIN_PATTERN_IDS = [27];
 
 /**
  * Defines a rectangle around the players position for which tiles are guaranteed to be visible.

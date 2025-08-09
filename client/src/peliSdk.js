@@ -1,7 +1,14 @@
 /** @type {import("./peliSdkTypes.ts").PeliSdk?} */
 let peliSdk = null;
 
-export async function initPeliSdk() {
+/** @param {import("./peliSdkTypes.ts").PeliSdk?} sdk */
+let resolvePeliSdkPromise = (sdk) => {};
+/** @type {Promise<import("./peliSdkTypes.ts").PeliSdk?>} */
+const peliSdkPromise = new Promise((resolve) => {
+	resolvePeliSdkPromise = resolve;
+});
+
+async function initPeliSdkInternal() {
 	let sdk;
 	try {
 		/** @type {import("./peliSdkTypes.ts")} */
@@ -26,7 +33,21 @@ export async function initPeliSdk() {
 	return sdk;
 }
 
+export async function initPeliSdk() {
+	const sdk = await initPeliSdkInternal();
+	resolvePeliSdkPromise(sdk);
+	return sdk;
+}
+
 export function hasPlusRewards() {
 	if (!peliSdk) return false;
 	return peliSdk.entitlements.has("plusRewards");
+}
+
+export async function getPeliAuthCode() {
+	const sdk = await peliSdkPromise;
+	if (!sdk) return null;
+	return await sdk.session.getAuthCode({
+		scope: ["entitlements", "concurrencyGuard"],
+	});
 }

@@ -41,6 +41,7 @@ export const initializeControlSocketMessage = "initializeControlSocket";
  */
 export class WebSocketConnection {
 	#socket;
+	#mainInstance;
 	#game;
 	/** @type {Player?} */
 	#player = null;
@@ -54,9 +55,11 @@ export class WebSocketConnection {
 	/**
 	 * @param {WebSocket} socket
 	 * @param {string} ip
+	 * @param {import("./Main.js").Main} mainInstance
 	 * @param {import("./gameplay/Game.js").Game} game
 	 */
-	constructor(socket, ip, game) {
+	constructor(socket, ip, mainInstance, game) {
+		this.#mainInstance = mainInstance;
 		this.#socket = socket;
 		this.#game = game;
 	}
@@ -194,6 +197,10 @@ export class WebSocketConnection {
 			 */
 			PATREON_CODE: 12,
 			PROTOCOL_VERSION: 13,
+			/**
+			 * A peli sdk auth code which is used to determine which skins a player is allowed to use.
+			 */
+			PELI_AUTH_CODE: 14,
 		};
 	}
 
@@ -207,6 +214,27 @@ export class WebSocketConnection {
 	#protocolVersion = null;
 	get protocolVersion() {
 		return this.#protocolVersion || 0;
+	}
+
+	#plusSkinsAllowed = false;
+	set plusSkinsAllowed(value) {
+		this.#plusSkinsAllowed = value;
+	}
+
+	get plusSkinsAllowed() {
+		return this.#plusSkinsAllowed;
+	}
+
+	/**
+	 * @param {ArrayBuffer} data
+	 */
+	#parseBinaryStringMessage(data) {
+		const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
+		const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
+		if (data.byteLength > maxByteLength) return null;
+		const decoder = new TextDecoder();
+		const bytes = new Uint8Array(data, 1);
+		return decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 	}
 
 	/**
@@ -314,18 +342,20 @@ export class WebSocketConnection {
 			};
 		} else if (messageType == WebSocketConnection.ReceiveAction.SET_USERNAME) {
 			if (this.#player) return;
-			const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
-			const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
-			if (data.byteLength > maxByteLength) return;
-			const decoder = new TextDecoder();
-			const bytes = new Uint8Array(data, 1);
-			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
+			const name = this.#parseBinaryStringMessage(data);
+			if (name) this.#receivedName = name;
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
 			if (!this.#player) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
 			this.#player.honk(honkDuration);
+		} else if (messageType == WebSocketConnection.ReceiveAction.PELI_AUTH_CODE) {
+			const code = this.#parseBinaryStringMessage(data);
+			if (!code) return;
+			const { hooks } = this.#mainInstance;
+			if (!hooks) return;
+			hooks.peliAuthCodeReceived(this, code);
 		}
 	}
 
