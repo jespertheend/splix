@@ -96,9 +96,9 @@ export class WebSocketConnection {
 			 */
 			REMOVE_PLAYER: 7,
 			/**
-			 * Notifies the client about the name of a specific player.
+			 * Notifies the client about the name of a specific player and if they use spectator mode.
 			 */
-			PLAYER_NAME: 8,
+			PLAYER_INFO: 8,
 			/**
 			 * Sends the captured tile count and kill count of the current player.
 			 */
@@ -192,6 +192,10 @@ export class WebSocketConnection {
 			VERSION: 11,
 			PATREON_CODE: 12,
 			PROTOCOL_VERSION: 13,
+			/**
+			 * Lets the server know if the player is using spectator mode.
+			 */
+			SPEC_MODE: 14,
 		};
 	}
 
@@ -200,6 +204,7 @@ export class WebSocketConnection {
 	/** @type {import("./gameplay/Player.js").SkinData?} */
 	#receivedSkinData = null;
 	#receivedName = "";
+	#receivedSpecMode = false;
 
 	/** @type {number?} */
 	#protocolVersion = null;
@@ -248,6 +253,7 @@ export class WebSocketConnection {
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
+				spec: this.#receivedSpecMode,
 			});
 			const pos = this.#player.getPosition();
 			this.#player.sendChunk({
@@ -322,11 +328,15 @@ export class WebSocketConnection {
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
-			if (!this.#player) return;
+			if (!this.#player || this.#player.spec) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
 			this.#player.honk(honkDuration);
+		} else if (messageType == WebSocketConnection.ReceiveAction.SPEC_MODE) {
+			if (this.#player) return;
+			if (view.byteLength != 2) return;
+			this.#receivedSpecMode = view.getUint8(1) != 1 ? false : true;
 		}
 	}
 
@@ -467,20 +477,25 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
+	 * @param {boolean} playerSpec
 	 * @param {string} playerName
 	 */
-	sendPlayerName(playerId, playerName) {
+	sendPlayerInfo(playerId, playerSpec, playerName) {
 		const encoder = new TextEncoder();
 		const nameBytes = encoder.encode(playerName);
-		const buffer = new ArrayBuffer(3 + nameBytes.byteLength);
+		const buffer = new ArrayBuffer(4 + nameBytes.byteLength);
 		const view = new DataView(buffer);
+		const playerSpecUint8 = playerSpec == false ? 0 : 1;
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
 		cursor += 2;
+
+		view.setUint8(cursor, playerSpecUint8);
+		cursor++;
 
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);
