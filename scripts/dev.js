@@ -1,5 +1,9 @@
 import { generateTypes } from "https://deno.land/x/deno_tsc_helper@v0.7.1/mod.js";
-import { vendor } from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
+import {
+	downloadFile,
+	downloadNpmPackage,
+	vendor,
+} from "https://raw.githubusercontent.com/jespertheend/dev/9ae4c87bc54156c47d4f097a61615eaa2c716904/mod.js";
 import { serveDir } from "$std/http/file_server.ts";
 import { resolve } from "$std/path/mod.ts";
 import { setCwd } from "chdir-anywhere";
@@ -7,6 +11,7 @@ import { init as initGameServer } from "../gameServer/src/mainInstance.js";
 import { init as initServerManager } from "../serverManager/src/mainInstance.js";
 import "$std/dotenv/load.ts";
 import { INSECURE_LOCALHOST_SERVERMANAGER_TOKEN } from "../shared/config.js";
+import { ensureDir } from "$std/fs/mod.ts";
 setCwd();
 
 Deno.chdir("..");
@@ -16,6 +21,23 @@ vendor({
 		"https://raw.githubusercontent.com/rendajs/Renda/705c5a01bc4d3ca4a282fff1a7a8567d1be7ce04/mod.js",
 	],
 	outDir: "./deps",
+});
+downloadNpmPackage({
+	package: "@adlad/adlad@1.0.0",
+	destination: "./deps/adlad/1.0.0",
+});
+downloadNpmPackage({
+	package: "@adlad/plugin-dummy@0.4.0",
+	destination: "./deps/adlad-plugin-dummy/0.4.0",
+});
+downloadNpmPackage({
+	package: "@adlad/plugin-adinplay@0.0.3",
+	destination: "./deps/adlad-plugin-adinplay/0.0.3",
+});
+await ensureDir("./deps/peliSdk/browserSdk");
+downloadFile({
+	url: "https://js.pelicanparty.games/types/v0.9.d.ts",
+	destination: "./deps/peliSdk/browserSdk/0.9.d.ts",
 });
 
 generateTypes({
@@ -49,6 +71,11 @@ if (!Deno.args.includes("--no-init")) {
 		pitWidth: 16,
 		pitHeight: 16,
 		gameMode: "default",
+		hooks: {
+			peliAuthCodeReceived(connection, code) {
+				connection.plusSkinsAllowed = true;
+			},
+		},
 	});
 	// @ts-ignore
 	globalThis.gameServer = gameServer;

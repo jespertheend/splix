@@ -130,6 +130,13 @@ export class Arena {
 	/**
 	 * @param {number} playerId
 	 */
+	fireAllPlayerTileUpdates(playerId) {
+		this.#messenger.send.fireAllPlayerTileUpdates(playerId);
+	}
+
+	/**
+	 * @param {number} playerId
+	 */
 	clearAllPlayerTiles(playerId) {
 		this.#messenger.send.clearAllPlayerTiles(playerId);
 	}

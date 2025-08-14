@@ -104,6 +104,23 @@ const arenaWorkerHandlers = {
 		return totalFilledTileCount;
 	},
 	/**
+	 * In theory this will not change any state on in the arena whatsoever. The arena worker stores player
+	 * ids in each tile, not the specific colors. This will fire `notifyAreasFilled()` updates for this player though.
+	 * This can be used to send changes to every player when this player changes their skin color or pattern.
+	 * @param {number} playerId
+	 */
+	fireAllPlayerTileUpdates(playerId) {
+		const bounds = boundsTracker.getBounds(playerId);
+
+		const rects = compressTiles(bounds, (x, y) => {
+			return arenaTiles[x][y] == playerId;
+		});
+
+		for (const { rect } of rects) {
+			fillTilesRect(rect, playerId);
+		}
+	},
+	/**
 	 * @param {number} playerId
 	 */
 	clearAllPlayerTiles(playerId) {

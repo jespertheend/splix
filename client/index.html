@@ -83,13 +83,6 @@
 	</head>
 	<body ontouchstart="">
 		<div id="touchControls" style="display: none"></div>
-		<div id="patreonOverlay" style="display: none">
-			<div id="patreonBox" class="fancyBox greenBox">
-				<h2 style="margin-top: 0">Thank you for pledging!</h2>
-				<p>Just one step left, log in with patreon to claim your reward</p>
-				<a class="fancyBox fancyBtn" href="javascript:loginWithPatreon()">Log in with Patreon</a>
-			</div>
-		</div>
 		<div id="beginScreen">
 			<canvas id="logoCanvas"></canvas>
 			<br>
@@ -102,166 +95,164 @@
 				<div id="bestStatsLeft" class="lastStatsBlock" style="text-align: right">Best game:</div>
 				<div id="bestStatsRight" class="lastStatsBlock" style="text-align: left"></div>
 			</div>
-			<div id="preroll" style="display: none"></div>
-			<form id="nameForm" class="fancyBox greenBox" method="get">
-				<div id="adbox" class="sidebox fancyBox greenBox" style="visibility: hidden">
-					<!-- <center><div class="fb-ad" data-placementid="1812921762327343_1812922822327237" data-format="300x250" data-testmode="false"></div></center> -->
-					<!-- <div id='gpt-banner-1'></div> -->
+			<main id="mainMenu">
+				<div id="adboxContainer" class="fancyBox greenBox" style="display: none">
+					<div id="adboxContent"></div>
 				</div>
-				<div id="newsbox" class="sidebox sideboxRight fancyBox greenBox">
-					<div id="newsboxContent" class="sideboxContent">
-						<h1>Recent updates!</h1>
-						<h3>Global leaderboards</h3>
-						<p>
-							After being gone for a long time, the global leaderboards are now available again. <a
-								href="/leaderboards"
-							>Check them out</a>!
-						</p>
-						<h3>Server selection</h3>
-						<p>
-							As you may have noticed, Splix has changed a bit recently. Connecting to the teams gamemode
-							has been broken for a while. So it's UI has been removed for now. Instead, you can now
-							select a server that you'd like to connect to from the dropdown menu. Don't worry though!
-							The plan is to bring back teams, hopefully within the next few weeks.
-						</p>
-						<h3>New server rewrite</h3>
-						<p>
-							The server code has been completely rewritten from scratch. There shouldn't be much of a
-							difference though, the core gameplay is still the same, but there are some subtle
-							differences. These servers may have some new bugs, but some long standing bugs have also
-							been fixed. If you wish, you may select the 'Legacy' server from the dropdown menu to play
-							on the old server.
-						</p>
-						<p>
-							Overal, the new servers should be more stable than the old one, but more importantly: Their
-							code is much more modern and better organised, which makes it easier to maintain them. Which
-							brings me to my next point...
-						</p>
-						<h3>Splix is now open source</h3>
-						<p>
-							That's right, you can view or contribute to the code <a
-								href="https://github.com/jespertheend/splix"
-								target="_blank"
-							>on GitHub</a>. This also allows you to host your own server instance. If you wish to play
-							with just your friends, or if you want custom gameplay, the GitHub repository contains info
-							on how to host and connect to your own instance.
-						</p>
-						<p>
-							Feel free to contact @jespertheend on <a href="https://discord.gg/Zr3r5fJ" target="_blank"
-							>the splix Discord</a> if you'd like your server to be added to the 'unofficial' section in
-							the server selection dropdown menu.
-						</p>
-						<h3>Changelog</h3>
-						<p>
-							Changes for each version can be found <a
-								href="https://github.com/jespertheend/splix/releases"
-								target="_blank"
-							>on GitHub</a>. Older changes are listed below:
-						</p>
-						<ul>
-							<li>Fixed 'o' key toggling leaderboard even in the login screen.</li>
-							<li>
-								Fixed being able to kill yourself by pausing and then moving in the opposite direcion
-								(making a 180 degree turn).
-							</li>
-							<li>
-								Fixed keys getting stuck when holding them and clicking away the focus from the browser
-								window.
-							</li>
-							<li>
-								Fixed an issue where other players would have a ghost trail while they were in their own
-								land.
-							</li>
-							<li>Fixed #animal names of servers changing every minute.</li>
-							<li>
-								Fixed an issue that would break servers entirely, causing a 'Couldn't connect' error to
-								appear whenever you tried to join.
-							</li>
-							<li>You can now toggle leaderboard visibility using the 'o' key.</li>
-							<li>
-								When opening a team url on a mobile browser, the page will ask to redirect to the app
-								since the app now has team mode support.
-							</li>
-							<li>Added an ugly mode toggle to the home screen.</li>
-							<li>If you're the creator of the game you'll get fancy goggles</li>
-							<li>Holding an arrow key while pressing another arrow key now remembers your direction</li>
-							<li>
-								Removed the letters L and i from team urls because they look too much like each other
-							</li>
-							<li>
-								Fixed not being able to connect to a team server when starting a game too quickly after
-								creating a team.
-							</li>
-							<li>
-								Opening a #team url or a url with an #animal in it now asks if you want to open the app
-								on mobile devices. wext mobile update will have support for teams :)
-							</li>
-							<li>Fixed dying after having just killed another player.</li>
-							<li>Fixed two players being able to kill the same player at once.</li>
-							<li>
-								Changed the map size back to 600x600 to lower the chance of spawning in someones land.
-								Player count is now between 60 and 90 players per lobby. There are also only two lobbies
-								per server now, which should also decrease the amount of lag.
-							</li>
-							<li>
-								Changed the port of the team server, if you weren't able to connect to the team server
-								first you might be now.
-							</li>
-							<li>Added Patreon support</li>
-							<li>Added patreon pattern and gold color.</li>
-							<li>Added luh pattern.</li>
-							<li>
-								Changed the limit of amount of players per server to about 70, the map is now 500x500 in
-								size.
-							</li>
-							<li>Fixed kills being counted twice.</li>
-							<li>
-								Made the spawn algorithm a bit less accurate when a lot of players are spawning at once,
-								this was causing a lot of lag.
-							</li>
-							<li>Added new teams gamemode.</li>
-							<li>Added local high scores.</li>
-							<li>Fixed players not having the same color as their land.</li>
-							<li>+500 is now only shown when you are the one who killed a player.</li>
-							<li>Made the changelog scrollable.</li>
-							<li>Fixed key strokes not getting registered.</li>
-							<li>Fixed the disconnected message from being spammed.</li>
-							<li>Quality is now set to high by default.</li>
-							<li>Fixed players spawning all at the same position.</li>
-							<li>Fixed blocks being captured at the edge of your area because of lag.</li>
-							<li>Fixed border blocks turning into player blocks.</li>
-							<li>
-								Added an ugly mode which can be enabled on <a
-									href="http://splix.io/flags"
-									target="_blank"
-								>splix.io/flags</a>.
-							</li>
-							<li>Added a box with the latest changes and news.</li>
-							<li>
-								Use the P key to freeze your player, in case you need a toilet break. But watch out!
-								Anyone can kill you when paused, even on your own land.
-							</li>
-						</ul>
-					</div>
+				<div id="centerSection">
+					<form id="nameForm" class="fancyBox greenBox" method="get">
+						<input
+							type="text"
+							class="fancyBox inputFancy"
+							maxlength="20"
+							id="nameInput"
+							placeholder="Enter your name"
+						/>
+						<br>
+						<select id="serverSelect" disabled class="fancyBox inputFancy">
+							<option>Loading...</option>
+						</select>
+						<input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
+					</form>
+					<div id="tutorialText" style="opacity: 0"></div>
+					<canvas id="tutorialCanvas" width="300" height="300"></canvas>
 				</div>
-				<input
-					type="text"
-					class="fancyBox inputFancy"
-					maxlength="20"
-					id="nameInput"
-					placeholder="Enter your name"
-				/>
-				<br>
-				<select id="serverSelect" disabled class="fancyBox inputFancy">
-					<option>Loading...</option>
-				</select>
-				<input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
-			</form>
+				<div id="newsbox" class="fancyBox greenBox">
+					<h1>Recent updates!</h1>
+					<h3>Global leaderboards</h3>
+					<p>
+						After being gone for a long time, the global leaderboards are now available again. <a
+							href="/leaderboards"
+						>Check them out</a>!
+					</p>
+					<h3>Server selection</h3>
+					<p>
+						As you may have noticed, Splix has changed a bit recently. Connecting to the teams gamemode has
+						been broken for a while. So it's UI has been removed for now. Instead, you can now select a
+						server that you'd like to connect to from the dropdown menu. Don't worry though! The plan is to
+						bring back teams, hopefully within the next few weeks.
+					</p>
+					<h3>New server rewrite</h3>
+					<p>
+						The server code has been completely rewritten from scratch. There shouldn't be much of a
+						difference though, the core gameplay is still the same, but there are some subtle differences.
+						These servers may have some new bugs, but some long standing bugs have also been fixed. If you
+						wish, you may select the 'Legacy' server from the dropdown menu to play on the old server.
+					</p>
+					<p>
+						Overal, the new servers should be more stable than the old one, but more importantly: Their code
+						is much more modern and better organised, which makes it easier to maintain them. Which brings
+						me to my next point...
+					</p>
+					<h3>Splix is now open source</h3>
+					<p>
+						That's right, you can view or contribute to the code <a
+							href="https://github.com/jespertheend/splix"
+							target="_blank"
+						>on GitHub</a>. This also allows you to host your own server instance. If you wish to play with
+						just your friends, or if you want custom gameplay, the GitHub repository contains info on how to
+						host and connect to your own instance.
+					</p>
+					<p>
+						Feel free to contact @jespertheend on <a href="https://discord.gg/Zr3r5fJ" target="_blank"
+						>the splix Discord</a> if you'd like your server to be added to the 'unofficial' section in the
+						server selection dropdown menu.
+					</p>
+					<h3>Changelog</h3>
+					<p>
+						Changes for each version can be found <a
+							href="https://github.com/jespertheend/splix/releases"
+							target="_blank"
+						>on GitHub</a>. Older changes are listed below:
+					</p>
+					<ul>
+						<li>Fixed 'o' key toggling leaderboard even in the login screen.</li>
+						<li>
+							Fixed being able to kill yourself by pausing and then moving in the opposite direcion
+							(making a 180 degree turn).
+						</li>
+						<li>
+							Fixed keys getting stuck when holding them and clicking away the focus from the browser
+							window.
+						</li>
+						<li>
+							Fixed an issue where other players would have a ghost trail while they were in their own
+							land.
+						</li>
+						<li>Fixed #animal names of servers changing every minute.</li>
+						<li>
+							Fixed an issue that would break servers entirely, causing a 'Couldn't connect' error to
+							appear whenever you tried to join.
+						</li>
+						<li>You can now toggle leaderboard visibility using the 'o' key.</li>
+						<li>
+							When opening a team url on a mobile browser, the page will ask to redirect to the app since
+							the app now has team mode support.
+						</li>
+						<li>Added an ugly mode toggle to the home screen.</li>
+						<li>If you're the creator of the game you'll get fancy goggles</li>
+						<li>Holding an arrow key while pressing another arrow key now remembers your direction</li>
+						<li>
+							Removed the letters L and i from team urls because they look too much like each other
+						</li>
+						<li>
+							Fixed not being able to connect to a team server when starting a game too quickly after
+							creating a team.
+						</li>
+						<li>
+							Opening a #team url or a url with an #animal in it now asks if you want to open the app on
+							mobile devices. wext mobile update will have support for teams :)
+						</li>
+						<li>Fixed dying after having just killed another player.</li>
+						<li>Fixed two players being able to kill the same player at once.</li>
+						<li>
+							Changed the map size back to 600x600 to lower the chance of spawning in someones land.
+							Player count is now between 60 and 90 players per lobby. There are also only two lobbies per
+							server now, which should also decrease the amount of lag.
+						</li>
+						<li>
+							Changed the port of the team server, if you weren't able to connect to the team server first
+							you might be now.
+						</li>
+						<li>Added Patreon support</li>
+						<li>Added patreon pattern and gold color.</li>
+						<li>Added luh pattern.</li>
+						<li>
+							Changed the limit of amount of players per server to about 70, the map is now 500x500 in
+							size.
+						</li>
+						<li>Fixed kills being counted twice.</li>
+						<li>
+							Made the spawn algorithm a bit less accurate when a lot of players are spawning at once,
+							this was causing a lot of lag.
+						</li>
+						<li>Added new teams gamemode.</li>
+						<li>Added local high scores.</li>
+						<li>Fixed players not having the same color as their land.</li>
+						<li>+500 is now only shown when you are the one who killed a player.</li>
+						<li>Made the changelog scrollable.</li>
+						<li>Fixed key strokes not getting registered.</li>
+						<li>Fixed the disconnected message from being spammed.</li>
+						<li>Quality is now set to high by default.</li>
+						<li>Fixed players spawning all at the same position.</li>
+						<li>Fixed blocks being captured at the edge of your area because of lag.</li>
+						<li>Fixed border blocks turning into player blocks.</li>
+						<li>
+							Added an ugly mode which can be enabled on <a
+								href="http://splix.io/flags"
+								target="_blank"
+							>splix.io/flags</a>.
+						</li>
+						<li>Added a box with the latest changes and news.</li>
+						<li>
+							Use the P key to freeze your player, in case you need a toilet break. But watch out! Anyone
+							can kill you when paused, even on your own land.
+						</li>
+					</ul>
+				</div>
+			</main>
 			<br>
 			<br>
-			<div id="tutorialText" style="opacity: 0"></div>
-			<canvas id="tutorialCanvas" width="300" height="300"></canvas>
-			<div id="adbox2" class="fancyBox greenBox" style="visibility: hidden"></div>
 			<div id="expandPage"></div>
 			<canvas id="skinButton" title="block customization" width="30" height="30"></canvas>
 			<div id="skinButtonShadow"></div>

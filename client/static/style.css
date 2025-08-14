@@ -24,8 +24,6 @@ body {
 
 #beginScreen {
 	text-align: center;
-	position: relative;
-	min-height: 100%;
 }
 
 #title {
@@ -44,6 +42,29 @@ body {
 .fancyBox {
 	border-radius: 3px;
 	position: relative;
+}
+
+#mainMenu {
+	display: grid;
+	width: 100%;
+	grid: auto-flow / 1fr 300px 1fr;
+	gap: 20px;
+}
+
+#centerSection {
+	grid-area: 1 / 2;
+}
+
+#adboxContainer {
+	padding: 20px;
+	justify-self: right;
+	width: fit-content;
+	height: fit-content;
+}
+
+#adboxContent {
+	width: 300px;
+	height: 250px;
 }
 
 #nameForm {
@@ -159,15 +180,9 @@ body {
 	border-radius: 3px;
 }
 
-.sidebox {
-	position: absolute;
-	display: inline-block;
+#newsbox {
+	grid-area: 1 / 3;
 	padding: 20px;
-	margin-top: -30px;
-}
-
-.sideboxRight {
-	right: -360px;
 	width: 300px;
 	text-align: left;
 	color: white;
@@ -175,24 +190,9 @@ body {
 	max-height: 400px;
 	overflow: hidden;
 	padding: 0px 20px;
-}
-
-#adbox2 {
-	position: absolute;
-	padding: 20px;
-	left: 50%;
-	transform: translate(-50%, 0);
-	z-index: 20;
-}
-
-.sideboxContent {
 	overflow-y: scroll;
 	max-height: 360px;
 	width: 300px;
-}
-
-#newsboxContent {
-	padding-right: 80px;
 }
 
 #newsbox ul {
@@ -277,7 +277,7 @@ a:hover {
 }
 
 #tutorialCanvas {
-	margin: 30px;
+	margin-top: 40px;
 	box-shadow:
 		1px 1px #2b2623,
 		2px 2px #2b2623,
@@ -471,7 +471,7 @@ a:hover {
 }
 
 @media (max-width: 950px) {
-	#adbox, #newsbox {
+	#adboxContainer, #newsbox {
 		display: none;
 	}
 }
@@ -501,34 +501,6 @@ a:hover {
 	font-size: 20px;
 	left: 50%;
 	transform: translateX(-50%);
-}
-
-#preroll {
-	width: 960px;
-	height: 540px;
-	margin: auto;
-}
-
-#patreonOverlay {
-	background: rgba(0, 0, 0, 0.6);
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	z-index: 10;
-	text-align: center;
-}
-
-#patreonBox {
-	display: inline-block;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	padding: 30px;
-	text-align: center;
-	color: white;
 }
 
 #euConsent {
