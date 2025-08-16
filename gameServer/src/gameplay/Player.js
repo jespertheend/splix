@@ -810,12 +810,13 @@ export class Player {
 	 * @param {Player} player
 	 */
 	#playerRemovedFromViewport(player) {
-		if (this.#removedFromGame) return;
 		if (player == this) return;
 		if (!this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.delete(player);
 		player.#inOtherPlayerViewports.delete(this);
-		this.#connection.sendRemovePlayer(player.id);
+		if (!this.#removedFromGame) {
+			this.#connection.sendRemovePlayer(player.id);
+		}
 	}
 
 	#sendRequiredEdgeChunks() {
@@ -957,11 +958,13 @@ export class Player {
 	#removedFromGame = false;
 
 	removedFromGame() {
-		this.#removedFromGame = true;
+		// Clear tiles first
 		this.#clearAllMyTiles();
 		for (const player of this.#inOtherPlayerViewports) {
 			player.#playerRemovedFromViewport(this);
 		}
+		// Set as removed after player is removed from viewport
+		this.#removedFromGame = true;
 	}
 
 	#allMyTilesCleared = false;
