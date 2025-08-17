@@ -1,5 +1,6 @@
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+import { getSpectatorIcon } from "./rendering/spectatorIcons.js";
 
 var GLOBAL_SPEED = 0.006;
 var VIEWPORT_RADIUS = 30;
@@ -165,8 +166,6 @@ var touchControlsElem;
 var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
 var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
-var specImg = new Image();
-specImg.src = "./static/img/spectator.svg";
 var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
@@ -795,7 +794,16 @@ function getPlayer(id, array) {
 		serverPos: [0, 0],
 		dir: 0,
 		isMyPlayer: id === 0,
-		spec: false,
+		isSpectator: false,
+		spectatorIcon: null,
+		updateSpectatorIcon: async function () {
+			if (!this.isSpectator) {
+				this.spectatorIcon = null;
+			} else {
+				const playerColor = getColorForBlockSkinId(player.skinBlock);
+				this.spectatorIcon = await getSpectatorIcon(playerColor.darker);
+			}
+		},
 		isDead: false,
 		deathWasCertain: false,
 		didUncertainDeathLastTick: false,
@@ -1879,8 +1887,9 @@ function onMessage(evt) {
 		nameBytes = data.subarray(4, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
-		player.spec = data[3] === 0 ? false : true;
+		player.isSpectator = data[3] === 0 ? false : true;
 		player.name = filter(name);
+		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
 		var score = bytesToInt(data[1], data[2], data[3], data[4]);
@@ -2035,6 +2044,7 @@ function onMessage(evt) {
 			colorUI();
 		}
 		player.skinBlock = data[3];
+		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
 		playingAndReady = true;
@@ -4461,18 +4471,22 @@ function drawPlayer(ctx, player, timeStamp) {
 			}
 		}
 
+		//draw spectator image
+		if (player.isSpectator && player.spectatorIcon && !player.isDead) {
+			ctx.drawImage(player.spectatorIcon, dp[0] - 6.5, dp[1] - 6.7, 13, 13);
+		}
+
 		//draw cool shades
 		if (player.name == "Jesper" && !player.isDead) {
 			ctx.fillStyle = "black";
 			ctx.fillRect(dp[0] - 6.5, dp[1] - 2, 13, 1);
-			ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
-			ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
-			ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
-		}
-
-		//draw spectator image
-		if (player.spec && !player.isDead) {
-			ctx.drawImage(specImg, dp[0] - 6.5, dp[1] - 6.7, 13, 13);
+			if (player.isSpectator) {
+				ctx.fillRect(dp[0] - 4, dp[1] - 2, 8, 3);
+			} else {
+				ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
+				ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
+				ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
+			}
 		}
 	}
 }
@@ -4818,7 +4832,7 @@ function loop(timeStamp) {
 					}
 				}
 			}
-			if (player.isMyPlayer || !player.spec || localStorage.showSpectators == "true") {
+			if (player.isMyPlayer || !player.isSpectator || localStorage.showSpectators == "true") {
 				drawPlayer(ctx, player, timeStamp);
 			}
 		}
