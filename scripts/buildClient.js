@@ -77,10 +77,15 @@ if (!leaderboardsEntryPoint) {
 
 let indexContent = await Deno.readTextFile("index.html");
 indexContent = indexContent.replace("./src/main.js", "./bundle/" + mainEntryPoint);
+indexContent = indexContent.replace("./static/style.css", "./static/style.css?" + Date.now());
 await Deno.writeTextFile(resolve(distDir, "index.html"), indexContent);
 
 let leaderboardsContent = await Deno.readTextFile("leaderboards.html");
 leaderboardsContent = leaderboardsContent.replace("./src/leaderboards.js", "./bundle/" + leaderboardsEntryPoint);
+leaderboardsContent = leaderboardsContent.replace(
+	"./static/leaderboards.css",
+	"./static/leaderboards.css?" + Date.now(),
+);
 await Deno.writeTextFile(resolve(distDir, "leaderboards.html"), leaderboardsContent);
 
 await copy("about.html", resolve(distDir, "about.html"));
