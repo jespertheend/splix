@@ -39,7 +39,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @typedef CreatePlayerOptions
  * @property {SkinData?} skin
  * @property {string} name
- * @property {boolean} spec
+ * @property {boolean} isSpectator
  */
 
 export class Player {
@@ -174,9 +174,9 @@ export class Player {
 		return this.#name;
 	}
 
-	#spec = false;
-	get spec() {
-		return this.#spec;
+	#isSpectator = false;
+	get isSpectator() {
+		return this.#isSpectator;
 	}
 
 	/**
@@ -219,7 +219,7 @@ export class Player {
 		if (this.#skinColorId == 0) {
 			this.#skinColorId = Math.floor(lerp(1, FREE_SKINS_COUNT + 1, Math.random()));
 		}
-		this.#spec = options.spec;
+		this.#isSpectator = options.isSpectator;
 
 		const { position, direction } = game.getNewSpawnPosition();
 		this.#currentPosition = position;
@@ -250,7 +250,7 @@ export class Player {
 			}
 		});
 
-		const capturedTileCount = this.#spec ? 0 : game.arena.fillPlayerSpawn(this.#currentPosition, id);
+		const capturedTileCount = this.#isSpectator ? 0 : game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
 
 		this.#joinTime = performance.now();
@@ -396,7 +396,7 @@ export class Player {
 			}
 			this.#eventHistory.undoRecentEvents(previousPosition, desiredPosition);
 			this.game.broadcastPlayerState(this);
-			if (!this.spec) {
+			if (!this.isSpectator) {
 				this.#updateCurrentTile(this.#currentPosition);
 			}
 			this.#currentPositionChanged();
@@ -661,7 +661,7 @@ export class Player {
 				}
 
 				try {
-					if (!this.spec) {
+					if (!this.isSpectator) {
 						this.#updateCurrentTile(previousPosition);
 					}
 					this.#currentPositionChanged();
@@ -746,7 +746,7 @@ export class Player {
 			const includeLastSegments = player != this;
 			if (player.pointIsInTrail(this.#currentPosition, { includeLastSegments })) {
 				const killedSelf = player == this;
-				if (player.dead || player.spec || this.spec) continue;
+				if (player.dead || player.isSpectator || this.isSpectator) continue;
 
 				if (this.game.gameMode != "drawing") {
 					if (player.isGeneratingTrail || player.#currentDirection == "paused") {
@@ -789,7 +789,7 @@ export class Player {
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
 		this.#connection.sendPlayerSkin(playerId, colorId);
-		this.#connection.sendPlayerInfo(playerId, player.#spec, player.#name);
+		this.#connection.sendPlayerInfo(playerId, player.#isSpectator, player.#name);
 		if (player.dead) {
 			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
 			this.#connection.send(playerDeadMessage);
@@ -965,7 +965,7 @@ export class Player {
 	 * made to add new tiles of this player to the arena.
 	 */
 	#clearAllMyTiles() {
-		if (this.#allMyTilesCleared || this.#spec) return;
+		if (this.#allMyTilesCleared || this.#isSpectator) return;
 		this.#allMyTilesCleared = true;
 		this.game.arena.clearAllPlayerTiles(this.id);
 	}
