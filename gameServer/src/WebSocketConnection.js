@@ -324,7 +324,7 @@ export class WebSocketConnection {
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
-			if (!this.#player || this.#player.spectating) return;
+			if (!this.#player || this.#player.isSpectator) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
@@ -473,15 +473,15 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
-	 * @param {boolean} playerSpectating
+	 * @param {boolean} playerIsSpectator
 	 * @param {string} playerName
 	 */
-	sendPlayerInfo(playerId, playerSpectating, playerName) {
+	sendPlayerInfo(playerId, playerIsSpectator, playerName) {
 		const encoder = new TextEncoder();
 		const nameBytes = encoder.encode(playerName);
 		const buffer = new ArrayBuffer(4 + nameBytes.byteLength);
 		const view = new DataView(buffer);
-		const playerSpectatingUint8 = playerSpectating == false ? 0 : 1;
+		const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
@@ -490,7 +490,7 @@ export class WebSocketConnection {
 		view.setUint16(cursor, playerId);
 		cursor += 2;
 
-		view.setUint8(cursor, playerSpectatingUint8);
+		view.setUint8(cursor, playerIsSpectatorUint8);
 		cursor++;
 
 		const intView = new Uint8Array(buffer);
