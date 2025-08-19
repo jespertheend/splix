@@ -988,7 +988,7 @@ function sendSkin() {
 async function sendPeliCode() {
 	const code = await getPeliAuthCode();
 	if (!code) return;
-  
+
 	wsSendMsg(sendAction.PELI_AUTH_CODE, code);
 }
 
