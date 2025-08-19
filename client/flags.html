@@ -131,11 +131,11 @@
 			});
 			uglyEl.checked = localStorage.uglyMode == "true";
 
-			var specEl = document.getElementById("showSpectators");
-			specEl.addEventListener("change", function () {
+			var spectatorEl = document.getElementById("showSpectators");
+			spectatorEl.addEventListener("change", function () {
 				localStorage.showSpectators = this.checked;
 			});
-			specEl.checked = localStorage.showSpectators == "true";
+			spectatorEl.checked = localStorage.showSpectators == "true";
 
 			// var betaEl = document.getElementById("beta");
 			// betaEl.addEventListener("change",function(){
