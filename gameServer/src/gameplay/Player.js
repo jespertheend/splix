@@ -836,12 +836,13 @@ export class Player {
 	 * @param {Player} player
 	 */
 	#playerRemovedFromViewport(player) {
-		if (this.#removedFromGame) return;
 		if (player == this) return;
 		if (!this.#playersInViewport.has(player)) return;
 		this.#playersInViewport.delete(player);
 		player.#inOtherPlayerViewports.delete(this);
-		this.#connection.sendRemovePlayer(player.id);
+		if (!this.#removedFromGame) {
+			this.#connection.sendRemovePlayer(player.id);
+		}
 	}
 
 	#sendRequiredEdgeChunks() {
