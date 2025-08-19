@@ -1,5 +1,6 @@
 import { clamp, Vec2 } from "renda";
 import {
+	GM_FORCE_LATEST_PROTOCOL_VERSION,
 	UPDATES_VIEWPORT_RECT_SIZE,
 	VALID_PLAYER_NAME_LENGTH,
 	VALID_SKIN_COLOR_RANGE,
@@ -41,6 +42,7 @@ export const initializeControlSocketMessage = "initializeControlSocket";
  */
 export class WebSocketConnection {
 	#socket;
+	#mainInstance;
 	#game;
 	/** @type {Player?} */
 	#player = null;
@@ -54,9 +56,11 @@ export class WebSocketConnection {
 	/**
 	 * @param {WebSocket} socket
 	 * @param {string} ip
+	 * @param {import("./Main.js").Main} mainInstance
 	 * @param {import("./gameplay/Game.js").Game} game
 	 */
-	constructor(socket, ip, game) {
+	constructor(socket, ip, mainInstance, game) {
+		this.#mainInstance = mainInstance;
 		this.#socket = socket;
 		this.#game = game;
 	}
@@ -189,12 +193,19 @@ export class WebSocketConnection {
 			 * Sends the version of the client to the server.
 			 */
 			VERSION: 11,
+			/**
+			 * @deprecated
+			 */
 			PATREON_CODE: 12,
 			PROTOCOL_VERSION: 13,
 			/**
+			 * A peli sdk auth code which is used to determine which skins a player is allowed to use.
+			 */
+			PELI_AUTH_CODE: 14,
+			/**
 			 * Lets the server know if the player is using spectator mode.
 			 */
-			SPECTATOR_MODE: 14,
+			SPECTATOR_MODE: 15,
 		};
 	}
 
@@ -209,6 +220,38 @@ export class WebSocketConnection {
 	#protocolVersion = null;
 	get protocolVersion() {
 		return this.#protocolVersion || 0;
+	}
+
+	#plusSkinsAllowed = false;
+	set plusSkinsAllowed(value) {
+		this.#plusSkinsAllowed = value;
+		if (this.#game && this.#player) {
+			this.#game.broadcastPlayerColor(this.#player);
+
+			// The color of other players is adjusted to prevent other players from rendering with the same color as us.
+			// This means that if our own color changes, there's a chance that the color of other players changed as well.
+			// So we need to resend the player colors of all other players as well.
+			this.#player.updateNearbyPlayerSkinColors();
+
+			this.#player.sendCurrentViewportChunk();
+			this.#player.fireAllMyTileUpdates();
+		}
+	}
+
+	get plusSkinsAllowed() {
+		return this.#plusSkinsAllowed;
+	}
+
+	/**
+	 * @param {ArrayBuffer} data
+	 */
+	#parseBinaryStringMessage(data) {
+		const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
+		const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
+		if (data.byteLength > maxByteLength) return null;
+		const decoder = new TextDecoder();
+		const bytes = new Uint8Array(data, 1);
+		return decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 	}
 
 	/**
@@ -245,17 +288,16 @@ export class WebSocketConnection {
 			if (this.#protocolVersion == null) {
 				this.#protocolVersion = 0;
 			}
+			if (GM_FORCE_LATEST_PROTOCOL_VERSION.includes(this.#game.gameMode)) {
+				this.#protocolVersion = 3;
+			}
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
 				spec: this.#receivedSpectatorMode,
 			});
-			const pos = this.#player.getPosition();
-			this.#player.sendChunk({
-				min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
-				max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
-			});
+			this.#player.sendCurrentViewportChunk();
 			// Clients only really expect a single number, so we'll just take the maximum size of the map.
 			const mapSize = Math.max(this.#game.arena.width, this.#game.arena.height);
 			this.#sendMapSize(mapSize);
@@ -317,18 +359,20 @@ export class WebSocketConnection {
 			};
 		} else if (messageType == WebSocketConnection.ReceiveAction.SET_USERNAME) {
 			if (this.#player) return;
-			const maxNameByteLength = VALID_PLAYER_NAME_LENGTH * 4; // Unicode characters take up a max of 4 bytes
-			const maxByteLength = maxNameByteLength + 1; // The first byte is the message type
-			if (data.byteLength > maxByteLength) return;
-			const decoder = new TextDecoder();
-			const bytes = new Uint8Array(data, 1);
-			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
+			const name = this.#parseBinaryStringMessage(data);
+			if (name) this.#receivedName = name;
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
 			if (!this.#player || this.#player.isSpectator) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
 			this.#player.honk(honkDuration);
+		} else if (messageType == WebSocketConnection.ReceiveAction.PELI_AUTH_CODE) {
+			const code = this.#parseBinaryStringMessage(data);
+			if (!code) return;
+			const { hooks } = this.#mainInstance;
+			if (!hooks) return;
+			hooks.peliAuthCodeReceived(this, code);
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPECTATOR_MODE) {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;

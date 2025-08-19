@@ -316,7 +316,7 @@ export class Game {
 		const colorId = tilePlayer.skinColorIdForPlayer(player) + 1;
 		return {
 			colorId,
-			patternId: tilePlayer.skinPatternId,
+			patternId: tilePlayer.visibleSkinPatternId,
 		};
 	}
 
@@ -475,6 +475,16 @@ export class Game {
 	broadcastPlayerState(player) {
 		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
 			player.sendPlayerStateToPlayer(nearbyPlayer);
+		}
+	}
+
+	/**
+	 * Sends the current color of the player to all nearby players.
+	 * @param {import("./Player.js").Player} player
+	 */
+	broadcastPlayerColor(player) {
+		for (const nearbyPlayer of player.inOtherPlayerViewports()) {
+			player.sendPlayerColorToPlayer(nearbyPlayer);
 		}
 	}
 

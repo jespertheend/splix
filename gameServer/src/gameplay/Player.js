@@ -1,12 +1,12 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
-	FREE_SKINS_COUNT,
+	FREE_SKIN_COLOR_COUNT,
 	MAX_UNDO_EVENT_TIME,
 	MAX_UNDO_TILE_COUNT,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
+	PAID_SKIN_PATTERN_IDS,
 	PLAYER_TRAVEL_SPEED,
 	UPDATES_VIEWPORT_RECT_SIZE,
-	VALID_SKIN_COLOR_RANGE,
 	VIEWPORT_EDGE_CHUNK_SIZE,
 } from "../config.js";
 import { lerp, Vec2 } from "renda";
@@ -169,6 +169,8 @@ export class Player {
 
 	#skinColorId = 0;
 	#skinPatternId = 0;
+	/** If the client sent a paid skin id, this is the skin we fallback to if it turns out the client hasn't paid. */
+	#fallbackSkinColorId = 0;
 	#name = "";
 	get name() {
 		return this.#name;
@@ -216,8 +218,9 @@ export class Player {
 			this.#skinPatternId = options.skin.patternId;
 		}
 		this.#name = options.name;
+		this.#fallbackSkinColorId = Math.floor(lerp(1, FREE_SKIN_COLOR_COUNT + 1, Math.random()));
 		if (this.#skinColorId == 0) {
-			this.#skinColorId = Math.floor(lerp(1, FREE_SKINS_COUNT + 1, Math.random()));
+			this.#skinColorId = this.#fallbackSkinColorId;
 		}
 		this.#isSpectator = options.isSpectator;
 
@@ -253,6 +256,11 @@ export class Player {
 		const capturedTileCount = this.#isSpectator ? 0 : game.arena.fillPlayerSpawn(this.#currentPosition, id);
 		this.#setCapturedTileCount(capturedTileCount);
 
+		// We prevent the second way of flying.
+		if (this.#connection.protocolVersion >= 1) {
+			this.#currentTileType = id;
+		}
+
 		this.#joinTime = performance.now();
 
 		// We add one because at this point the current player hasn't been added to the game yet.
@@ -271,14 +279,6 @@ export class Player {
 
 	get connection() {
 		return this.#connection;
-	}
-
-	get skinColorId() {
-		return this.#skinColorId;
-	}
-
-	get skinPatternId() {
-		return this.#skinPatternId;
 	}
 
 	/**
@@ -355,6 +355,7 @@ export class Player {
 				return;
 			}
 
+			// We prevent the first way of flying, non-paused back and forth stacking immortal and OBP.
 			if (
 				this.#connection.protocolVersion >= 1 &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
@@ -509,6 +510,16 @@ export class Player {
 	 * Sends the state of this player to `receivingPlayer`.
 	 * @param {import("./Player.js").Player} receivingPlayer
 	 */
+	sendPlayerColorToPlayer(receivingPlayer) {
+		const playerId = this == receivingPlayer ? 0 : this.id;
+		const colorId = this.skinColorIdForPlayer(receivingPlayer);
+		receivingPlayer.connection.sendPlayerSkin(playerId, colorId);
+	}
+
+	/**
+	 * Sends the state of this player to `receivingPlayer`.
+	 * @param {import("./Player.js").Player} receivingPlayer
+	 */
 	sendTrailToPlayer(receivingPlayer) {
 		const playerId = this == receivingPlayer ? 0 : this.id;
 		const message = WebSocketConnection.createTrailMessage(playerId, Array.from(this.#trailVertices));
@@ -587,6 +598,20 @@ export class Player {
 		return "valid";
 	}
 
+	get visibleSkinColorId() {
+		if (!this.#connection.plusSkinsAllowed && this.#skinColorId > FREE_SKIN_COLOR_COUNT) {
+			return this.#fallbackSkinColorId;
+		}
+		return this.#skinColorId;
+	}
+
+	get visibleSkinPatternId() {
+		if (!this.#connection.plusSkinsAllowed && PAID_SKIN_PATTERN_IDS.includes(this.#skinPatternId)) {
+			return 0;
+		}
+		return this.#skinPatternId;
+	}
+
 	/**
 	 * Returns an integer that a client can use to render the correct color for this player or one of its tiles.
 	 * When two players have the same color, a different integer is returned to make sure a
@@ -595,8 +620,8 @@ export class Player {
 	 * @param {Player} otherPlayer The player that the message will be sent to.
 	 */
 	skinColorIdForPlayer(otherPlayer) {
-		if (this.#skinColorId != otherPlayer.#skinColorId || otherPlayer == this) {
-			return this.#skinColorId;
+		if (this.visibleSkinColorId != otherPlayer.visibleSkinColorId || otherPlayer == this) {
+			return this.visibleSkinColorId;
 		} else {
 			// At this point, the color of this player is the same as my color, we'll generate a random color (that is not mine)
 			// The color is not strictly random, but instead we use the id of the player as 'seed',
@@ -604,8 +629,8 @@ export class Player {
 
 			// The amount of possible colors to choose from.
 			// If we are using a free skin then this one cannot be generated, subtract one to exclude it.
-			let possibleSkinsCount = FREE_SKINS_COUNT;
-			if (this.#skinColorId <= possibleSkinsCount) {
+			let possibleSkinsCount = FREE_SKIN_COLOR_COUNT;
+			if (this.visibleSkinColorId <= possibleSkinsCount) {
 				possibleSkinsCount--;
 			}
 
@@ -624,12 +649,19 @@ export class Player {
 
 			// We 'cut' the range in half by shifting only one portion to the right.
 			// Only if the the current value is higher than or equal to the color of the other player, will we increment it.
-			if (fakeSkinId >= otherPlayer.#skinColorId) {
+			if (fakeSkinId >= otherPlayer.visibleSkinColorId) {
 				fakeSkinId++;
 			}
 			// Now fakeSkinId could range anywhere from 1 to (otherPlayer.skinId - 1)
 			// or from (otherPlayer.skinId + 1) to FREE_SKINS_COUNT.
 			return fakeSkinId;
+		}
+	}
+
+	updateNearbyPlayerSkinColors() {
+		for (const player of this.#playersInViewport) {
+			if (player == this) continue;
+			player.sendPlayerColorToPlayer(this);
 		}
 	}
 
@@ -873,6 +905,17 @@ export class Player {
 	}
 
 	/**
+	 * (re)sends a chunk of tiles from the arena containing entire visible viewport to this player.
+	 */
+	sendCurrentViewportChunk() {
+		const pos = this.getPosition();
+		this.sendChunk({
+			min: pos.clone().subScalar(UPDATES_VIEWPORT_RECT_SIZE),
+			max: pos.clone().addScalar(UPDATES_VIEWPORT_RECT_SIZE),
+		});
+	}
+
+	/**
 	 * Kills another player (or this player itself) and records an event in the event history.
 	 * So that the death can be undone should the player move back in time.
 	 *
@@ -968,6 +1011,14 @@ export class Player {
 		if (this.#allMyTilesCleared || this.#isSpectator) return;
 		this.#allMyTilesCleared = true;
 		this.game.arena.clearAllPlayerTiles(this.id);
+	}
+
+	/**
+	 * This will cause the arena worker to fire fill rect events which cover all filled tiles for this player.
+	 * This can be used to update the color of this player.
+	 */
+	fireAllMyTileUpdates() {
+		this.game.arena.fireAllPlayerTileUpdates(this.id);
 	}
 
 	/**
