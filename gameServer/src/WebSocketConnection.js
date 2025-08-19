@@ -194,7 +194,7 @@ export class WebSocketConnection {
 			/**
 			 * Lets the server know if the player is using spectator mode.
 			 */
-			SPEC_MODE: 14,
+			SPECTATOR_MODE: 14,
 		};
 	}
 
@@ -203,7 +203,7 @@ export class WebSocketConnection {
 	/** @type {import("./gameplay/Player.js").SkinData?} */
 	#receivedSkinData = null;
 	#receivedName = "";
-	#receivedSpecMode = false;
+	#receivedSpectatorMode = false;
 
 	/** @type {number?} */
 	#protocolVersion = null;
@@ -249,7 +249,7 @@ export class WebSocketConnection {
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
-				spec: this.#receivedSpecMode,
+				spec: this.#receivedSpectatorMode,
 			});
 			const pos = this.#player.getPosition();
 			this.#player.sendChunk({
@@ -324,15 +324,15 @@ export class WebSocketConnection {
 			const bytes = new Uint8Array(data, 1);
 			this.#receivedName = decoder.decode(bytes).slice(0, VALID_PLAYER_NAME_LENGTH);
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
-			if (!this.#player || this.#player.spec) return;
+			if (!this.#player || this.#player.spectating) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
 			this.#player.honk(honkDuration);
-		} else if (messageType == WebSocketConnection.ReceiveAction.SPEC_MODE) {
+		} else if (messageType == WebSocketConnection.ReceiveAction.SPECTATOR_MODE) {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;
-			this.#receivedSpecMode = view.getUint8(1) != 1 ? false : true;
+			this.#receivedSpectatorMode = view.getUint8(1) != 1 ? false : true;
 		}
 	}
 
@@ -473,15 +473,15 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
-	 * @param {boolean} playerSpec
+	 * @param {boolean} playerSpectating
 	 * @param {string} playerName
 	 */
-	sendPlayerInfo(playerId, playerSpec, playerName) {
+	sendPlayerInfo(playerId, playerSpectating, playerName) {
 		const encoder = new TextEncoder();
 		const nameBytes = encoder.encode(playerName);
 		const buffer = new ArrayBuffer(4 + nameBytes.byteLength);
 		const view = new DataView(buffer);
-		const playerSpecUint8 = playerSpec == false ? 0 : 1;
+		const playerSpectatingUint8 = playerSpectating == false ? 0 : 1;
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
@@ -490,7 +490,7 @@ export class WebSocketConnection {
 		view.setUint16(cursor, playerId);
 		cursor += 2;
 
-		view.setUint8(cursor, playerSpecUint8);
+		view.setUint8(cursor, playerSpectatingUint8);
 		cursor++;
 
 		const intView = new Uint8Array(buffer);
