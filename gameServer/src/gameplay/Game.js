@@ -216,11 +216,11 @@ export class Game {
 			// Global scores are deduplicated based on the player name,
 			// so the fact that we might report a score for these players a second time shouldn't be an issue.
 			for (const player of this.#players.values()) {
-				if (!player.spec) {
+				if (!player.isSpectator) {
 					this.#reportPlayerScore(player.getGlobalLeaderboardScore());
 				}
 			}
-		} else if (!player.spec) {
+		} else if (!player.isSpectator) {
 			this.#reportPlayerScore(player.getGlobalLeaderboardScore());
 		}
 		player.removedFromGame();
@@ -442,7 +442,7 @@ export class Game {
 	 */
 	*getUnfillableLocations(excludePlayer) {
 		for (const player of this.#players.values()) {
-			if (player == excludePlayer || player.permanentlyDead || player.spec) {
+			if (player == excludePlayer || player.permanentlyDead || player.isSpectator) {
 				continue;
 			}
 
