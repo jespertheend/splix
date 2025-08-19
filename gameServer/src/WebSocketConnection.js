@@ -295,7 +295,7 @@ export class WebSocketConnection {
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
-				spec: this.#receivedSpectatorMode,
+				isSpectator: this.#receivedSpectatorMode,
 			});
 			this.#player.sendCurrentViewportChunk();
 			// Clients only really expect a single number, so we'll just take the maximum size of the map.
