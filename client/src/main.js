@@ -180,7 +180,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode, specMode = false;
+var uiElems = [], zoom, myColorId, uglyMode, spectatorMode = false;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -242,7 +242,7 @@ var sendAction = {
 	VERSION: 11,
 	PATREON_CODE: 12,
 	PROTOCOL_VERSION: 13,
-	SPEC_MODE: 14,
+	SPECTATOR_MODE: 14,
 };
 
 var colors = {
@@ -980,13 +980,13 @@ function sendSkin() {
 	});
 }
 
-function sendSpecMode() {
-	var specMode = localStorage.getItem("specMode");
-	if (specMode === null) {
-		specMode = "false";
+function sendSpectatorMode() {
+	var spectatorMode = localStorage.getItem("spectatorMode");
+	if (spectatorMode === null) {
+		spectatorMode = "false";
 	}
-	wsSendMsg(sendAction.SPEC_MODE, specMode);
-	specMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
+	wsSendMsg(sendAction.SPECTATOR_MODE, spectatorMode);
+	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
 function sendPatreonCode() {
@@ -1261,7 +1261,7 @@ window.onload = function () {
 	joinButton = document.getElementById("joinButton");
 	qualityText = document.getElementById("qualityText");
 	uglyText = document.getElementById("uglyText");
-	specText = document.getElementById("specText");
+	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 	adBox = document.getElementById("adbox");
 	adBox2 = document.getElementById("adbox2");
@@ -1365,10 +1365,10 @@ window.onload = function () {
 	//quality button
 	qualityText.onclick = toggleQuality;
 	uglyText.onclick = toggleUglyMode;
-	specText.onclick = toggleSpecMode;
+	spectatorText.onclick = toggleSpectatorMode;
 	setQuality();
 	setUglyText();
-	setSpecText();
+	setSpectatorText();
 
 	initTutorial();
 	initSkinScreen();
@@ -1431,7 +1431,7 @@ function onOpen() {
 	sendPatreonCode();
 	sendName();
 	sendSkin();
-	sendSpecMode();
+	sendSpectatorMode();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
 		onConnectOrMiddleOfTransition();
@@ -2147,9 +2147,9 @@ function wsSendMsg(action, data) {
 			array.push(versionBytes[0]);
 			array.push(versionBytes[1]);
 		}
-		if (action == sendAction.SPEC_MODE) {
-			var isSpec = data != "true" ? 0 : 1;
-			array.push(isSpec);
+		if (action == sendAction.SPECTATOR_MODE) {
+			var isSpectator = data != "true" ? 0 : 1;
+			array.push(isSpectator);
 		}
 		var payload = new Uint8Array(array);
 		try {
@@ -4587,32 +4587,32 @@ function updateUglyMode() {
 	uglyMode = localStorage.uglyMode == "true";
 }
 
-var specText;
-function setSpecText() {
-	updateSpecMode();
-	var onOff = specMode ? "on" : "off";
-	specText.innerHTML = "Spectator mode: " + onOff;
+var spectatorText;
+function setSpectatorText() {
+	updateSpectatorMode();
+	var onOff = spectatorMode ? "on" : "off";
+	spectatorText.innerHTML = "Spectator mode: " + onOff;
 }
 
-function toggleSpecMode() {
-	switch (localStorage.specMode) {
+function toggleSpectatorMode() {
+	switch (localStorage.spectatorMode) {
 		case "true":
-			lsSet("specMode", "false");
+			lsSet("spectatorMode", "false");
 			break;
 		case "false":
 		default:
-			lsSet("specMode", "true");
+			lsSet("spectatorMode", "true");
 			break;
 	}
-	setSpecText();
+	setSpectatorText();
 }
 
 function setLeaderboardVisibility() {
 	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
 }
 
-function updateSpecMode() {
-	specMode = localStorage.specMode == "true";
+function updateSpectatorMode() {
+	spectatorMode = localStorage.spectatorMode == "true";
 }
 
 function loop(timeStamp) {
