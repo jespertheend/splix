@@ -161,7 +161,7 @@ export class GameServer {
 		this.#recommended = config.recommended;
 		this.#needsControlSocket = config.needsControlSocket;
 		this.#displayName = config.displayName;
-		if (config.endpoint != this.#endpoint) {
+		if (config.endpoint != this.#endpoint || this.#needsControlSocket != Boolean(this.#persistentWebSocket)) {
 			this.#endpoint = config.endpoint;
 			this.#validEndpoint = this.#isValidEndpoint(config.endpoint);
 			this.#updateWebSocket();
