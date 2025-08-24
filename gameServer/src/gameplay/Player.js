@@ -997,6 +997,9 @@ export class Player {
 	removedFromGame() {
 		this.#removedFromGame = true;
 		this.#clearAllMyTiles();
+		for (const player of this.#playersInViewport) {
+			player.#inOtherPlayerViewports.delete(this);
+		}
 		for (const player of this.#inOtherPlayerViewports) {
 			player.#playerRemovedFromViewport(this);
 		}
