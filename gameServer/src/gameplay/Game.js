@@ -216,9 +216,11 @@ export class Game {
 			// Global scores are deduplicated based on the player name,
 			// so the fact that we might report a score for these players a second time shouldn't be an issue.
 			for (const player of this.#players.values()) {
-				this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+				if (!player.isSpectator) {
+					this.#reportPlayerScore(player.getGlobalLeaderboardScore());
+				}
 			}
-		} else {
+		} else if (!player.isSpectator) {
 			this.#reportPlayerScore(player.getGlobalLeaderboardScore());
 		}
 		player.removedFromGame();
@@ -435,11 +437,12 @@ export class Game {
 	 * and the start of their trail if they have one.
 	 * If gameMode is arena, we also yield pit border positions.
 	 * Used to prevent filling locations with other players inside or pit's border.
+	 * We do not yield spectator player positions because they shouldn't prevent filling.
 	 * @param {import("./Player.js").Player} excludePlayer
 	 */
 	*getUnfillableLocations(excludePlayer) {
 		for (const player of this.#players.values()) {
-			if (player == excludePlayer || player.permanentlyDead) {
+			if (player == excludePlayer || player.permanentlyDead || player.isSpectator) {
 				continue;
 			}
 

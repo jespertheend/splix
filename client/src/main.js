@@ -1,6 +1,7 @@
 import { refreshBanner, showFullScreenAd, updateAdlad } from "./ads.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+import { getSpectatorIcon } from "./rendering/spectatorIcons.js";
 import { getPeliAuthCode, hasPlusRewards, initPeliSdk } from "./peliSdk.js";
 import { lsSet } from "./util.js";
 
@@ -12,7 +13,7 @@ var BLOCKS_ON_SCREEN = 1100;
 // var BLOCKS_ON_SCREEN = 20000;
 var WAIT_FOR_DISCONNECTED_MS = 1000;
 var USERNAME_SIZE = 6;
-var DEFAULT_PROTOCOL_VERSION = 2;
+var DEFAULT_PROTOCOL_VERSION = 3;
 
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
@@ -177,7 +178,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode = false;
+var uiElems = [], zoom, myColorId, uglyMode, spectatorMode = false;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -211,7 +212,7 @@ var receiveAction = {
 	PLAYER_DIE: 5,
 	CHUNK_OF_BLOCKS: 6,
 	REMOVE_PLAYER: 7,
-	PLAYER_NAME: 8,
+	PLAYER_INFO: 8,
 	MY_SCORE: 9,
 	MY_RANK: 10,
 	LEADERBOARD: 11,
@@ -247,6 +248,7 @@ var sendAction = {
 	PATREON_CODE: 12,
 	PROTOCOL_VERSION: 13,
 	PELI_AUTH_CODE: 14,
+	SPECTATOR_MODE: 15,
 };
 
 var colors = {
@@ -798,6 +800,16 @@ function getPlayer(id, array) {
 		serverPos: [0, 0],
 		dir: 0,
 		isMyPlayer: id === 0,
+		isSpectator: false,
+		spectatorIcon: null,
+		updateSpectatorIcon: async function () {
+			if (!this.isSpectator) {
+				this.spectatorIcon = null;
+			} else {
+				const playerColor = getColorForBlockSkinId(player.skinBlock);
+				this.spectatorIcon = await getSpectatorIcon(playerColor.darker);
+			}
+		},
 		isDead: false,
 		deathWasCertain: false,
 		didUncertainDeathLastTick: false,
@@ -946,6 +958,15 @@ function sendProtocolVersion() {
 		version = DEFAULT_PROTOCOL_VERSION;
 	}
 	wsSendMsg(sendAction.PROTOCOL_VERSION, version);
+}
+
+function sendSpectatorMode() {
+	var spectatorMode = localStorage.getItem("spectatorMode");
+	if (spectatorMode === null) {
+		spectatorMode = "false";
+	}
+	wsSendMsg(sendAction.SPECTATOR_MODE, spectatorMode);
+	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
 //sends current skin to websocket
@@ -1224,6 +1245,7 @@ window.onload = function () {
 	joinButton = document.getElementById("joinButton");
 	qualityText = document.getElementById("qualityText");
 	uglyText = document.getElementById("uglyText");
+	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 
 	window.onkeydown = function (e) {
@@ -1324,8 +1346,10 @@ window.onload = function () {
 	//quality button
 	qualityText.onclick = toggleQuality;
 	uglyText.onclick = toggleUglyMode;
+	spectatorText.onclick = toggleSpectatorMode;
 	setQuality();
 	setUglyText();
+	setSpectatorText();
 
 	initTutorial();
 	initSkinScreen();
@@ -1364,6 +1388,7 @@ function onOpen() {
 	sendName();
 	sendPeliCode();
 	sendSkin();
+	sendSpectatorMode();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
 		onConnectOrMiddleOfTransition();
@@ -1810,12 +1835,14 @@ function onMessage(evt) {
 			}
 		}
 	}
-	if (data[0] == receiveAction.PLAYER_NAME) {
+	if (data[0] == receiveAction.PLAYER_INFO) {
 		id = bytesToInt(data[1], data[2]);
-		nameBytes = data.subarray(3, data.length);
+		nameBytes = data.subarray(4, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
+		player.isSpectator = data[3] === 0 ? false : true;
 		player.name = filter(name);
+		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
 		var score = bytesToInt(data[1], data[2], data[3], data[4]);
@@ -1968,6 +1995,7 @@ function onMessage(evt) {
 			colorUI();
 		}
 		player.skinBlock = data[3];
+		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
 		playingAndReady = true;
@@ -2069,6 +2097,10 @@ function wsSendMsg(action, data) {
 			var versionBytes = intToBytes(data, 2);
 			array.push(versionBytes[0]);
 			array.push(versionBytes[1]);
+		}
+		if (action == sendAction.SPECTATOR_MODE) {
+			var isSpectator = data != "true" ? 0 : 1;
+			array.push(isSpectator);
 		}
 		var payload = new Uint8Array(array);
 		try {
@@ -4103,13 +4135,22 @@ function drawPlayer(ctx, player, timeStamp) {
 			}
 		}
 
+		//draw spectator image
+		if (player.isSpectator && player.spectatorIcon && !player.isDead) {
+			ctx.drawImage(player.spectatorIcon, dp[0] - 6.5, dp[1] - 6.7, 13, 13);
+		}
+
 		//draw cool shades
 		if (player.name == "Jesper" && !player.isDead) {
 			ctx.fillStyle = "black";
 			ctx.fillRect(dp[0] - 6.5, dp[1] - 2, 13, 1);
-			ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
-			ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
-			ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
+			if (player.isSpectator) {
+				ctx.fillRect(dp[0] - 4, dp[1] - 2, 8, 3);
+			} else {
+				ctx.fillRect(dp[0] - 1, dp[1] - 2, 2, 2);
+				ctx.fillRect(dp[0] - 5.5, dp[1] - 2, 5, 3);
+				ctx.fillRect(dp[0] + 0.5, dp[1] - 2, 5, 3);
+			}
 		}
 	}
 }
@@ -4210,8 +4251,32 @@ function updateUglyMode() {
 	uglyMode = localStorage.uglyMode == "true";
 }
 
+var spectatorText;
+function setSpectatorText() {
+	updateSpectatorMode();
+	var onOff = spectatorMode ? "on" : "off";
+	spectatorText.innerHTML = "Spectator mode: " + onOff;
+}
+
+function toggleSpectatorMode() {
+	switch (localStorage.spectatorMode) {
+		case "true":
+			lsSet("spectatorMode", "false");
+			break;
+		case "false":
+		default:
+			lsSet("spectatorMode", "true");
+			break;
+	}
+	setSpectatorText();
+}
+
 function setLeaderboardVisibility() {
 	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
+}
+
+function updateSpectatorMode() {
+	spectatorMode = localStorage.spectatorMode == "true";
 }
 
 function loop(timeStamp) {
@@ -4431,8 +4496,9 @@ function loop(timeStamp) {
 					}
 				}
 			}
-
-			drawPlayer(ctx, player, timeStamp);
+			if (player.isMyPlayer || !player.isSpectator || localStorage.showSpectators == "true") {
+				drawPlayer(ctx, player, timeStamp);
+			}
 		}
 
 		//change dir queue
