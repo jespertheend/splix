@@ -12,8 +12,46 @@ import {
 import { hasPlusRewards } from "./peliSdk.js";
 import { lsSet, mod } from "./util.js";
 
-let skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
+let skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [];
 let skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
+
+/**
+ * @param {string} key
+ */
+function getStorageItem(key) {
+	const stringValue = localStorage.getItem(key);
+	if (stringValue == null) return 0;
+	const intValue = parseInt(stringValue);
+	if (isNaN(intValue)) return 0;
+	return intValue;
+}
+
+let selectedColor = getStorageItem("skinColor");
+let selectedPattern = getStorageItem("skinPattern");
+
+export function getSkinColor() {
+	return selectedColor;
+}
+
+export function getSkinPattern() {
+	return selectedPattern;
+}
+
+/**
+ * @param {number} colorId
+ */
+export function setSkinColor(colorId) {
+	selectedColor = colorId;
+	lsSet("skinColor", colorId);
+}
+
+/**
+ * @param {number} patternId
+ */
+export function setSkinPattern(patternId) {
+	selectedPattern = patternId;
+	lsSet("skinPattern", patternId);
+}
 
 window.addEventListener("load", () => {
 	skinScreen = document.getElementById("skinScreen");
@@ -23,7 +61,6 @@ window.addEventListener("load", () => {
 
 export function initSkinScreen() {
 	skinButtonCanvas = document.getElementById("skinButton");
-	skinButtonShadow = document.getElementById("skinButtonShadow");
 	skinButtonCtx = skinButtonCanvas.getContext("2d");
 	skinButtonCanvas.onclick = function () {
 		if (canOpenSkinSelection()) {
@@ -31,20 +68,8 @@ export function initSkinScreen() {
 		}
 	};
 
-	var currentColor = localStorage.getItem("skinColor");
-	if (currentColor === null) {
-		currentColor = 0;
-	}
-	currentColor = parseInt(currentColor);
-
-	var currentPattern = localStorage.getItem("skinPattern");
-	if (currentPattern === null) {
-		currentPattern = 0;
-	}
-	currentPattern = parseInt(currentPattern);
-
 	skinScreenBlocks = [];
-	fillArea(0, 0, VIEWPORT_RADIUS * 2, VIEWPORT_RADIUS * 2, currentColor + 1, currentPattern, skinScreenBlocks);
+	fillArea(0, 0, VIEWPORT_RADIUS * 2, VIEWPORT_RADIUS * 2, selectedColor + 1, selectedPattern, skinScreenBlocks);
 
 	document.getElementById("prevColor").onclick = function () {
 		skinButton(-1, 0);
@@ -63,24 +88,15 @@ export function initSkinScreen() {
 	};
 
 	var block = getBlock(0, 0, skinButtonBlocks);
-	block.setBlockId(currentColor + 1, false);
+	block.setBlockId(selectedColor + 1, false);
 
 	skinButtonCanvas.onmouseover = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		currentColor = parseInt(currentColor);
-		if (currentColor > 0) {
-			skinButtonBlocks[0].setBlockId(currentColor + 1 + SKIN_BLOCK_COUNT, false);
+		if (selectedColor > 0) {
+			skinButtonBlocks[0].setBlockId(selectedColor + 1 + SKIN_BLOCK_COUNT, false);
 		}
 	};
 	skinButtonCanvas.onmouseout = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		skinButtonBlocks[0].setBlockId(parseInt(currentColor) + 1, false);
+		skinButtonBlocks[0].setBlockId(selectedColor + 1, false);
 	};
 }
 
@@ -129,7 +145,7 @@ export function hideSkinScreen() {
 //type = 0 (color) or 1 (pattern)
 function skinButton(add, type) {
 	if (type === 0) {
-		var oldC = localStorage.getItem("skinColor");
+		var oldC = selectedColor;
 		var hiddenCs = [];
 		if (!hasPlusRewards()) {
 			hiddenCs.push(13);
@@ -146,9 +162,9 @@ function skinButton(add, type) {
 				cFound = true;
 			}
 		}
-		lsSet("skinColor", oldC);
+		setSkinColor(oldC);
 	} else if (type == 1) {
-		var oldP = localStorage.getItem("skinPattern");
+		var oldP = selectedPattern;
 		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
 		if (!hasPlusRewards()) {
 			hiddenPs.push(27);
@@ -165,7 +181,7 @@ function skinButton(add, type) {
 				pFound = true;
 			}
 		}
-		lsSet("skinPattern", oldP);
+		setSkinPattern(oldP);
 	}
 
 	updateSkin();

@@ -14,11 +14,15 @@ import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
 import { getPeliAuthCode, initPeliSdk } from "./peliSdk.js";
 import {
+	getSkinColor,
+	getSkinPattern,
 	getSkinScreenVisible,
 	hideSkinScreen,
 	initSkinScreen,
 	renderSkinButton,
 	renderSkinScreen,
+	setSkinColor,
+	setSkinPattern,
 } from "./skinSelection.js";
 import { lsSet, mod } from "./util.js";
 
@@ -884,42 +888,42 @@ function checkUsername(name) {
 		var s = document.body.style;
 		s.webkitFilter = s.filter = "contrast(200%) hue-rotate(90deg) invert(100%)";
 	} else if (lower == "kwebbelkop") {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 18);
+		setSkinColor(12);
+		setSkinPattern(18);
 		updateSkin();
 	} else if (lower == "templar") {
-		lsSet("skinPattern", 28);
+		setSkinPattern(28);
 		updateSkin();
 	} else if (lower == "templar2") {
-		lsSet("skinPattern", 29);
+		setSkinPattern(29);
 		updateSkin();
 	} else if (lower == "jelly") {
-		lsSet("skinColor", 8);
-		lsSet("skinPattern", 19);
+		setSkinColor(8);
+		setSkinPattern(19);
 		updateSkin();
 	} else if (lower.indexOf("masterov") > -1 || lower.indexOf("[mg]") === 0 || lower.indexOf("(mg)") === 0) {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 20);
+		setSkinColor(12);
+		setSkinPattern(20);
 		updateSkin();
 	} else if (lower == "farsattack") {
-		lsSet("skinColor", 8);
-		lsSet("skinPattern", 21);
+		setSkinColor(8);
+		setSkinPattern(21);
 		updateSkin();
 	} else if (lower.indexOf("[am]") === 0 || lower.indexOf("(am)") === 0) {
-		lsSet("skinColor", 11);
-		lsSet("skinPattern", 23);
+		setSkinColor(11);
+		setSkinPattern(23);
 		updateSkin();
 	} else if (lower == "hetgames") {
-		lsSet("skinColor", 1);
-		lsSet("skinPattern", 24);
+		setSkinColor(1);
+		setSkinPattern(24);
 		updateSkin();
 	} else if (lower.indexOf("[gym]") === 0 || lower.indexOf("(gym)") === 0) {
-		lsSet("skinColor", 4);
-		lsSet("skinPattern", 25);
+		setSkinColor(4);
+		setSkinPattern(25);
 		updateSkin();
 	} else if (lower == "luh") {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 26);
+		setSkinColor(12);
+		setSkinPattern(26);
 		updateSkin();
 	}
 }
@@ -954,17 +958,9 @@ function sendProtocolVersion() {
 
 //sends current skin to websocket
 function sendSkin() {
-	var blockColor = localStorage.getItem("skinColor");
-	if (blockColor === null) {
-		blockColor = 0;
-	}
-	var pattern = localStorage.getItem("skinPattern");
-	if (pattern === null) {
-		pattern = 0;
-	}
 	wsSendMsg(sendAction.SKIN, {
-		blockColor: blockColor,
-		pattern: pattern,
+		blockColor: getSkinColor(),
+		pattern: getSkinPattern(),
 	});
 }
 
