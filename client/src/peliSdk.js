@@ -51,3 +51,14 @@ export async function getPeliAuthCode() {
 		scope: ["entitlements", "concurrencyGuard"],
 	});
 }
+
+export function getPeliSdkAsync() {
+	return peliSdkPromise;
+}
+
+export function getAssertedPeliSdk() {
+	if (!peliSdk) {
+		throw new Error("Peli sdk not loaded");
+	}
+	return peliSdk;
+}

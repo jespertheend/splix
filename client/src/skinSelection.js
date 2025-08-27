@@ -9,11 +9,14 @@ import {
 	hideBeginScreen,
 	showBeginScreen,
 } from "./main.js";
-import { hasPlusRewards } from "./peliSdk.js";
+import { getAssertedPeliSdk, getPeliSdkAsync, hasPlusRewards } from "./peliSdk.js";
 import { lsSet, mod } from "./util.js";
 
 let skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [];
 let skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
+
+const LOCKED_COLOR_IDS = [13];
+const LOCKED_PATTERN_IDS = [27];
 
 /**
  * @param {string} key
@@ -44,6 +47,7 @@ export function setSkinColor(colorId) {
 	selectedColor = colorId;
 	lsSet("skinColor", colorId);
 	updateScreenBackground();
+	updateSkinLockIcons();
 }
 
 /**
@@ -53,6 +57,7 @@ export function setSkinPattern(patternId) {
 	selectedPattern = patternId;
 	lsSet("skinPattern", patternId);
 	updateScreenBackground();
+	updateSkinLockIcons();
 }
 
 window.addEventListener("load", () => {
@@ -61,11 +66,12 @@ window.addEventListener("load", () => {
 	skinCtx = skinCanvas.getContext("2d");
 });
 
-export function initSkinScreen() {
+export async function initSkinScreen() {
 	skinButtonCanvas = document.getElementById("skinButton");
 	skinButtonCtx = skinButtonCanvas.getContext("2d");
 	skinButtonCanvas.onclick = function () {
 		if (canOpenSkinSelection()) {
+			updateSkinLockIcons();
 			doTransition("", false, openSkinScreen);
 		}
 	};
@@ -86,7 +92,14 @@ export function initSkinScreen() {
 		skinButton(1, 1);
 	};
 	document.getElementById("skinSave").onclick = function () {
-		doTransition("", false, showBeginHideSkin);
+		if (
+			!hasPlusRewards() &&
+			(LOCKED_COLOR_IDS.includes(selectedColor) || LOCKED_PATTERN_IDS.includes(selectedPattern))
+		) {
+			getAssertedPeliSdk().subscription.showSubscribeModal({ flow: "unlockItem" });
+		} else {
+			doTransition("", false, showBeginHideSkin);
+		}
 	};
 
 	var block = getBlock(0, 0, skinButtonBlocks);
@@ -100,6 +113,13 @@ export function initSkinScreen() {
 	skinButtonCanvas.onmouseout = function () {
 		skinButtonBlocks[0].setBlockId(selectedColor + 1, false);
 	};
+
+	const sdk = await getPeliSdkAsync();
+	if (sdk) {
+		sdk.entitlements.onChange(() => {
+			updateSkinLockIcons();
+		});
+	}
 }
 
 export function renderSkinButton() {
@@ -149,9 +169,6 @@ function skinButton(add, type) {
 	if (type === 0) {
 		var oldC = selectedColor;
 		var hiddenCs = [];
-		if (!hasPlusRewards()) {
-			hiddenCs.push(13);
-		}
 		if (oldC === null) {
 			oldC = 0;
 		}
@@ -168,9 +185,6 @@ function skinButton(add, type) {
 	} else if (type == 1) {
 		var oldP = selectedPattern;
 		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
-		if (!hasPlusRewards()) {
-			hiddenPs.push(27);
-		}
 		if (oldP === null) {
 			oldP = 0;
 		}
@@ -199,4 +213,15 @@ function updateScreenBackground() {
 		skinScreenBlocks,
 	);
 	skinButtonBlocks[0].setBlockId(blockId);
+}
+
+const colorLockIcon = document.getElementById("colorLockIcon");
+const patternLockIcon = document.getElementById("patternLockIcon");
+
+function updateSkinLockIcons() {
+	const colorLockVisible = !hasPlusRewards() && LOCKED_COLOR_IDS.includes(selectedColor);
+	colorLockIcon.style.display = colorLockVisible ? "" : "none";
+
+	const patternLockVisible = !hasPlusRewards() && LOCKED_PATTERN_IDS.includes(selectedPattern);
+	patternLockIcon.style.display = patternLockVisible ? "" : "none";
 }
