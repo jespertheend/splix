@@ -11,3 +11,13 @@ export function lsSet(name, value) {
 		return false;
 	}
 }
+
+/**
+ * Module function which always returns a non-negative result.
+ * Unlike the js 'remainder' operator (%) which returns a negative number when a negative number is provided as input.
+ * @param {number} n
+ * @param {number} m
+ */
+export function mod(n, m) {
+	return ((n % m) + m) % m;
+}
