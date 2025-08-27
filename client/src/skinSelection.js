@@ -43,6 +43,7 @@ export function getSkinPattern() {
 export function setSkinColor(colorId) {
 	selectedColor = colorId;
 	lsSet("skinColor", colorId);
+	updateScreenBackground();
 }
 
 /**
@@ -51,6 +52,7 @@ export function setSkinColor(colorId) {
 export function setSkinPattern(patternId) {
 	selectedPattern = patternId;
 	lsSet("skinPattern", patternId);
+	updateScreenBackground();
 }
 
 window.addEventListener("load", () => {
@@ -183,19 +185,17 @@ function skinButton(add, type) {
 		}
 		setSkinPattern(oldP);
 	}
-
-	updateSkin();
 }
 
-function updateSkin() {
-	var blockId = parseInt(localStorage.skinColor) + 1;
+function updateScreenBackground() {
+	const blockId = selectedColor + 1;
 	fillArea(
 		0,
 		0,
 		VIEWPORT_RADIUS * 2,
 		VIEWPORT_RADIUS * 2,
 		blockId,
-		parseInt(localStorage.skinPattern),
+		selectedPattern,
 		skinScreenBlocks,
 	);
 	skinButtonBlocks[0].setBlockId(blockId);
