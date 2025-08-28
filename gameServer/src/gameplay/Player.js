@@ -1018,6 +1018,7 @@ export class Player {
 	 * This can be used to update the color of this player.
 	 */
 	fireAllMyTileUpdates() {
+		if (this.#isSpectator) return;
 		this.game.arena.fireAllPlayerTileUpdates(this.id);
 	}
 
