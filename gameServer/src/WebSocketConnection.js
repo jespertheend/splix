@@ -522,10 +522,10 @@ export class WebSocketConnection {
 	 */
 	sendPlayerInfo(playerId, playerIsSpectator, playerName) {
 		const encoder = new TextEncoder();
+		const offset = this.#protocolVersion >= 3 ? 4 : 3;
 		const nameBytes = encoder.encode(playerName);
-		const buffer = new ArrayBuffer(4 + nameBytes.byteLength);
+		const buffer = new ArrayBuffer(offset + nameBytes.byteLength);
 		const view = new DataView(buffer);
-		const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
@@ -534,8 +534,11 @@ export class WebSocketConnection {
 		view.setUint16(cursor, playerId);
 		cursor += 2;
 
-		view.setUint8(cursor, playerIsSpectatorUint8);
-		cursor++;
+		if (this.#protocolVersion >= 3) {
+			const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
+			view.setUint8(cursor, playerIsSpectatorUint8);
+			cursor++;
+		}
 
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);
