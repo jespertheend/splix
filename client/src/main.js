@@ -1,18 +1,30 @@
 import { refreshBanner, showFullScreenAd, updateAdlad } from "./ads.js";
+import {
+	BLOCKS_ON_SCREEN,
+	DEFAULT_PROTOCOL_VERSION,
+	GLOBAL_SPEED,
+	MAX_ZOOM,
+	SKIN_BLOCK_COUNT,
+	SKIN_PATTERN_COUNT,
+	USERNAME_SIZE,
+	VIEWPORT_RADIUS,
+	WAIT_FOR_DISCONNECTED_MS,
+} from "./constants.js";
 import "./globals.js";
 import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
-import { getPeliAuthCode, hasPlusRewards, initPeliSdk } from "./peliSdk.js";
-import { lsSet } from "./util.js";
-
-var GLOBAL_SPEED = 0.006;
-var VIEWPORT_RADIUS = 30;
-var MAX_ZOOM = 430;
-// var MAX_ZOOM = 10000;
-var BLOCKS_ON_SCREEN = 1100;
-// var BLOCKS_ON_SCREEN = 20000;
-var WAIT_FOR_DISCONNECTED_MS = 1000;
-var USERNAME_SIZE = 6;
-var DEFAULT_PROTOCOL_VERSION = 2;
+import { getPeliAuthCode, initPeliSdk } from "./peliSdk.js";
+import {
+	getSkinColor,
+	getSkinPattern,
+	getSkinScreenVisible,
+	hideSkinScreen,
+	initSkinScreen,
+	renderSkinButton,
+	renderSkinScreen,
+	setSkinColor,
+	setSkinPattern,
+} from "./skinSelection.js";
+import { lsSet, mod } from "./util.js";
 
 //stackoverflow.com/a/15666143/3625298
 var MAX_PIXEL_RATIO = (function () {
@@ -108,8 +120,6 @@ var SECURE_WS = IS_SECURE ? "wss://" : "ws://";
 // 	flashIsInstalled = ('undefined' != typeof navigator.mimeTypes['application/x-shockwave-flash']);
 // }
 // ga('set', 'dimension1', flashIsInstalled ? 'yes': 'no');
-var SKIN_BLOCK_COUNT = 13;
-var SKIN_PATTERN_COUNT = 28;
 var ws = null, mainCanvas, ctx, prevTimeStamp = null, blocks = [], players = [];
 var camPos = [0, 0], camPosSet = false, camPosPrevFrame = [0, 0], myNameAlphaTimer = 0;
 var myPos = null,
@@ -160,8 +170,6 @@ var transitionCanvas,
 var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = null, transitionReverseOnHalf = false;
 var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
 var touchControlsElem;
-var skinButtonCanvas, skinButtonCtx, skinButtonBlocks = [], skinButtonShadow;
-var skinCanvas, skinCtx, skinScreen, skinScreenVisible = false, skinScreenBlocks;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
 var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
@@ -707,7 +715,7 @@ function startPingServers() {
 //gets a block from the specified array,
 //creates it if it doesn't exist yet
 //if array is not specified it will default to the blocks[] array
-function getBlock(x, y, array) {
+export function getBlock(x, y, array) {
 	var block;
 	if (array === undefined) {
 		array = blocks;
@@ -880,43 +888,33 @@ function checkUsername(name) {
 		var s = document.body.style;
 		s.webkitFilter = s.filter = "contrast(200%) hue-rotate(90deg) invert(100%)";
 	} else if (lower == "kwebbelkop") {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 18);
-		updateSkin();
+		setSkinColor(12);
+		setSkinPattern(18);
 	} else if (lower == "templar") {
-		lsSet("skinPattern", 28);
-		updateSkin();
+		setSkinPattern(28);
 	} else if (lower == "templar2") {
-		lsSet("skinPattern", 29);
-		updateSkin();
+		setSkinPattern(29);
 	} else if (lower == "jelly") {
-		lsSet("skinColor", 8);
-		lsSet("skinPattern", 19);
-		updateSkin();
+		setSkinColor(8);
+		setSkinPattern(19);
 	} else if (lower.indexOf("masterov") > -1 || lower.indexOf("[mg]") === 0 || lower.indexOf("(mg)") === 0) {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 20);
-		updateSkin();
+		setSkinColor(12);
+		setSkinPattern(20);
 	} else if (lower == "farsattack") {
-		lsSet("skinColor", 8);
-		lsSet("skinPattern", 21);
-		updateSkin();
+		setSkinColor(8);
+		setSkinPattern(21);
 	} else if (lower.indexOf("[am]") === 0 || lower.indexOf("(am)") === 0) {
-		lsSet("skinColor", 11);
-		lsSet("skinPattern", 23);
-		updateSkin();
+		setSkinColor(11);
+		setSkinPattern(23);
 	} else if (lower == "hetgames") {
-		lsSet("skinColor", 1);
-		lsSet("skinPattern", 24);
-		updateSkin();
+		setSkinColor(1);
+		setSkinPattern(24);
 	} else if (lower.indexOf("[gym]") === 0 || lower.indexOf("(gym)") === 0) {
-		lsSet("skinColor", 4);
-		lsSet("skinPattern", 25);
-		updateSkin();
+		setSkinColor(4);
+		setSkinPattern(25);
 	} else if (lower == "luh") {
-		lsSet("skinColor", 12);
-		lsSet("skinPattern", 26);
-		updateSkin();
+		setSkinColor(12);
+		setSkinPattern(26);
 	}
 }
 
@@ -950,17 +948,9 @@ function sendProtocolVersion() {
 
 //sends current skin to websocket
 function sendSkin() {
-	var blockColor = localStorage.getItem("skinColor");
-	if (blockColor === null) {
-		blockColor = 0;
-	}
-	var pattern = localStorage.getItem("skinPattern");
-	if (pattern === null) {
-		pattern = 0;
-	}
 	wsSendMsg(sendAction.SKIN, {
-		blockColor: blockColor,
-		pattern: pattern,
+		blockColor: getSkinColor(),
+		pattern: getSkinPattern(),
 	});
 }
 
@@ -1216,9 +1206,6 @@ window.onload = function () {
 	tutorialText = document.getElementById("tutorialText");
 	touchControlsElem = document.getElementById("touchControls");
 	notificationElem = document.getElementById("notification");
-	skinScreen = document.getElementById("skinScreen");
-	skinCanvas = document.getElementById("skinScreenCanvas");
-	skinCtx = skinCanvas.getContext("2d");
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
@@ -1383,11 +1370,11 @@ function onConnectOrMiddleOfTransition() {
 
 //hides beginScreen and shows the main canvas and ui
 function hideBeginShowMain() {
-	hideBegin();
+	hideBeginScreen();
 	showMainCanvas();
 }
 
-function hideBegin() {
+export function hideBeginScreen() {
 	beginScreen.style.display = "none";
 	beginScreenVisible = false;
 	updateCmpPersistentLinkVisibility();
@@ -1408,7 +1395,7 @@ function setNotification(str) {
 	notificationElem.style.display = str ? null : "none";
 }
 
-function showBegin() {
+export function showBeginScreen() {
 	beginScreen.style.display = null;
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
@@ -1421,30 +1408,10 @@ function hideMainCanvas() {
 	touchControlsElem.style.display = "none";
 }
 
-function showSkinScreen() {
-	skinScreenVisible = true;
-	skinScreen.style.display = null;
-}
-
-function hideSkinScreen() {
-	skinScreenVisible = false;
-	skinScreen.style.display = "none";
-}
-
-function openSkinScreen() {
-	hideBegin();
-	showSkinScreen();
-}
-
 //hides main canvas and ui and shows beginScreen
 function showBeginHideMainCanvas() {
-	showBegin();
+	showBeginScreen();
 	hideMainCanvas();
-}
-
-function showBeginHideSkin() {
-	showBegin();
-	hideSkinScreen();
 }
 
 //when WebSocket connection is closed
@@ -2081,6 +2048,10 @@ function wsSendMsg(action, data) {
 	return false;
 }
 
+export function canOpenSkinSelection() {
+	return !ws && !isTransitioning && !playingAndReady;
+}
+
 //basically like refreshing the page
 function resetAll() {
 	if (!!ws && ws.readyState == WebSocket.OPEN) {
@@ -2146,70 +2117,6 @@ function initTutorial() {
 	p2.skinBlock = 0;
 	p2.pos = [-2, 7];
 	p2.hasReceivedPosition = true;
-}
-
-//initiate skinScreenBlocks and buttons
-function initSkinScreen() {
-	skinButtonCanvas = document.getElementById("skinButton");
-	skinButtonShadow = document.getElementById("skinButtonShadow");
-	skinButtonCtx = skinButtonCanvas.getContext("2d");
-	skinButtonCanvas.onclick = function () {
-		if (!ws && !isTransitioning && !playingAndReady) {
-			doTransition("", false, openSkinScreen);
-		}
-	};
-
-	var currentColor = localStorage.getItem("skinColor");
-	if (currentColor === null) {
-		currentColor = 0;
-	}
-	currentColor = parseInt(currentColor);
-
-	var currentPattern = localStorage.getItem("skinPattern");
-	if (currentPattern === null) {
-		currentPattern = 0;
-	}
-	currentPattern = parseInt(currentPattern);
-
-	skinScreenBlocks = [];
-	fillArea(0, 0, VIEWPORT_RADIUS * 2, VIEWPORT_RADIUS * 2, currentColor + 1, currentPattern, skinScreenBlocks);
-
-	document.getElementById("prevColor").onclick = function () {
-		skinButton(-1, 0);
-	};
-	document.getElementById("nextColor").onclick = function () {
-		skinButton(1, 0);
-	};
-	document.getElementById("prevPattern").onclick = function () {
-		skinButton(-1, 1);
-	};
-	document.getElementById("nextPattern").onclick = function () {
-		skinButton(1, 1);
-	};
-	document.getElementById("skinSave").onclick = function () {
-		doTransition("", false, showBeginHideSkin);
-	};
-
-	var block = getBlock(0, 0, skinButtonBlocks);
-	block.setBlockId(currentColor + 1, false);
-
-	skinButtonCanvas.onmouseover = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		currentColor = parseInt(currentColor);
-		if (currentColor > 0) {
-			skinButtonBlocks[0].setBlockId(currentColor + 1 + SKIN_BLOCK_COUNT, false);
-		}
-	};
-	skinButtonCanvas.onmouseout = function () {
-		var currentColor = localStorage.getItem("skinColor");
-		if (currentColor === null) {
-			currentColor = 0;
-		}
-		skinButtonBlocks[0].setBlockId(parseInt(currentColor) + 1, false);
-	};
 }
 
 //initiate title players
@@ -2293,67 +2200,6 @@ function colorBox(elem, mainColor, edgeColor) {
 		"4px 4px " + edgeColor + "," +
 		"5px 5px " + edgeColor + "," +
 		"10px 30px 80px rgba(0,0,0,0.3)";
-}
-
-//called when a skinbutton is pressed
-//add = -1 or 1 (increment/decrement)
-//type = 0 (color) or 1 (pattern)
-function skinButton(add, type) {
-	if (type === 0) {
-		var oldC = localStorage.getItem("skinColor");
-		var hiddenCs = [];
-		if (!hasPlusRewards()) {
-			hiddenCs.push(13);
-		}
-		if (oldC === null) {
-			oldC = 0;
-		}
-		oldC = parseInt(oldC);
-		var cFound = false;
-		while (!cFound) {
-			oldC += add;
-			oldC = mod(oldC, SKIN_BLOCK_COUNT + 1);
-			if (hiddenCs.indexOf(oldC) < 0) {
-				cFound = true;
-			}
-		}
-		lsSet("skinColor", oldC);
-	} else if (type == 1) {
-		var oldP = localStorage.getItem("skinPattern");
-		var hiddenPs = [18, 19, 20, 21, 23, 24, 25, 26];
-		if (!hasPlusRewards()) {
-			hiddenPs.push(27);
-		}
-		if (oldP === null) {
-			oldP = 0;
-		}
-		oldP = parseInt(oldP);
-		var pFound = false;
-		while (!pFound) {
-			oldP += add;
-			oldP = mod(oldP, SKIN_PATTERN_COUNT);
-			if (hiddenPs.indexOf(oldP) < 0) {
-				pFound = true;
-			}
-		}
-		lsSet("skinPattern", oldP);
-	}
-
-	updateSkin();
-}
-
-function updateSkin() {
-	var blockId = parseInt(localStorage.skinColor) + 1;
-	fillArea(
-		0,
-		0,
-		VIEWPORT_RADIUS * 2,
-		VIEWPORT_RADIUS * 2,
-		blockId,
-		parseInt(localStorage.skinPattern),
-		skinScreenBlocks,
-	);
-	skinButtonBlocks[0].setBlockId(blockId);
 }
 
 //lives stuff
@@ -2673,7 +2519,7 @@ var canvasTransformTypes = {
 	LIFE: 6,
 };
 var canvasTransformType = canvasTransformTypes.MAIN;
-function ctxApplyCamTransform(ctx, setSize, dontUseQuality) {
+export function ctxApplyCamTransform(ctx, setSize, dontUseQuality) {
 	if (setSize) {
 		ctxCanvasSize(ctx, dontUseQuality);
 	}
@@ -2801,11 +2647,6 @@ function lerpA(a, b, t) {
 		newArray.push(lerp(a[i], b[i], t));
 	}
 	return newArray;
-}
-
-//fixed modulo
-function mod(n, m) {
-	return ((n % m) + m) % m;
 }
 
 //clamp
@@ -2969,7 +2810,7 @@ function orderTwoPos(pos1, pos2) {
 }
 
 //fills an area, if array is not specified it defaults to blocks[]
-function fillArea(x, y, w, h, type, pattern, array, isEdgeChunk = false) {
+export function fillArea(x, y, w, h, type, pattern, array, isEdgeChunk = false) {
 	var defaultArray = array === undefined;
 	if (defaultArray) {
 		array = blocks;
@@ -3485,7 +3326,7 @@ function onTouchEnd(e) {
 //reverseOnHalf: start playing backwords once it is showing the title
 //callback1: callback fired once the transition is full screen for the first time
 //callback2: fired when full screen for the second time, only shown when reverseOnHalf = true
-function doTransition(text, reverseOnHalf, callback1, callback2, overrideExisting) {
+export function doTransition(text, reverseOnHalf, callback1, callback2, overrideExisting) {
 	// console.log("doTransition()", text, reverseOnHalf, callback1, callback2, overrideExisting);
 	// console.log("isTransitioning:",isTransitioning);
 	if (!isTransitioning || overrideExisting) {
@@ -3627,7 +3468,7 @@ function drawTitle(ctx, time, isShadow, maxExtrude, extraShadow) {
 }
 
 //draws blocks on ctx
-function drawBlocks(ctx, blocks, checkViewport) {
+export function drawBlocks(ctx, blocks, checkViewport) {
 	var t2;
 	for (var i = 0; i < blocks.length; i++) {
 		var block = blocks[i];
@@ -4799,20 +4640,14 @@ function loop(timeStamp) {
 		if (beginScreenVisible) {
 			canvasTransformType = canvasTransformTypes.SKIN_BUTTON;
 
-			ctxApplyCamTransform(skinButtonCtx, true, true);
-
-			drawBlocks(skinButtonCtx, skinButtonBlocks);
-			skinButtonCtx.restore();
+			renderSkinButton();
 		}
 
 		//skin screen canvas
-		if (skinScreenVisible) {
+		if (getSkinScreenVisible()) {
 			canvasTransformType = canvasTransformTypes.SKIN;
 
-			ctxApplyCamTransform(skinCtx, true);
-
-			drawBlocks(skinCtx, skinScreenBlocks);
-			skinCtx.restore();
+			renderSkinScreen();
 		}
 
 		//lastStats
