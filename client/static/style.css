@@ -407,6 +407,18 @@ a:hover {
 	left: 25px;
 	z-index: 20;
 	color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 5px;
+}
+
+.lock-icon {
+	width: 18px;
+	height: 18px;
+	background-image: url("./img/lock.svg");
+	background-size: contain;
+	background-repeat: no-repeat;
 }
 
 #skinSave {

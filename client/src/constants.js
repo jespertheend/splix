@@ -1,0 +1,9 @@
+export const GLOBAL_SPEED = 0.006;
+export const VIEWPORT_RADIUS = 30;
+export const MAX_ZOOM = 430;
+export const BLOCKS_ON_SCREEN = 1100;
+export const WAIT_FOR_DISCONNECTED_MS = 1000;
+export const USERNAME_SIZE = 6;
+export const DEFAULT_PROTOCOL_VERSION = 2;
+export const SKIN_BLOCK_COUNT = 13;
+export const SKIN_PATTERN_COUNT = 28;
