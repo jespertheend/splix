@@ -1,7 +1,5 @@
 import { clamp, Vec2 } from "renda";
 import {
-	GM_FORCE_LATEST_PROTOCOL_VERSION,
-	UPDATES_VIEWPORT_RECT_SIZE,
 	VALID_PLAYER_NAME_LENGTH,
 	VALID_SKIN_COLOR_RANGE,
 	VALID_SKIN_PATTERN_RANGE,
@@ -287,9 +285,6 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.READY) {
 			if (this.#protocolVersion == null) {
 				this.#protocolVersion = 0;
-			}
-			if (GM_FORCE_LATEST_PROTOCOL_VERSION.includes(this.#game.gameMode)) {
-				this.#protocolVersion = 3;
 			}
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
