@@ -1,9 +1,5 @@
 import { clamp, Vec2 } from "renda";
-import {
-	VALID_PLAYER_NAME_LENGTH,
-	VALID_SKIN_COLOR_RANGE,
-	VALID_SKIN_PATTERN_RANGE,
-} from "./config.js";
+import { VALID_PLAYER_NAME_LENGTH, VALID_SKIN_COLOR_RANGE, VALID_SKIN_PATTERN_RANGE } from "./config.js";
 import { Player } from "./gameplay/Player.js";
 import { ControlSocketConnection } from "./ControlSocketConnection.js";
 
