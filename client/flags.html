@@ -62,6 +62,10 @@
 			<input id="uglyMode" type="checkbox" /></label>
 		<div class="st">In case your fps is too low. Warning! Makes the game ugly. (This is subjective)</div>
 
+		<label>Show spectators
+			<input id="showSpectators" type="checkbox" /></label>
+		<div class="st">Spectators are hidden by default. If you check this checkbox you will be able to see them.</div>
+
 		<!-- <label>Enable experimental features (beta)
     <input id="beta" type="checkbox" /></label>
     <div class="st">Teams! Teams! Teams! Teams!</div> -->
@@ -126,6 +130,12 @@
 				localStorage.uglyMode = this.checked;
 			});
 			uglyEl.checked = localStorage.uglyMode == "true";
+
+			var spectatorEl = document.getElementById("showSpectators");
+			spectatorEl.addEventListener("change", function () {
+				localStorage.showSpectators = this.checked;
+			});
+			spectatorEl.checked = localStorage.showSpectators == "true";
 
 			// var betaEl = document.getElementById("beta");
 			// betaEl.addEventListener("change",function(){

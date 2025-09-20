@@ -99,9 +99,9 @@ export class WebSocketConnection {
 			 */
 			REMOVE_PLAYER: 7,
 			/**
-			 * Notifies the client about the name of a specific player.
+			 * Notifies the client about the name of a specific player and if they use spectator mode.
 			 */
-			PLAYER_NAME: 8,
+			PLAYER_INFO: 8,
 			/**
 			 * Sends the captured tile count and kill count of the current player.
 			 */
@@ -202,6 +202,10 @@ export class WebSocketConnection {
 			 * A peli sdk auth code which is used to determine which skins a player is allowed to use.
 			 */
 			PELI_AUTH_CODE: 14,
+			/**
+			 * Lets the server know if the player is using spectator mode.
+			 */
+			SPECTATOR_MODE: 15,
 		};
 	}
 
@@ -210,6 +214,7 @@ export class WebSocketConnection {
 	/** @type {import("./gameplay/Player.js").SkinData?} */
 	#receivedSkinData = null;
 	#receivedName = "";
+	#receivedSpectatorMode = false;
 
 	/** @type {number?} */
 	#protocolVersion = null;
@@ -284,12 +289,13 @@ export class WebSocketConnection {
 				this.#protocolVersion = 0;
 			}
 			if (GM_FORCE_LATEST_PROTOCOL_VERSION.includes(this.#game.gameMode)) {
-				this.#protocolVersion = 2;
+				this.#protocolVersion = 3;
 			}
 			if (this.#player) return;
 			this.#player = this.#game.createPlayer(this, {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
+				isSpectator: this.#receivedSpectatorMode,
 			});
 			this.#player.sendCurrentViewportChunk();
 			// Clients only really expect a single number, so we'll just take the maximum size of the map.
@@ -356,7 +362,7 @@ export class WebSocketConnection {
 			const name = this.#parseBinaryStringMessage(data);
 			if (name) this.#receivedName = name;
 		} else if (messageType == WebSocketConnection.ReceiveAction.HONK) {
-			if (!this.#player) return;
+			if (!this.#player || this.#player.isSpectator) return;
 			if (view.byteLength != 2) return;
 			let honkDuration = view.getUint8(1);
 			honkDuration = Math.max(honkDuration, 70);
@@ -367,6 +373,10 @@ export class WebSocketConnection {
 			const { hooks } = this.#mainInstance;
 			if (!hooks) return;
 			hooks.peliAuthCodeReceived(this, code);
+		} else if (messageType == WebSocketConnection.ReceiveAction.SPECTATOR_MODE) {
+			if (this.#player) return;
+			if (view.byteLength != 2) return;
+			this.#receivedSpectatorMode = view.getUint8(1) != 1 ? false : true;
 		}
 	}
 
@@ -507,20 +517,28 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
+	 * @param {boolean} playerIsSpectator
 	 * @param {string} playerName
 	 */
-	sendPlayerName(playerId, playerName) {
+	sendPlayerInfo(playerId, playerIsSpectator, playerName) {
 		const encoder = new TextEncoder();
+		const offset = this.protocolVersion >= 3 ? 4 : 3;
 		const nameBytes = encoder.encode(playerName);
-		const buffer = new ArrayBuffer(3 + nameBytes.byteLength);
+		const buffer = new ArrayBuffer(offset + nameBytes.byteLength);
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
 		cursor += 2;
+
+		if (this.protocolVersion >= 3) {
+			const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
+			view.setUint8(cursor, playerIsSpectatorUint8);
+			cursor++;
+		}
 
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);

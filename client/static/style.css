@@ -478,7 +478,7 @@ a:hover {
 	text-decoration: underline;
 }
 
-#qualityText, #uglyText {
+#qualityText, #uglyText, #spectatorText {
 	cursor: pointer;
 }
 
