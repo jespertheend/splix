@@ -1,6 +1,7 @@
 import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
 	FREE_SKIN_COLOR_COUNT,
+	GM_FORCE_FLYING_PATCHES,
 	MAX_UNDO_EVENT_TIME,
 	MAX_UNDO_TILE_COUNT,
 	MIN_TILES_VIEWPORT_RECT_SIZE,
@@ -257,7 +258,7 @@ export class Player {
 		this.#setCapturedTileCount(capturedTileCount);
 
 		// We prevent the second way of flying.
-		if (this.#connection.protocolVersion >= 1) {
+		if (this.#connection.protocolVersion >= 1 || GM_FORCE_FLYING_PATCHES.includes(this.#game.gameMode)) {
 			this.#currentTileType = id;
 		}
 
@@ -357,7 +358,7 @@ export class Player {
 
 			// We prevent the first way of flying, non-paused back and forth stacking immortal and OBP.
 			if (
-				this.#connection.protocolVersion >= 1 &&
+				(this.#connection.protocolVersion >= 1 || GM_FORCE_FLYING_PATCHES.includes(this.#game.gameMode)) &&
 				desiredPosition.x == this.#lastCertainClientPosition.x &&
 				desiredPosition.y == this.#lastCertainClientPosition.y &&
 				this.#currentDirection != "paused"
