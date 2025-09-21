@@ -151,6 +151,7 @@ var myScoreElem,
 	totalPlayersElem,
 	totalPlayers = 0;
 var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
+var spectatorHidden = true;
 var miniMapPlayer,
 	playUI,
 	beginScreen,
@@ -1241,6 +1242,11 @@ window.onload = function () {
 			pressedKeys.push(c);
 
 			var pd = parseDirKey(c);
+			if (c == 77 && myPos) {
+				spectatorHidden = !spectatorHidden;
+				localStorage.setItem("showSpectators", spectatorHidden);
+			}
+			
 			if (c == 79 && myPos) {
 				leaderboardHidden = !leaderboardHidden;
 				setLeaderboardVisibility();
