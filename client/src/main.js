@@ -220,7 +220,7 @@ var receiveAction = {
 	PLAYER_DIE: 5,
 	CHUNK_OF_BLOCKS: 6,
 	REMOVE_PLAYER: 7,
-	PLAYER_INFO: 8,
+	PLAYER_NAME: 8,
 	MY_SCORE: 9,
 	MY_RANK: 10,
 	LEADERBOARD: 11,
@@ -1802,12 +1802,11 @@ function onMessage(evt) {
 			}
 		}
 	}
-	if (data[0] == receiveAction.PLAYER_INFO) {
+	if (data[0] == receiveAction.PLAYER_NAME) {
 		id = bytesToInt(data[1], data[2]);
-		nameBytes = data.subarray(4, data.length);
+		nameBytes = data.subarray(3, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
-		player.isSpectator = data[3] === 0 ? false : true;
 		player.name = filter(name);
 		player.updateSpectatorIcon();
 	}
@@ -1962,6 +1961,7 @@ function onMessage(evt) {
 			colorUI();
 		}
 		player.skinBlock = data[3];
+		player.isSpectator = data[4] === 0 ? false : true;
 		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
