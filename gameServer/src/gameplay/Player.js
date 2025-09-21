@@ -514,7 +514,7 @@ export class Player {
 	sendPlayerColorToPlayer(receivingPlayer) {
 		const playerId = this == receivingPlayer ? 0 : this.id;
 		const colorId = this.skinColorIdForPlayer(receivingPlayer);
-		receivingPlayer.connection.sendPlayerSkin(playerId, colorId);
+		receivingPlayer.connection.sendPlayerSkin(playerId, colorId, this.#isSpectator);
 	}
 
 	/**
