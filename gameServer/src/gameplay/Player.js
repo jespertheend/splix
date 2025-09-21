@@ -821,8 +821,8 @@ export class Player {
 		player.sendPlayerStateToPlayer(this);
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
-		this.#connection.sendPlayerSkin(playerId, colorId);
-		this.#connection.sendPlayerInfo(playerId, player.#isSpectator, player.#name);
+		this.#connection.sendPlayerSkin(playerId, colorId, player.#isSpectator);
+		this.#connection.sendPlayerName(playerId, player.#name);
 		if (player.dead) {
 			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
 			this.#connection.send(playerDeadMessage);
