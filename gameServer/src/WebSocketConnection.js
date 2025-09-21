@@ -93,9 +93,9 @@ export class WebSocketConnection {
 			 */
 			REMOVE_PLAYER: 7,
 			/**
-			 * Notifies the client about the name of a specific player and if they use spectator mode.
+			 * Notifies the client about the name of a specific player.
 			 */
-			PLAYER_INFO: 8,
+			PLAYER_NAME: 8,
 			/**
 			 * Sends the captured tile count and kill count of the current player.
 			 */
@@ -492,10 +492,12 @@ export class WebSocketConnection {
 	/**
 	 * @param {number} playerId
 	 * @param {number} colorId
+	 * @param {boolean} playerIsSpectator
 	 */
-	sendPlayerSkin(playerId, colorId) {
-		const buffer = new ArrayBuffer(4);
+	sendPlayerSkin(playerId, colorId, playerIsSpectator) {
+		const buffer = new ArrayBuffer(5);
 		const view = new DataView(buffer);
+		const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
 		let cursor = 0;
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_SKIN);
 		cursor++;
@@ -503,33 +505,27 @@ export class WebSocketConnection {
 		cursor += 2;
 		view.setUint8(cursor, serverToClientColorId(colorId));
 		cursor++;
+		view.setUint8(cursor, playerIsSpectatorUint8);
+		cursor++;
 		this.send(buffer);
 	}
 
 	/**
 	 * @param {number} playerId
-	 * @param {boolean} playerIsSpectator
 	 * @param {string} playerName
 	 */
-	sendPlayerInfo(playerId, playerIsSpectator, playerName) {
+	sendPlayerName(playerId, playerName) {
 		const encoder = new TextEncoder();
-		const offset = this.protocolVersion >= 3 ? 4 : 3;
 		const nameBytes = encoder.encode(playerName);
-		const buffer = new ArrayBuffer(offset + nameBytes.byteLength);
+		const buffer = new ArrayBuffer(3 + nameBytes.byteLength);
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
 		cursor += 2;
-
-		if (this.protocolVersion >= 3) {
-			const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
-			view.setUint8(cursor, playerIsSpectatorUint8);
-			cursor++;
-		}
 
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);
