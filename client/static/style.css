@@ -427,6 +427,10 @@ a:hover {
 	gap: 5px;
 }
 
+.skinButtonContainer peli-plus-icon {
+	color-scheme: dark;
+}
+
 .lock-icon {
 	width: 18px;
 	height: 18px;
