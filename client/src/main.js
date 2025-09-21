@@ -1246,7 +1246,7 @@ window.onload = function () {
 				spectatorHidden = !spectatorHidden;
 				localStorage.setItem("showSpectators", spectatorHidden);
 			}
-			
+
 			if (c == 79 && myPos) {
 				leaderboardHidden = !leaderboardHidden;
 				setLeaderboardVisibility();
