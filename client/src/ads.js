@@ -91,6 +91,12 @@ export function updateAdlad(peliSdk) {
 		}
 		refreshBanner();
 	}
+
+	for (const button of document.querySelectorAll(".remove-ads-button")) {
+		button.addEventListener("click", () => {
+			peliSdk.subscription.showSubscribeModal({ flow: "removeAds" });
+		});
+	}
 }
 
 function loadAdLad() {

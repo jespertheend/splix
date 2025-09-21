@@ -67,6 +67,20 @@ body {
 	height: 250px;
 }
 
+.remove-ads-button {
+	appearance: none;
+	background: none;
+	border: none;
+	color: white;
+	padding: 0;
+	margin: 5px 0;
+	position: absolute;
+	right: 0;
+	bottom: 100%;
+	cursor: pointer;
+	font-size: 10px;
+}
+
 #nameForm {
 	display: inline-block;
 	margin-left: auto;
