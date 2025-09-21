@@ -1244,7 +1244,7 @@ window.onload = function () {
 			var pd = parseDirKey(c);
 			if (c == 77 && myPos) {
 				spectatorHidden = !spectatorHidden;
-				localStorage.setItem("showSpectators", spectatorHidden);
+				lsSet("showSpectators", spectatorHidden);
 			}
 
 			if (c == 79 && myPos) {
