@@ -151,7 +151,7 @@ var myScoreElem,
 	totalPlayersElem,
 	totalPlayers = 0;
 var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
-var spectatorHidden = true;
+var spectatorHidden = localStorage.showSpectators == "true";
 var miniMapPlayer,
 	playUI,
 	beginScreen,
