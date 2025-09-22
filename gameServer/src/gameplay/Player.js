@@ -514,7 +514,7 @@ export class Player {
 	sendPlayerColorToPlayer(receivingPlayer) {
 		const playerId = this == receivingPlayer ? 0 : this.id;
 		const colorId = this.skinColorIdForPlayer(receivingPlayer);
-		receivingPlayer.connection.sendPlayerSkin(playerId, colorId, this.#isSpectator);
+		receivingPlayer.connection.sendPlayerSkin(playerId, colorId);
 	}
 
 	/**
@@ -821,8 +821,11 @@ export class Player {
 		player.sendPlayerStateToPlayer(this);
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
-		this.#connection.sendPlayerSkin(playerId, colorId, player.#isSpectator);
+		this.#connection.sendPlayerSkin(playerId, colorId);
 		this.#connection.sendPlayerName(playerId, player.#name);
+		if (player.#isSpectator) {
+			this.#connection.sendPlayerIsSpectator(playerId, player.#isSpectator);
+		}
 		if (player.dead) {
 			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
 			this.#connection.send(playerDeadMessage);
