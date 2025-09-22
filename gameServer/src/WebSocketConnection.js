@@ -532,12 +532,10 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
-	 * @param {boolean} isSpectator
 	 */
-	sendPlayerIsSpectator(playerId, isSpectator) {
-		const buffer = new ArrayBuffer(4);
+	sendPlayerIsSpectator(playerId) {
+		const buffer = new ArrayBuffer(3);
 		const view = new DataView(buffer);
-		const isSpectatorUint8 = isSpectator == false ? 0 : 1;
 		let cursor = 0;
 
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_IS_SPECTATOR);
@@ -545,9 +543,6 @@ export class WebSocketConnection {
 
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
-
-		view.setUint8(cursor, isSpectatorUint8);
-		cursor++;
 		this.send(buffer);
 	}
 
