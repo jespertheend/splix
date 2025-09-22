@@ -148,6 +148,7 @@ export class WebSocketConnection {
 			 */
 			UNDO_PLAYER_DIE: 22,
 			TEAM_LIFE_COUNT: 23,
+			PLAYER_IS_SPECTATOR: 24,
 		};
 	}
 
@@ -367,7 +368,7 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPECTATOR_MODE) {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;
-			this.#receivedSpectatorMode = view.getUint8(1) != 1 ? false : true;
+			this.#receivedSpectatorMode = view.getUint8(1) == 1;
 		}
 	}
 
@@ -492,20 +493,16 @@ export class WebSocketConnection {
 	/**
 	 * @param {number} playerId
 	 * @param {number} colorId
-	 * @param {boolean} playerIsSpectator
 	 */
-	sendPlayerSkin(playerId, colorId, playerIsSpectator) {
-		const buffer = new ArrayBuffer(5);
+	sendPlayerSkin(playerId, colorId) {
+		const buffer = new ArrayBuffer(4);
 		const view = new DataView(buffer);
-		const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
 		let cursor = 0;
 		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_SKIN);
 		cursor++;
 		view.setUint16(cursor, playerId, false);
 		cursor += 2;
 		view.setUint8(cursor, serverToClientColorId(colorId));
-		cursor++;
-		view.setUint8(cursor, playerIsSpectatorUint8);
 		cursor++;
 		this.send(buffer);
 	}
@@ -530,6 +527,27 @@ export class WebSocketConnection {
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);
 
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} playerId
+	 * @param {boolean} isSpectator
+	 */
+	sendPlayerIsSpectator(playerId, isSpectator) {
+		const buffer = new ArrayBuffer(4);
+		const view = new DataView(buffer);
+		const isSpectatorUint8 = isSpectator == false ? 0 : 1;
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_IS_SPECTATOR);
+		cursor++;
+
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
+
+		view.setUint8(cursor, isSpectatorUint8);
+		cursor++;
 		this.send(buffer);
 	}
 
