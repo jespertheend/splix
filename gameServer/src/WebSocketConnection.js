@@ -119,7 +119,7 @@ export class WebSocketConnection {
 			 */
 			MINIMAP: 14,
 			/**
-			 * Tells the client which skin a specific player has and if they use spectator mode.
+			 * Tells the client which skin a specific player has.
 			 */
 			PLAYER_SKIN: 15,
 			/**
