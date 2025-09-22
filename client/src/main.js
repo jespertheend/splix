@@ -237,6 +237,7 @@ var receiveAction = {
 	PONG: 21,
 	UNDO_PLAYER_DIE: 22,
 	TEAM_LIFE_COUNT: 23,
+	PLAYER_IS_SPECTATOR: 24,
 };
 
 var sendAction = {
@@ -1814,7 +1815,6 @@ function onMessage(evt) {
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
 		player.name = filter(name);
-		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
 		var score = bytesToInt(data[1], data[2], data[3], data[4]);
@@ -1967,7 +1967,12 @@ function onMessage(evt) {
 			colorUI();
 		}
 		player.skinBlock = data[3];
-		player.isSpectator = data[4] === 0 ? false : true;
+		player.updateSpectatorIcon();
+	}
+	if (data[0] == receiveAction.PLAYER_IS_SPECTATOR) {
+		id = bytesToInt(data[1], data[2]);
+		player = getPlayer(id);
+		player.isSpectator = true;
 		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
