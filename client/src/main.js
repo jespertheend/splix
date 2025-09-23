@@ -151,6 +151,7 @@ var myScoreElem,
 	totalPlayersElem,
 	totalPlayers = 0;
 var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
+var spectatorHidden = localStorage.showSpectators == "true";
 var miniMapPlayer,
 	playUI,
 	beginScreen,
@@ -220,7 +221,7 @@ var receiveAction = {
 	PLAYER_DIE: 5,
 	CHUNK_OF_BLOCKS: 6,
 	REMOVE_PLAYER: 7,
-	PLAYER_INFO: 8,
+	PLAYER_NAME: 8,
 	MY_SCORE: 9,
 	MY_RANK: 10,
 	LEADERBOARD: 11,
@@ -236,6 +237,7 @@ var receiveAction = {
 	PONG: 21,
 	UNDO_PLAYER_DIE: 22,
 	TEAM_LIFE_COUNT: 23,
+	PLAYER_IS_SPECTATOR: 24,
 };
 
 var sendAction = {
@@ -1241,6 +1243,11 @@ window.onload = function () {
 			pressedKeys.push(c);
 
 			var pd = parseDirKey(c);
+			if (c == 77 && myPos) {
+				spectatorHidden = !spectatorHidden;
+				lsSet("showSpectators", spectatorHidden);
+			}
+
 			if (c == 79 && myPos) {
 				leaderboardHidden = !leaderboardHidden;
 				setLeaderboardVisibility();
@@ -1802,14 +1809,12 @@ function onMessage(evt) {
 			}
 		}
 	}
-	if (data[0] == receiveAction.PLAYER_INFO) {
+	if (data[0] == receiveAction.PLAYER_NAME) {
 		id = bytesToInt(data[1], data[2]);
-		nameBytes = data.subarray(4, data.length);
+		nameBytes = data.subarray(3, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
 		player = getPlayer(id);
-		player.isSpectator = data[3] === 0 ? false : true;
 		player.name = filter(name);
-		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
 		var score = bytesToInt(data[1], data[2], data[3], data[4]);
@@ -1962,6 +1967,12 @@ function onMessage(evt) {
 			colorUI();
 		}
 		player.skinBlock = data[3];
+		player.updateSpectatorIcon();
+	}
+	if (data[0] == receiveAction.PLAYER_IS_SPECTATOR) {
+		id = bytesToInt(data[1], data[2]);
+		player = getPlayer(id);
+		player.isSpectator = true;
 		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {

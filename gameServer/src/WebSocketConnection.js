@@ -93,9 +93,9 @@ export class WebSocketConnection {
 			 */
 			REMOVE_PLAYER: 7,
 			/**
-			 * Notifies the client about the name of a specific player and if they use spectator mode.
+			 * Notifies the client about the name of a specific player.
 			 */
-			PLAYER_INFO: 8,
+			PLAYER_NAME: 8,
 			/**
 			 * Sends the captured tile count and kill count of the current player.
 			 */
@@ -148,6 +148,7 @@ export class WebSocketConnection {
 			 */
 			UNDO_PLAYER_DIE: 22,
 			TEAM_LIFE_COUNT: 23,
+			PLAYER_IS_SPECTATOR: 24,
 		};
 	}
 
@@ -367,7 +368,7 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPECTATOR_MODE) {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;
-			this.#receivedSpectatorMode = view.getUint8(1) != 1 ? false : true;
+			this.#receivedSpectatorMode = view.getUint8(1) == 1;
 		}
 	}
 
@@ -508,32 +509,40 @@ export class WebSocketConnection {
 
 	/**
 	 * @param {number} playerId
-	 * @param {boolean} playerIsSpectator
 	 * @param {string} playerName
 	 */
-	sendPlayerInfo(playerId, playerIsSpectator, playerName) {
+	sendPlayerName(playerId, playerName) {
 		const encoder = new TextEncoder();
-		const offset = this.protocolVersion >= 3 ? 4 : 3;
 		const nameBytes = encoder.encode(playerName);
-		const buffer = new ArrayBuffer(offset + nameBytes.byteLength);
+		const buffer = new ArrayBuffer(3 + nameBytes.byteLength);
 		const view = new DataView(buffer);
 		let cursor = 0;
 
-		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_INFO);
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_NAME);
 		cursor++;
 
 		view.setUint16(cursor, playerId);
 		cursor += 2;
 
-		if (this.protocolVersion >= 3) {
-			const playerIsSpectatorUint8 = playerIsSpectator == false ? 0 : 1;
-			view.setUint8(cursor, playerIsSpectatorUint8);
-			cursor++;
-		}
-
 		const intView = new Uint8Array(buffer);
 		intView.set(nameBytes, cursor);
 
+		this.send(buffer);
+	}
+
+	/**
+	 * @param {number} playerId
+	 */
+	sendPlayerIsSpectator(playerId) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.PLAYER_IS_SPECTATOR);
+		cursor++;
+
+		view.setUint16(cursor, playerId, false);
+		cursor += 2;
 		this.send(buffer);
 	}
 

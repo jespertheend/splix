@@ -822,7 +822,10 @@ export class Player {
 		const colorId = player.skinColorIdForPlayer(this);
 		const playerId = player == this ? 0 : player.id;
 		this.#connection.sendPlayerSkin(playerId, colorId);
-		this.#connection.sendPlayerInfo(playerId, player.#isSpectator, player.#name);
+		this.#connection.sendPlayerName(playerId, player.#name);
+		if (player.#isSpectator) {
+			this.#connection.sendPlayerIsSpectator(playerId);
+		}
 		if (player.dead) {
 			const playerDeadMessage = WebSocketConnection.createPlayerDieMessage(player.id, null);
 			this.#connection.send(playerDeadMessage);
