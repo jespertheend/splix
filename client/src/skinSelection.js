@@ -215,13 +215,19 @@ function updateScreenBackground() {
 	skinButtonBlocks[0].setBlockId(blockId);
 }
 
+const colorPlusIcon = document.getElementById("colorPlusIcon");
+const patternPlusIcon = document.getElementById("patternPlusIcon");
 const colorLockIcon = document.getElementById("colorLockIcon");
 const patternLockIcon = document.getElementById("patternLockIcon");
 
 function updateSkinLockIcons() {
-	const colorLockVisible = !hasPlusRewards() && LOCKED_COLOR_IDS.includes(selectedColor);
+	const colorPlusVisible = LOCKED_COLOR_IDS.includes(selectedColor);
+	colorPlusIcon.style.display = colorPlusVisible ? "" : "none";
+	const colorLockVisible = !hasPlusRewards() && colorPlusVisible;
 	colorLockIcon.style.display = colorLockVisible ? "" : "none";
 
-	const patternLockVisible = !hasPlusRewards() && LOCKED_PATTERN_IDS.includes(selectedPattern);
+	const patternPlusVisible = LOCKED_PATTERN_IDS.includes(selectedPattern);
+	patternPlusIcon.style.display = patternPlusVisible ? "" : "none";
+	const patternLockVisible = !hasPlusRewards() && patternPlusVisible;
 	patternLockIcon.style.display = patternLockVisible ? "" : "none";
 }

@@ -91,6 +91,19 @@ export function updateAdlad(peliSdk) {
 		}
 		refreshBanner();
 	}
+
+	for (const button of document.querySelectorAll(".remove-ads-button")) {
+		button.addEventListener("click", () => {
+			peliSdk.subscription.showSubscribeModal({ flow: "removeAds" });
+		});
+	}
+
+	for (const link of document.querySelectorAll(".support-us-link")) {
+		link.addEventListener("click", (event) => {
+			event.preventDefault();
+			peliSdk.subscription.showSubscribeModal({ flow: "immediate" });
+		});
+	}
 }
 
 function loadAdLad() {

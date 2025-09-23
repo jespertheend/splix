@@ -97,6 +97,7 @@
 			</div>
 			<main id="mainMenu">
 				<div id="adboxContainer" class="fancyBox greenBox" style="display: none">
+					<button class="remove-ads-button">Don't want to see ads?</button>
 					<div id="adboxContent"></div>
 				</div>
 				<div id="centerSection">
@@ -119,6 +120,23 @@
 				</div>
 				<div id="newsbox" class="fancyBox greenBox">
 					<h1>Recent updates!</h1>
+					<h3><peli-plus-icon></peli-plus-icon> Pelican Party+</h3>
+					<p>
+						Patreon support has been in a broken state for years now, so this month it was finally removed
+						for good. But not to worry, you can still support the development of our games!
+					</p>
+					<p>
+						I've been working on a subscription called 'Pelican Party Plus' for the games I develop with a
+						friend, so I decided to use it for splix as well.
+					</p>
+					<p>
+						If you subscribe, you'll receive perks in our <a
+							href="https://pelicanparty.games"
+							target="_blank"
+						>other games</a> as well as in splix. Perks differ from game to game, but for splix you'll
+						disable ads and unlock a custom skin and color.
+					</p>
+					<p>If you'd like to support us, <a href="#" class="support-us-link">please click here.</a></p>
 					<h3>Global leaderboards</h3>
 					<p>
 						After being gone for a long time, the global leaderboards are now available again. <a
@@ -271,12 +289,22 @@
 		<div id="skinScreen" style="display: none">
 			<div class="skinButtonContainer">
 				<div id="prevColor" class="skinButton skinButtonLeft"></div>
-				<div class="skinValue">Color<span id="colorLockIcon" class="lock-icon"></span></div>
+				<div class="skinValue">
+					Color<peli-plus-icon id="colorPlusIcon"></peli-plus-icon><span
+						id="colorLockIcon"
+						class="lock-icon"
+					></span>
+				</div>
 				<div id="nextColor" class="skinButton skinButtonRight"></div>
 			</div>
 			<div class="skinButtonContainer">
 				<div id="prevPattern" class="skinButton skinButtonLeft"></div>
-				<div class="skinValue">Pattern<span id="patternLockIcon" class="lock-icon"></span></div>
+				<div class="skinValue">
+					Pattern<peli-plus-icon id="patternPlusIcon"></peli-plus-icon><span
+						id="patternLockIcon"
+						class="lock-icon"
+					></span>
+				</div>
 				<div id="nextPattern" class="skinButton skinButtonRight"></div>
 			</div>
 			<div class="skinButtonContainer">
