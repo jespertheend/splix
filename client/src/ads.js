@@ -100,8 +100,10 @@ export function updateAdlad(peliSdk) {
 
 	for (const link of document.querySelectorAll(".support-us-link")) {
 		link.addEventListener("click", (event) => {
-			event.preventDefault();
-			peliSdk.subscription.showSubscribeModal({ flow: "immediate" });
+			if (peliSdk.subscription.canShowSubscribeModal({flow: "immediate"})) {
+				event.preventDefault();
+				peliSdk.subscription.showSubscribeModal({ flow: "immediate" });
+			}
 		});
 	}
 }
