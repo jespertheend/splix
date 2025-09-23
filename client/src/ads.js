@@ -100,7 +100,7 @@ export function updateAdlad(peliSdk) {
 
 	for (const link of document.querySelectorAll(".support-us-link")) {
 		link.addEventListener("click", (event) => {
-			if (peliSdk.subscription.canShowSubscribeModal({flow: "immediate"})) {
+			if (peliSdk.subscription.canShowSubscribeModal({ flow: "immediate" })) {
 				event.preventDefault();
 				peliSdk.subscription.showSubscribeModal({ flow: "immediate" });
 			}
