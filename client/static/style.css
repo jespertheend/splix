@@ -213,6 +213,10 @@ body {
 	padding-left: 16px;
 }
 
+#newsbox peli-plus-icon {
+	color-scheme: dark;
+}
+
 a {
 	color: white;
 }
