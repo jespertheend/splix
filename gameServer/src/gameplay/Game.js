@@ -339,6 +339,7 @@ export class Game {
 		/** @type {[player: Player, score: number][]} */
 		const playerScores = [];
 		for (const player of this.#players.values()) {
+			if (player.isSpectator) continue;
 			if (this.#gameMode != "arena") {
 				playerScores.push([player, player.getTotalScore()]);
 			} else {
