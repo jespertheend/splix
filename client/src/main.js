@@ -5139,13 +5139,13 @@ function filter(str) {
 }
 
 function pad(n) {
-    return n.length < 2 ? "0" + n : n;
+	return n.length < 2 ? "0" + n : n;
 }
 
 function Utf8ArrayToStr(array) {
-    var out = "";
+	var out = "";
 	for (let i = 0; i < array.length; i++) {
-		out += ("%" + pad(array[i].toString(16)));
+		out += "%" + pad(array[i].toString(16));
 	}
 	return decodeURIComponent(out);
 }
