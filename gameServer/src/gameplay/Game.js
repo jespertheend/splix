@@ -209,7 +209,7 @@ export class Game {
 	 * @param {Player} player
 	 */
 	removePlayer(player) {
-		if (this.#players.size == REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD) {
+		if (this.getPlayerCount() == REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD) {
 			// If the current player count is REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
 			// then once this player is removed scores will no longer be counted.
 			// We want to at least report the current player scores, that way their progress wasn't all for nothing.
@@ -241,7 +241,7 @@ export class Game {
 	}
 
 	#fireOnPlayerCountChange() {
-		this.#onPlayerCountChangeCbs.forEach((cb) => cb(this.#players.size));
+		this.#onPlayerCountChangeCbs.forEach((cb) => cb(this.getPlayerCount()));
 	}
 
 	/** @typedef {(score: import("../../../serverManager/src/LeaderboardManager.js").PlayerScoreData) => void} OnPlayerScoreReportedCallback */
@@ -261,7 +261,7 @@ export class Game {
 	 */
 	#reportPlayerScore(score) {
 		if (
-			this.#players.size < REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD ||
+			this.getPlayerCount() < REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD ||
 			!GM_REPORT_SCORES.includes(this.#gameMode)
 		) {
 			return;
@@ -361,7 +361,7 @@ export class Game {
 			return [player.name, score];
 		});
 
-		const message = WebSocketConnection.createLeaderboardMessage(scores, this.#players.size);
+		const message = WebSocketConnection.createLeaderboardMessage(scores, this.getPlayerCount());
 		this.#lastLeaderboardMessage = message;
 
 		for (const player of this.#players.values()) {
@@ -370,7 +370,11 @@ export class Game {
 	}
 
 	getPlayerCount() {
-		return this.#players.size;
+		let playerCount = 0;
+		for (const player of this.#players.values()) {
+			if (!player.isSpectator) playerCount++;
+		}
+		return(playerCount);
 	}
 
 	/**
