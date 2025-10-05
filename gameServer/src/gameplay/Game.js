@@ -374,7 +374,7 @@ export class Game {
 		for (const player of this.#players.values()) {
 			if (!player.isSpectator) playerCount++;
 		}
-		return(playerCount);
+		return playerCount;
 	}
 
 	/**
