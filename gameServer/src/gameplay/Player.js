@@ -41,6 +41,7 @@ import { PlayerEventHistory } from "./PlayerEventHistory.js";
  * @property {SkinData?} skin
  * @property {string} name
  * @property {boolean} isSpectator
+ * @property {number} spawnPreference
  */
 
 export class Player {
@@ -225,7 +226,7 @@ export class Player {
 		}
 		this.#isSpectator = options.isSpectator;
 
-		const { position, direction } = game.getNewSpawnPosition();
+		const { position, direction } = game.getNewSpawnPosition(options.spawnPreference);
 		this.#currentPosition = position;
 		this.#currentDirection = direction;
 		if (direction != "paused") {
