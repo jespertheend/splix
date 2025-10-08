@@ -101,4 +101,3 @@ export const GM_ALLOW_TRAIL_CANCEL = ["arena", "drawing"];
  * of the protocol version that was sent by the client.
  */
 export const GM_FORCE_FLYING_PATCHES = ["arena"];
-// init PR
