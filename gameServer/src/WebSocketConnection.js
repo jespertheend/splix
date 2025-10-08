@@ -378,7 +378,7 @@ export class WebSocketConnection {
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPAWN_PREFERENCE) {
 			if (this.#player) return;
 			const validValues = [0, 1, 2];
-			if (!validValues.includes(view.getUint8(1)) return;
+			if (!validValues.includes(view.getUint8(1))) return;
 			this.#receivedSpawnPreference = view.getUint8(1);
 		}
 	}
