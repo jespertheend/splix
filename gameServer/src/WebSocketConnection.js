@@ -201,6 +201,10 @@ export class WebSocketConnection {
 			 * Lets the server know if the player is using spectator mode.
 			 */
 			SPECTATOR_MODE: 15,
+			/**
+			 * Lets the server know where the player would like to spawn to determine which algorithm should be used.
+			 */
+			SPAWN_PREFERENCE: 16,
 		};
 	}
 
@@ -210,6 +214,7 @@ export class WebSocketConnection {
 	#receivedSkinData = null;
 	#receivedName = "";
 	#receivedSpectatorMode = false;
+	#receivedSpawnPreference = 0;
 
 	/** @type {number?} */
 	#protocolVersion = null;
@@ -288,6 +293,7 @@ export class WebSocketConnection {
 				skin: this.#receivedSkinData,
 				name: this.#receivedName,
 				isSpectator: this.#receivedSpectatorMode,
+				spawnPreference: this.#receivedSpawnPreference,
 			});
 			this.#player.sendCurrentViewportChunk();
 			// Clients only really expect a single number, so we'll just take the maximum size of the map.
@@ -369,6 +375,11 @@ export class WebSocketConnection {
 			if (this.#player) return;
 			if (view.byteLength != 2) return;
 			this.#receivedSpectatorMode = view.getUint8(1) == 1;
+		} else if (messageType == WebSocketConnection.ReceiveAction.SPAWN_PREFERENCE) {
+			if (this.#player) return;
+			const validValues = [0, 1, 2];
+			if (!validValues.includes(view.getUint8(1)) return;
+			this.#receivedSpawnPreference = view.getUint8(1);
 		}
 	}
 
