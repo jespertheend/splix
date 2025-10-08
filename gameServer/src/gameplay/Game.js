@@ -142,9 +142,10 @@ export class Game {
 	}
 
 	/**
+	 * @param {number} spawnPreference - 0 random / 1 center / 2 edges
 	 * @returns {{position: Vec2, direction: import("./Player.js").Direction}}
 	 */
-	getNewSpawnPosition() {
+	getNewSpawnPosition(spawnPreference) {
 		const position = (() => {
 			let tempX = Math.floor(
 				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()),
