@@ -246,3 +246,21 @@ export function checkTrailSegment(point, start, end) {
 	}
 	return false;
 }
+
+/**
+ * @param {number} start
+ * @param {number} end
+ * @param {number} excludeStart
+ * @param {number} excludeEnd
+ * @returns {number}
+ */
+export function generateRandomExcludingRange(start, end, excludeStart, excludeEnd) {
+	const validCount = (excludeStart - start) + (end - excludeEnd);
+	const rand = Math.floor(Math.random() * validCount);
+
+	if (rand < (excludeStart - start)) {
+		return start + rand;
+	} else {
+		return excludeEnd + 1 + (rand - (excludeStart - start));
+	}
+}
