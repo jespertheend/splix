@@ -5138,16 +5138,9 @@ function filter(str) {
 	return words.join(" ");
 }
 
-function pad(n) {
-	return n.length < 2 ? "0" + n : n;
-}
-
 function Utf8ArrayToStr(array) {
-	var out = "";
-	for (let i = 0; i < array.length; i++) {
-		out += "%" + pad(array[i].toString(16));
-	}
-	return decodeURIComponent(out);
+	const decoder = new TextDecoder("utf-8");
+	return decoder.decode(array);
 }
 
 function bytesToInt() {
