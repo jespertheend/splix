@@ -32,6 +32,12 @@ export const UPDATES_VIEWPORT_RECT_SIZE = MIN_TILES_VIEWPORT_RECT_SIZE + VIEWPOR
 export const PLAYER_SPAWN_RADIUS = 2;
 
 /**
+ * How many tiles around the center of the arena
+ * Used to fine-tune the spawn algorithm which spawns players near the pit.
+ */
+export const PIT_SPAWN_RADIUS = 25;
+
+/**
  * How many tiles players move per millisecond. This should be the same value as on the client.
  */
 export const PLAYER_TRAVEL_SPEED = 0.006;
