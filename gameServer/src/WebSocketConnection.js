@@ -377,7 +377,7 @@ export class WebSocketConnection {
 			this.#receivedSpectatorMode = view.getUint8(1) == 1;
 		} else if (messageType == WebSocketConnection.ReceiveAction.SPAWN_PREFERENCE) {
 			if (this.#player) return;
-			const validValues = [0, 1, 2];
+			const validValues = [0, 1];
 			if (!validValues.includes(view.getUint8(1))) return;
 			this.#receivedSpawnPreference = view.getUint8(1);
 		}
