@@ -248,19 +248,16 @@ export function checkTrailSegment(point, start, end) {
 }
 
 /**
- * @param {number} start
- * @param {number} end
- * @param {number} excludeStart
- * @param {number} excludeEnd
+ * @param {number} min
+ * @param {number} max
+ * @param {number} excludeMin
+ * @param {number} excludeMax
  * @returns {number}
  */
-export function generateRandomExcludingRange(start, end, excludeStart, excludeEnd) {
-	const validCount = (excludeStart - start) + (end - excludeEnd);
-	const rand = Math.floor(Math.random() * validCount);
+export function generateRandomExcludingRange(min, max, excludeMin, excludeMax) {
+	const left = excludeMin - min;
+	const right = max - excludeMax;
+	const rand = Math.floor(Math.random() * (left + right));
 
-	if (rand < (excludeStart - start)) {
-		return start + rand;
-	} else {
-		return excludeEnd + 1 + (rand - (excludeStart - start));
-	}
+	return rand < left ? min + rand : excludeMax + 1 + (rand - left);
 }
