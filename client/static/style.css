@@ -171,6 +171,16 @@ body {
 	text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+#spectatorBlock {
+	position: fixed;
+	padding: 4px;
+	left: 10px;
+	bottom: 15px;
+	z-index: 100;
+	font-size: 12px;
+	text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .scoreRank > td {
 	padding: 0px 5px;
 	max-width: 200px;
