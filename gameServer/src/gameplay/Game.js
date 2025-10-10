@@ -7,6 +7,7 @@ import { WebSocketConnection } from "../WebSocketConnection.js";
 import {
 	GM_REPORT_SCORES,
 	LEADERBOARD_UPDATE_FREQUENCY,
+	LOBBY_INFO_UPDATE_FREQUENCY,
 	MINIMAP_PART_UPDATE_FREQUENCY,
 	PLAYER_SPAWN_RADIUS,
 	REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
@@ -41,6 +42,7 @@ export class Game {
 	#lastMinimapUpdateTime = 0;
 	#lastMinimapPart = 0;
 	#lastLeaderboardSendTime = 0;
+	#lastLobbyInfoSendTime = 0;
 	/** @type {ArrayBuffer?} */
 	#lastLeaderboardMessage = null;
 
@@ -103,6 +105,11 @@ export class Game {
 		if (now - this.#lastLeaderboardSendTime > LEADERBOARD_UPDATE_FREQUENCY) {
 			this.#lastLeaderboardSendTime = now;
 			this.#sendLeaderboard();
+		}
+
+		if (now - this.#lastLobbyInfoSendTime > LOBBY_INFO_UPDATE_FREQUENCY) {
+			this.#lastLobbyInfoSendTime = now;
+			this.#sendLobbyInfo();
 		}
 	}
 
@@ -369,12 +376,28 @@ export class Game {
 		}
 	}
 
+	#sendLobbyInfo() {
+		const message = WebSocketConnection.createLobbyInfoMessage(this.getSpectatorCount());
+		
+		for (const player of this.#players.values()) {
+			player.connection.send(message);
+		}
+	}
+
 	getPlayerCount() {
 		let playerCount = 0;
 		for (const player of this.#players.values()) {
 			if (!player.isSpectator) playerCount++;
 		}
 		return playerCount;
+	}
+
+	getSpectatorCount() {
+		let spectatorCount = 0;
+		for (const player of this.#players.values()) {
+			if (player.isSpectator) spectatorCount++;
+		}
+		return spectatorCount;
 	}
 
 	/**
