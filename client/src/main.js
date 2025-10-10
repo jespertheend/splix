@@ -151,7 +151,7 @@ var myScoreElem,
 	totalPlayersElem,
 	infoTotalPlayersElem,
 	infoTotalSpectatorsElem,
-	totalPlayers = 0;
+	totalPlayers = 0,
 	totalSpectators = 1;
 var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
 var spectatorHidden = localStorage.showSpectators == "true";
