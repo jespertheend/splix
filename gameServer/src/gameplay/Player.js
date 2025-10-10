@@ -1156,6 +1156,7 @@ export class Player {
 	}
 
 	#sendMyRank() {
+		if (this.#isSpectator) return;
 		this.#connection.sendMyRank(this.#rank);
 	}
 
