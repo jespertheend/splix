@@ -66,6 +66,10 @@
 			<input id="showSpectators" type="checkbox" /></label>
 		<div class="st">Spectators are hidden by default. If you check this checkbox you will be able to see them.</div>
 
+		<label>Always spawn in center
+			<input id="spawnPreference" type="checkbox" /></label>
+		<div class="st">If you check this checkbox you will always spawn in the center.</div>
+
 		<!-- <label>Enable experimental features (beta)
     <input id="beta" type="checkbox" /></label>
     <div class="st">Teams! Teams! Teams! Teams!</div> -->
@@ -136,6 +140,12 @@
 				localStorage.showSpectators = this.checked;
 			});
 			spectatorEl.checked = localStorage.showSpectators == "true";
+
+			var spawnPreferenceEl = document.getElementById("spawnPreference");
+			spawnPreferenceEl.addEventListener("change", function () {
+				localStorage.alwaysSpawnCenter = this.checked;
+			});
+			spawnPreferenceEl.checked = localStorage.alwaysSpawnCenter == "true";
 
 			// var betaEl = document.getElementById("beta");
 			// betaEl.addEventListener("change",function(){
