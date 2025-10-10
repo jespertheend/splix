@@ -149,6 +149,10 @@ export class WebSocketConnection {
 			UNDO_PLAYER_DIE: 22,
 			TEAM_LIFE_COUNT: 23,
 			PLAYER_IS_SPECTATOR: 24,
+			/**
+			 * Sends lobby-related information to the client.
+			 */
+			LOBBY_INFO: 25,
 		};
 	}
 
@@ -881,6 +885,23 @@ export class WebSocketConnection {
 				cursor += byteArray.byteLength;
 			}
 		}
+
+		return buffer;
+	}
+
+	/**
+	 * @param {number} totalSpectators
+	 */
+	static createLobbyInfoMessage(totalSpectators) {
+		const buffer = new ArrayBuffer(3);
+		const view = new DataView(buffer);
+		let cursor = 0;
+
+		view.setUint8(cursor, WebSocketConnection.SendAction.LOBBY_INFO);
+		cursor++;
+
+		view.setUint16(cursor, totalSpectators, false);
+		cursor += 2;
 
 		return buffer;
 	}
