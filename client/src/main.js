@@ -259,6 +259,7 @@ var sendAction = {
 	PROTOCOL_VERSION: 13,
 	PELI_AUTH_CODE: 14,
 	SPECTATOR_MODE: 15,
+	SPAWN_PREFERENCE: 16,
 };
 
 var colors = {
@@ -969,6 +970,12 @@ function sendSpectatorMode() {
 	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
+function sendSpawnPreference() {
+	let spawnPreference = localStorage.alwaysSpawnCenter;
+	spawnPreference = spawnPreference === "true" ? 1 : 0;
+	wsSendMsg(sendAction.SPAWN_PREFERENCE, spawnPreference);
+}
+
 //sends current skin to websocket
 function sendSkin() {
 	wsSendMsg(sendAction.SKIN, {
@@ -1383,6 +1390,7 @@ function onOpen() {
 	sendPeliCode();
 	sendSkin();
 	sendSpectatorMode();
+	sendSpawnPreference();
 	wsSendMsg(sendAction.READY);
 	if (playingAndReady) {
 		onConnectOrMiddleOfTransition();
@@ -2079,6 +2087,9 @@ function wsSendMsg(action, data) {
 		if (action == sendAction.SPECTATOR_MODE) {
 			var isSpectator = data != "true" ? 0 : 1;
 			array.push(isSpectator);
+		}
+		if (action == sendAction.SPAWN_PREFERENCE) {
+			array.push(data);
 		}
 		var payload = new Uint8Array(array);
 		try {
