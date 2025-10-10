@@ -4367,7 +4367,7 @@ function loop(timeStamp) {
 					}
 				}
 			}
-			if (player.isMyPlayer || !player.isSpectator || localStorage.showSpectators == "true") {
+			if (!player.isSpectator || localStorage.showSpectators == "true") {
 				drawPlayer(ctx, player, timeStamp);
 			}
 		}
