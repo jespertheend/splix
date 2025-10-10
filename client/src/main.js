@@ -149,7 +149,10 @@ var myScoreElem,
 	myRank = 0,
 	myRankSent = false,
 	totalPlayersElem,
+	infoTotalPlayersElem,
+	infoTotalSpectatorsElem,
 	totalPlayers = 0;
+	totalSpectators = 1;
 var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
 var spectatorHidden = localStorage.showSpectators == "true";
 var miniMapPlayer,
@@ -238,6 +241,7 @@ var receiveAction = {
 	UNDO_PLAYER_DIE: 22,
 	TEAM_LIFE_COUNT: 23,
 	PLAYER_IS_SPECTATOR: 24,
+	LOBBY_INFO: 25,
 };
 
 var sendAction = {
@@ -966,7 +970,13 @@ function sendSpectatorMode() {
 		spectatorMode = "false";
 	}
 	wsSendMsg(sendAction.SPECTATOR_MODE, spectatorMode);
-	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
+	if (spectatorMode === "true") {
+		scoreBlock.style.display = "none";
+		spectatorBlock.style.display = "block";
+	} else {
+		scoreBlock.style.display = "block";
+		spectatorBlock.style.display = "none";
+	}
 }
 
 //sends current skin to websocket
@@ -1290,6 +1300,8 @@ window.onload = function () {
 	myKillsElem = document.getElementById("myKills");
 	myRankElem = document.getElementById("myRank");
 	totalPlayersElem = document.getElementById("totalPlayers");
+	infoTotalPlayersElem = document.getElementById("infoTotalPlayers");
+	infoTotalSpectatorsElem = document.getElementById("infoTotalSpectators");
 	leaderboardElem = document.createElement("tbody");
 	var table = document.createElement("table");
 	table.appendChild(leaderboardElem);
@@ -1300,6 +1312,7 @@ window.onload = function () {
 	beginScreen = document.getElementById("beginScreen");
 	playUI = document.getElementById("playUI");
 	uiElems.push(document.getElementById("scoreBlock"));
+	uiElems.push(document.getElementById("spectatorBlock"));
 	uiElems.push(document.getElementById("miniMap"));
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
@@ -1829,6 +1842,10 @@ function onMessage(evt) {
 	if (data[0] == receiveAction.MY_RANK) {
 		myRank = bytesToInt(data[1], data[2]);
 		myRankSent = true;
+		updateStats();
+	}
+	if (data[0] == receiveAction.LOBBY_INFO) {
+		totalSpectators = bytesToInt(data[1], data[2]);
 		updateStats();
 	}
 	if (data[0] == receiveAction.LEADERBOARD) {
@@ -2729,6 +2746,8 @@ function updateStats() {
 	}
 	myRankElem.innerHTML = myRank;
 	totalPlayersElem.innerHTML = totalPlayers;
+	infoTotalPlayersElem.innerHTML = totalPlayers;
+	infoTotalSpectatorsElem.innerHTML = totalSpectators;
 }
 
 //draws a trail on a canvas, can be drawn on multiple canvases
