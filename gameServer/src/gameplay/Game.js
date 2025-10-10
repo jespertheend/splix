@@ -8,9 +8,11 @@ import {
 	GM_REPORT_SCORES,
 	LEADERBOARD_UPDATE_FREQUENCY,
 	MINIMAP_PART_UPDATE_FREQUENCY,
+	PIT_SPAWN_RADIUS,
 	PLAYER_SPAWN_RADIUS,
 	REQUIRED_PLAYER_COUNT_FOR_GLOBAL_LEADERBOARD,
 } from "../config.js";
+import { generateRandomExcludingRange } from "../util/util.js";
 import { ApplicationLoop } from "../ApplicationLoop.js";
 
 /**
@@ -142,38 +144,24 @@ export class Game {
 	}
 
 	/**
-	 * @param {number} spawnPreference - 0 random / 1 center / 2 edges
+	 * @param {number} spawnPreference - 0 random / 1 center / 2 edges (unused)
 	 * @returns {{position: Vec2, direction: import("./Player.js").Direction}}
 	 */
 	getNewSpawnPosition(spawnPreference) {
-		const position = (() => {
-			let tempX = Math.floor(
-				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.width - PLAYER_SPAWN_RADIUS - 1, Math.random()),
-			);
-			let tempY = Math.floor(
-				lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
-			);
+		const halfArena = this.arena.width * 0.5;
+		const halfPit = this.arena.pitWidth * 0.5;
+		const pitStart = halfArena - halfPit - 2;
+		const pitEnd = halfArena + halfPit + 1;
 
-			// We should prevent players from spawning directly inside of the pit or on the border of it.
-			// If x is within pit's range we then check y, while y is within pit's range we generate new y (optimize later).
-			if (
-				this.#gameMode == "arena" &&
-				tempX >= this.arena.width / 2 - this.arena.pitWidth / 2 - 2 &&
-				tempX <= this.arena.width / 2 + this.arena.pitWidth / 2 + 1
-			) {
-				while (
-					tempY >= this.arena.height / 2 - this.arena.pitHeight / 2 - 2 &&
-					tempY <= this.arena.height / 2 + this.arena.pitHeight / 2 + 1
-				) {
-					tempY = Math.floor(
-						lerp(PLAYER_SPAWN_RADIUS + 1, this.arena.height - PLAYER_SPAWN_RADIUS - 1, Math.random()),
-					);
-				}
-			}
-			return new Vec2(
-				tempX,
-				tempY,
-			);
+		const min = spawnPreference == 0 ? PLAYER_SPAWN_RADIUS + 1 : halfArena - PIT_SPAWN_RADIUS;
+		const max = spawnPreference == 0 ? this.arena.width - PLAYER_SPAWN_RADIUS - 1 : halfArena + PIT_SPAWN_RADIUS;
+
+		const position = (() => {
+			const tempX = Math.floor(lerp(min, max, Math.random()));
+			const tempY = (tempX >= pitStart && tempX <= pitEnd)
+				? generateRandomExcludingRange(min, max, pitStart, pitEnd)
+				: Math.floor(lerp(min, max, Math.random()));
+			return new Vec2(tempX, tempY);
 		})();
 		/** @type {{direction: import("./Player.js").UnpausedDirection, distance: number}[]} */
 		const wallDistances = [
@@ -202,7 +190,7 @@ export class Game {
 		}
 		return {
 			position,
-			direction: this.#gameMode == "arena" ? "paused" : closestWall?.direction || "up",
+			direction: spawnPreference == 1 ? "paused" : closestWall?.direction || "up",
 		};
 	}
 
