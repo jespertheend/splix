@@ -378,7 +378,6 @@ export class Game {
 
 	#sendLobbyInfo() {
 		const message = WebSocketConnection.createLobbyInfoMessage(this.getSpectatorCount());
-		
 		for (const player of this.#players.values()) {
 			player.connection.send(message);
 		}
