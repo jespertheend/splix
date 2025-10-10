@@ -78,6 +78,11 @@ export const MINIMAP_PART_UPDATE_FREQUENCY = 250;
 export const LEADERBOARD_UPDATE_FREQUENCY = 3_000;
 
 /**
+ * How often (in milliseconds) lobby info is sent to all players in a game.
+ */
+export const LOBBY_INFO_UPDATE_FREQUENCY = 3_000;
+
+/**
  * If the amount of players in a game is less then this,
  * then scores won't be reported to the global leaderboard.
  * The current scores of all in game players will be reported
