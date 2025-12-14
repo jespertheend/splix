@@ -1184,19 +1184,29 @@ function clearKeyInputQueue() {
 }
 
 function onkeydown(e) {
-	playingAndReady && e.preventDefault();
-	if (!(e.code in keyInputQueue)) {
-		keyInputQueue[e.code] = e;
-		parseInputKey(e);
-	}
+	if (!playingAndReady) return;
+	if (e.code in keyInputQueue) return;
+
+	const keyState = {
+		code: e.code,
+		type: "keydown",
+	};
+
+	keyInputQueue[e.code] = keyState;
+	parseInputKey(keyState) && e.preventDefault();
 }
 
 function onkeyup(e) {
+	if (!playingAndReady) return;
+
+	const keyState = {
+		code: e.code,
+		type: "keyup",
+	};
+
 	delete keyInputQueue[e.code];
-	parseInputKey(e);
-	Object.keys(keyInputQueue).forEach((key) => {
-		parseInputKey(keyInputQueue[key]);
-	});
+	parseInputKey(keyState) && e.preventDefault();
+	Object.values(keyInputQueue).forEach(parseInputKey);
 }
 
 function topPopUpNotification(text, expirePeriod = 1000) {
@@ -1209,21 +1219,16 @@ function topPopUpNotification(text, expirePeriod = 1000) {
 function parseInputKey(e) {
 	switch (e.code) {
 		case "Space":
-			if (!playingAndReady) {
-				return;
-			}
-			if (e.ctrlKey) {
-				honkStartTime = Date.now() - 1000;
-				honkEnd();
-			} else if (e.type == "keydown") {
+			if (e.type == "keydown") {
 				honkStart(); // #
 			} else if (e.type == "keyup") {
 				honkEnd(); // #
 			}
+			return true;
 	}
 
 	if (e.type != "keydown") {
-		return;
+		return false;
 	}
 
 	// direction
@@ -1232,27 +1237,27 @@ function parseInputKey(e) {
 		case "ShiftRight":
 		case "KeyP":
 			sendDir(4);
-			return;
+			return true;
 		case "KeyD":
 		case "KeyL":
 		case "ArrowRight":
 			sendDir(0);
-			return;
+			return true;
 		case "KeyS":
 		case "KeyK":
 		case "ArrowDown":
 			sendDir(1);
-			return;
+			return true;
 		case "KeyA":
 		case "KeyJ":
 		case "ArrowLeft":
 			sendDir(2);
-			return;
+			return true;
 		case "KeyW":
 		case "KeyI":
 		case "ArrowUp":
 			sendDir(3);
-			return;
+			return true;
 	}
 
 	// ui
@@ -1261,28 +1266,29 @@ function parseInputKey(e) {
 			showSpectators = !showSpectators;
 			lsSet("showSpectators", showSpectators);
 			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
-			return;
+			return true;
 		case "BracketLeft":
 			leaderboardHidden = !leaderboardHidden;
 			setLeaderboardVisibility();
 			lsSet("leaderboardHidden", leaderboardHidden);
 			topPopUpNotification(leaderboardHidden ? "Hide leaderboard!" : "Show leaderboard!");
-			return;
+			return true;
 		case "BracketRight":
 			drawDebug = !drawDebug;
 			lsSet("drawDebug", drawDebug);
 			topPopUpNotification(drawDebug ? "Ping stats enabled!" : "Ping stats disabled!");
-			return;
+			return true;
 		case "Backslash":
 			uglyMode = !uglyMode;
 			lsSet("uglyMode", uglyMode);
 			setUglyText();
 			topPopUpNotification(uglyMode ? "Uglymode enabled!" : "Uglymode disabled!");
-			return;
+			return true;
 		case "Enter":
 			doSkipDeathTransition();
-			return;
+			return true;
 	}
+	return false;
 }
 
 //when page is finished loading
