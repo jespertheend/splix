@@ -217,6 +217,7 @@ var didConfirmOpenInApp = false;
 let leaderboardHidden = localStorage.leaderboardHidden == "true";
 let drawDebug = localStorage.drawDebug == "true";
 let showSpectators = localStorage.showSpectators == "true";
+let showGrid = localStorage.showGrid == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -443,6 +444,33 @@ var titleLines = [
 		posOffset: [-38, 0],
 	},
 ];
+
+const shadeCache = new Map();
+
+function darken(hex, level = 0.3) {
+	const key = `${hex}:${level}`;
+	if (!shadeCache.has(key)) {
+		hex = hex.replace(/^#/, "");
+		const r = Math.max(0, Math.min(255, Math.floor(parseInt(hex.substring(0, 2), 16) * (1 - level))));
+		const g = Math.max(0, Math.min(255, Math.floor(parseInt(hex.substring(2, 4), 16) * (1 - level))));
+		const b = Math.max(0, Math.min(255, Math.floor(parseInt(hex.substring(4, 6), 16) * (1 - level))));
+		const shade = `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+		shadeCache.set(key, shade);
+	}
+	return shadeCache.get(key);
+}
+
+const minimapMappings = {
+	x: new Set(),
+	y: new Set(),
+};
+
+function getShade(x, y, hex) {
+	if (playingAndReady && minimapMappings.x.has(x) && minimapMappings.y.has(y) && showGrid) {
+		return darken(hex);
+	}
+	return hex;
+}
 
 function addSocketWrapper() {
 	if (typeof WebSocket == "undefined") {
@@ -1265,6 +1293,11 @@ function parseInputKey(e) {
 			lsSet("showSpectators", showSpectators);
 			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
 			return true;
+		case "KeyN":
+			showGrid = !showGrid;
+			lsSet("showGrid", showGrid);
+			topPopUpNotification(showGrid ? "Minimap dots visible!" : "Minimap dots hidden!");
+			return true;
 		case "KeyO":
 			leaderboardHidden = !leaderboardHidden;
 			setLeaderboardVisibility();
@@ -1912,6 +1945,33 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.MAP_SIZE) {
 		mapSize = bytesToInt(data[1], data[2]);
+
+		minimapMappings.x.clear();
+		minimapMappings.y.clear();
+
+		if (mapSize < 80) {
+			return;
+		}
+
+		function mapValue(value, fromMin, fromMax, toMin, toMax) {
+			const t = (value - fromMin) / (fromMax - fromMin);
+			const clamped = Math.max(0, Math.min(1, t));
+			return Math.floor(toMin + clamped * (toMax - toMin));
+		}
+
+		for (let i = 1; i < 80; i++) {
+			const level = Math.floor(i / 20);
+			const mapchunkwidth = mapSize / 4;
+
+			const minimapMinX = 20 * level;
+			const mapMinX = mapchunkwidth * level;
+
+			const x = mapValue(i, minimapMinX, minimapMinX + 20, mapMinX, mapMinX + mapchunkwidth);
+			minimapMappings.x.add(x);
+
+			const y = mapValue(i, 0, 80, 0, mapSize);
+			minimapMappings.y.add(y);
+		}
 	}
 	if (data[0] == receiveAction.YOU_DED) {
 		if (data.length > 1) {
@@ -3603,7 +3663,7 @@ export function drawBlocks(ctx, blocks, checkViewport) {
 					}
 
 					//bright surface
-					ctx.fillStyle = colors.grey.brighter;
+					ctx.fillStyle = getShade(block.x, block.y, colors.grey.brighter);
 					if (t == 1 || uglyMode) {
 						// ctx.fillStyle = colors.grey.darker; //shadow edge
 						// ctx.beginPath();
@@ -3660,7 +3720,7 @@ export function drawBlocks(ctx, blocks, checkViewport) {
 					}
 
 					//bright surface
-					ctx.fillStyle = brightColor;
+					ctx.fillStyle = getShade(block.x, block.y, brightColor);
 					if (t == 1 || uglyMode) {
 						// ctx.fillStyle = thisColor.darker; //shadow edge
 						// ctx.beginPath();
