@@ -1,4 +1,5 @@
 const serverSelectEl = /** @type {HTMLSelectElement} */ (document.getElementById("serverSelect"));
+
 export async function initServerSelection() {
 	let endPoint;
 	if (!IS_DEV_BUILD) {
@@ -12,6 +13,15 @@ export async function initServerSelection() {
 	const response = await fetch(endPoint);
 	/** @type {import("../../serverManager/src/ServerManager.js").ServersJson} */
 	const servers = await response.json();
+
+	if (location.hash.indexOf("#ip=") == 0) {
+		servers.servers.push({
+			displayName: "From URL",
+			endpoint: location.hash.substring(4),
+			playerCount: 0,
+			official: false,
+		});
+	}
 
 	while (serverSelectEl.firstChild) {
 		serverSelectEl.firstChild.remove();
@@ -53,14 +63,6 @@ export async function initServerSelection() {
 		}
 	}
 
-	if (location.hash.indexOf("#ip=") == 0) {
-		const optionEl = document.createElement("option");
-		optionEl.value = location.hash.substring(4);
-		optionEl.textContent = "From url";
-		unofficialGroup.appendChild(optionEl);
-		selectedEndpoint = optionEl;
-	}
-
 	if (!selectedEndpoint) {
 		selectedEndpoint = officialEndpoints[0] || null;
 	}
@@ -74,6 +76,32 @@ export async function initServerSelection() {
 	joinButton.disabled = false;
 }
 
+document.getElementById("serverSelect").addEventListener(
+	"change",
+	(e) => {
+		localStorage.setItem("lastSelectedEndpoint", e.target.value);
+	},
+);
+
+// initial server if from URL
+if (location.hash.indexOf("#ip=") == 0) {
+	localStorage.setItem("lastSelectedEndpoint", location.hash.substring(4));
+}
+
 export function getSelectedServer() {
 	return serverSelectEl.value;
+}
+
+let serverListUpdateInterval = null;
+export function updateServerList() {
+	if (serverListUpdateInterval) return;
+	initServerSelection();
+	serverListUpdateInterval = setInterval(() => {
+		initServerSelection();
+	}, 5000);
+}
+
+export function stopUpdateServerList() {
+	clearInterval(serverListUpdateInterval);
+	serverListUpdateInterval = null;
 }
