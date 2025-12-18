@@ -10,9 +10,23 @@ export async function initServerSelection() {
 		endPoint = url.href;
 	}
 
-	const response = await fetch(endPoint);
-	/** @type {import("../../serverManager/src/ServerManager.js").ServersJson} */
-	const servers = await response.json();
+	let servers = {};
+
+	const controller = new AbortController();
+	const abortTimer = setTimeout(() => controller.abort(), 4000);
+
+	try {
+		const response = await fetch(endPoint, {
+			signal: controller.signal,
+		});
+
+		/** @type {import("../../serverManager/src/ServerManager.js").ServersJson} */
+		servers = await response.json();
+	} catch (err) {
+		servers = { servers: [] };
+	} finally {
+		clearTimeout(abortTimer);
+	}
 
 	if (location.hash.indexOf("#ip=") == 0) {
 		servers.servers.push({
@@ -98,7 +112,7 @@ export function updateServerList() {
 	initServerSelection();
 	serverListUpdateInterval = setInterval(() => {
 		initServerSelection();
-	}, 5000);
+	}, 4000);
 }
 
 export function stopUpdateServerList() {
