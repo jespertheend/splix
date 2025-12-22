@@ -1220,9 +1220,9 @@ function parseInputKey(e) {
 	switch (e.code) {
 		case "Space":
 			if (e.type == "keydown") {
-				honkStart(); // #
+				honkStart();
 			} else if (e.type == "keyup") {
-				honkEnd(); // #
+				honkEnd();
 			}
 			return true;
 	}
@@ -1231,8 +1231,8 @@ function parseInputKey(e) {
 		return false;
 	}
 
-	// direction
 	switch (e.code) {
+		// Directions
 		case "ShiftLeft":
 		case "ShiftRight":
 		case "KeyP":
@@ -1258,27 +1258,25 @@ function parseInputKey(e) {
 		case "ArrowUp":
 			sendDir(3);
 			return true;
-	}
 
-	// ui
-	switch (e.code) {
+		// UI
 		case "KeyM":
 			showSpectators = !showSpectators;
 			lsSet("showSpectators", showSpectators);
 			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
 			return true;
-		case "BracketLeft":
+		case "KeyO":
 			leaderboardHidden = !leaderboardHidden;
 			setLeaderboardVisibility();
 			lsSet("leaderboardHidden", leaderboardHidden);
-			topPopUpNotification(leaderboardHidden ? "Hide leaderboard!" : "Show leaderboard!");
+			topPopUpNotification(leaderboardHidden ? "Leaderboard hidden!" : "Leaderboard visible!");
 			return true;
-		case "BracketRight":
+		case "BracketLeft":
 			drawDebug = !drawDebug;
 			lsSet("drawDebug", drawDebug);
 			topPopUpNotification(drawDebug ? "Ping stats enabled!" : "Ping stats disabled!");
 			return true;
-		case "Backslash":
+		case "BracketRight":
 			uglyMode = !uglyMode;
 			lsSet("uglyMode", uglyMode);
 			setUglyText();
@@ -1288,6 +1286,7 @@ function parseInputKey(e) {
 			doSkipDeathTransition();
 			return true;
 	}
+
 	return false;
 }
 
