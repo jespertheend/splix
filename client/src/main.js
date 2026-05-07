@@ -150,8 +150,8 @@ var myScoreElem,
 	myRankSent = false,
 	totalPlayersElem,
 	totalPlayers = 0;
-var leaderboardElem, leaderboardDivElem, leaderboardHidden = localStorage.leaderboardHidden == "true";
-var spectatorHidden = localStorage.showSpectators == "true";
+var leaderboardElem, leaderboardDivElem;
+
 var miniMapPlayer,
 	playUI,
 	beginScreen,
@@ -173,7 +173,7 @@ var isTransitioning = false, transitionCallback1 = null, transitionCallback2 = n
 var tutorialCanvas, tutCtx, tutorialTimer = 0, tutorialPrevTimer = 0, tutorialBlocks, tutorialPlayers, tutorialText;
 var touchControlsElem;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
-var currentTouches = [], doRefreshAfterDie = false, pressedKeys = [];
+var currentTouches = [], doRefreshAfterDie = false;
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
 var honkStartTime, lastHonkTime = 0, honkSfx = null;
 var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
@@ -212,6 +212,11 @@ var didConfirmOpenInApp = false;
 		});
 	}
 })();
+
+// get data from localstorage
+let leaderboardHidden = localStorage.leaderboardHidden == "true";
+let drawDebug = localStorage.drawDebug == "true";
+let showSpectators = localStorage.showSpectators == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -984,46 +989,6 @@ async function sendPeliCode() {
 	wsSendMsg(sendAction.PELI_AUTH_CODE, code);
 }
 
-function parseDirKey(c) {
-	var pd = false;
-	//up
-	if (c == 38 || c == 87 || c == 56 || c == 73) {
-		sendDir(3);
-		pd = true;
-	}
-	//left
-	if (c == 37 || c == 65 || c == 52 || c == 74) {
-		sendDir(2);
-		pd = true;
-	}
-	//right
-	if (c == 39 || c == 68 || c == 54 || c == 76) {
-		sendDir(0);
-		pd = true;
-	}
-	//down
-	if (c == 40 || c == 83 || c == 50 || c == 75) {
-		sendDir(1);
-		pd = true;
-	}
-	//pause
-	if (c == 80) {
-		sendDir(4);
-		pd = true;
-	}
-	//space
-	if (c == 32 || c == 53) {
-		honkStart();
-		pd = true;
-	}
-	//enter
-	if (c == 13) {
-		doSkipDeathTransition();
-		pd = true;
-	}
-	return pd;
-}
-
 //sends new direction to websocket
 var lastSendDir = -1, lastSendDirTime = 0; //used to prevent spamming buttons
 function sendDir(dir, skipQueue) {
@@ -1212,6 +1177,119 @@ function honkEnd() {
 	}
 }
 
+const keyInputQueue = {};
+
+function clearKeyInputQueue() {
+	Object.keys(keyInputQueue).forEach((key) => delete keyInputQueue[key]);
+}
+
+function onkeydown(e) {
+	if (!playingAndReady) return;
+	if (e.code in keyInputQueue) return;
+
+	const keyState = {
+		code: e.code,
+		type: "keydown",
+	};
+
+	keyInputQueue[e.code] = keyState;
+	parseInputKey(keyState) && e.preventDefault();
+}
+
+function onkeyup(e) {
+	if (!playingAndReady) return;
+
+	const keyState = {
+		code: e.code,
+		type: "keyup",
+	};
+
+	delete keyInputQueue[e.code];
+	parseInputKey(keyState) && e.preventDefault();
+	Object.values(keyInputQueue).forEach(parseInputKey);
+}
+
+function topPopUpNotification(text, expirePeriod = 1000) {
+	const popUp = doTopNotification(text);
+	setTimeout(() => {
+		popUp.animateOut();
+	}, expirePeriod);
+}
+
+function parseInputKey(e) {
+	switch (e.code) {
+		case "Space":
+			if (e.type == "keydown") {
+				honkStart();
+			} else if (e.type == "keyup") {
+				honkEnd();
+			}
+			return true;
+	}
+
+	if (e.type != "keydown") {
+		return false;
+	}
+
+	switch (e.code) {
+		// Directions
+		case "ShiftLeft":
+		case "ShiftRight":
+		case "KeyP":
+			sendDir(4);
+			return true;
+		case "KeyD":
+		case "KeyL":
+		case "ArrowRight":
+			sendDir(0);
+			return true;
+		case "KeyS":
+		case "KeyK":
+		case "ArrowDown":
+			sendDir(1);
+			return true;
+		case "KeyA":
+		case "KeyJ":
+		case "ArrowLeft":
+			sendDir(2);
+			return true;
+		case "KeyW":
+		case "KeyI":
+		case "ArrowUp":
+			sendDir(3);
+			return true;
+
+		// UI
+		case "KeyM":
+			showSpectators = !showSpectators;
+			lsSet("showSpectators", showSpectators);
+			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
+			return true;
+		case "KeyO":
+			leaderboardHidden = !leaderboardHidden;
+			setLeaderboardVisibility();
+			lsSet("leaderboardHidden", leaderboardHidden);
+			topPopUpNotification(leaderboardHidden ? "Leaderboard hidden!" : "Leaderboard visible!");
+			return true;
+		case "BracketLeft":
+			drawDebug = !drawDebug;
+			lsSet("drawDebug", drawDebug);
+			topPopUpNotification(drawDebug ? "Ping stats enabled!" : "Ping stats disabled!");
+			return true;
+		case "BracketRight":
+			uglyMode = !uglyMode;
+			lsSet("uglyMode", uglyMode);
+			setUglyText();
+			topPopUpNotification(uglyMode ? "Uglymode enabled!" : "Uglymode disabled!");
+			return true;
+		case "Enter":
+			doSkipDeathTransition();
+			return true;
+	}
+
+	return false;
+}
+
 //when page is finished loading
 window.onload = function () {
 	mainCanvas = document.getElementById("mainCanvas");
@@ -1237,45 +1315,10 @@ window.onload = function () {
 	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 
-	window.onkeydown = function (e) {
-		var c = e.keyCode;
-		if (pressedKeys.indexOf(c) < 0) {
-			pressedKeys.push(c);
+	window.onkeydown = onkeydown;
+	window.onkeyup = onkeyup;
+	window.addEventListener("blur", clearKeyInputQueue, false);
 
-			var pd = parseDirKey(c);
-			if (c == 77 && myPos) {
-				spectatorHidden = !spectatorHidden;
-				lsSet("showSpectators", spectatorHidden);
-			}
-
-			if (c == 79 && myPos) {
-				leaderboardHidden = !leaderboardHidden;
-				setLeaderboardVisibility();
-				lsSet("leaderboardHidden", leaderboardHidden);
-			}
-
-			if (pd && playingAndReady) {
-				e.preventDefault();
-			}
-		}
-	};
-	window.onkeyup = function (e) {
-		var c = e.keyCode;
-		var index = pressedKeys.indexOf(c);
-		pressedKeys.splice(index, 1);
-		//space
-		if (c == 32 || c == 53) {
-			honkEnd();
-		}
-
-		//senddir of still holding keys
-		for (var i = 0; i < pressedKeys.length; i++) {
-			parseDirKey(pressedKeys[i]);
-		}
-	};
-	window.addEventListener("blur", function (event) {
-		pressedKeys = [];
-	}, false);
 	bindSwipeEvents();
 	window.oncontextmenu = function (e) {
 		if (e.target.nodeName.toLowerCase() == "embed") {
