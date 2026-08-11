@@ -1,3 +1,10 @@
 {
-	"deno.enable": false
+	"deno.enable": true,
+	"deno.lint": false,
+	"editor.formatOnSave": true,
+	"[css]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+	"[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+	"[html]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+	"[javascript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+	"[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" }
 }
