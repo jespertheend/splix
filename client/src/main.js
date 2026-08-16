@@ -1159,6 +1159,10 @@ function honkStart() {
 	window.honkStartTime = Date.now();
 }
 
+function sendHonk(duration) {
+	return wsSendMsg(sendAction.HONK, duration);
+}
+
 window.honkEnd = function honkEnd() {
 	var now = Date.now();
 	if (now > window.lastHonkTime) {
@@ -1168,7 +1172,7 @@ window.honkEnd = function honkEnd() {
 		time = iLerp(0, 1000, time);
 		time *= 255;
 		time = Math.floor(time);
-		wsSendMsg(sendAction.HONK, time);
+		sendHonk(time);
 		for (var playerI = 0; playerI < players.length; playerI++) {
 			var player = players[playerI];
 			if (player.isMyPlayer) {
@@ -5295,8 +5299,7 @@ function parseQuery(url) {
 }
 
 window.doCamShakeDir = doCamShakeDir;
-window.wsSendMsg = wsSendMsg;
-window.sendAction = sendAction;
+window.sendHonk = sendHonk;
 window.clamp = clamp;
 window.iLerp = iLerp;
 window.getColorForBlockSkinId = getColorForBlockSkinId;
