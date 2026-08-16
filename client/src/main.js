@@ -124,7 +124,6 @@ var SECURE_WS = IS_SECURE ? "wss://" : "ws://";
 var ws = null, mainCanvas, ctx, prevTimeStamp = null, blocks = [], players = [];
 var camPos = [0, 0], camPosSet = false, camPosPrevFrame = [0, 0], myNameAlphaTimer = 0;
 var myPos = null,
-	myPlayer = null,
 	changeDirAt = null,
 	changeDirAtIsHorizontal = false,
 	myNextDir = 0,
@@ -162,7 +161,7 @@ var miniMapPlayer,
 	lastNameChangeCheck = 0;
 var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
 var linesCanvas, linesCtx, tempCanvas, tempCtx;
-var showCouldntConnectAfterTransition = false, playingAndReady = false;
+var showCouldntConnectAfterTransition = false;
 var transitionCanvas,
 	tCtx,
 	transitionTimer = 0,
@@ -175,7 +174,6 @@ var touchControlsElem;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
 var currentTouches = [], doRefreshAfterDie = false;
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
-var honkStartTime, lastHonkTime = 0, honkSfx = null;
 var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
 var thisServerAvgPing = 0,
 	thisServerDiffPing = 0,
@@ -202,6 +200,12 @@ var lastMousePos = [0, 0], mouseHidePos = [0, 0];
 var joinButton,
 	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
+
+window.myPlayer = null;
+window.playingAndReady = false;
+window.honkStartTime = 0;
+window.lastHonkTime = 0;
+window.honkSfx = new Audio("./static/honk.mp3");
 
 (async () => {
 	const peliSdk = await initPeliSdk();
@@ -794,7 +798,7 @@ export function getBlock(x, y, array) {
 //gets a player from the the specified array,
 //creates it if it doesn't exist yet
 //if array is not specified it will default to the players[] array
-function getPlayer(id, array) {
+window.getPlayer = function getPlayer(id, array) {
 	var player;
 	if (array === undefined) {
 		array = players;
@@ -877,10 +881,7 @@ function getPlayer(id, array) {
 			this.honkTimer = 0;
 			this.honkMaxTime = time;
 			if (this.name.toLowerCase() == "joris") {
-				if (honkSfx == null) {
-					honkSfx = new Audio("./static/honk.mp3");
-				}
-				honkSfx.play();
+				window.honkSfx.play();
 			}
 		},
 		moveRelativeToServerPosNextFrame: false, //if true, lastServerPosSentTime will be used instead of deltatime for one frame
@@ -895,10 +896,10 @@ function getPlayer(id, array) {
 	};
 	array.push(player);
 	if (player.isMyPlayer) {
-		myPlayer = player;
+		window.myPlayer = player;
 	}
 	return player;
-}
+};
 
 function checkUsername(name) {
 	var lower = name.toLowerCase();
@@ -996,8 +997,8 @@ function sendDir(dir, skipQueue) {
 	if (!ws || !myPos) {
 		return false;
 	}
-	//myPlayer doesn't exist
-	if (!myPlayer) {
+	//window.myPlayer doesn't exist
+	if (!window.myPlayer) {
 		return false;
 	}
 
@@ -1012,7 +1013,7 @@ function sendDir(dir, skipQueue) {
 	lastSendDirTime = Date.now();
 
 	//dir is already the current direction, don't do anything
-	if (myPlayer.dir == dir) {
+	if (window.myPlayer.dir == dir) {
 		// console.log("already current direction, don't do anything");
 		addSendDirQueue(dir, skipQueue);
 		return false;
@@ -1020,10 +1021,10 @@ function sendDir(dir, skipQueue) {
 
 	//if dir is the opposite direction
 	if (
-		(dir === 0 && myPlayer.dir == 2) ||
-		(dir == 2 && myPlayer.dir === 0) ||
-		(dir == 1 && myPlayer.dir == 3) ||
-		(dir == 3 && myPlayer.dir == 1)
+		(dir === 0 && window.myPlayer.dir == 2) ||
+		(dir == 2 && window.myPlayer.dir === 0) ||
+		(dir == 1 && window.myPlayer.dir == 3) ||
+		(dir == 3 && window.myPlayer.dir == 1)
 	) {
 		// console.log("already opposite direction, don't send");
 		addSendDirQueue(dir, skipQueue);
@@ -1034,7 +1035,7 @@ function sendDir(dir, skipQueue) {
 	mouseHidePos = [lastMousePos[0], lastMousePos[1]];
 	document.body.style.cursor = "none";
 
-	var horizontal = myPlayer.dir == 1 || myPlayer.dir == 3; //wether next direction is horizontal movement or not
+	var horizontal = window.myPlayer.dir == 1 || window.myPlayer.dir == 3; //wether next direction is horizontal movement or not
 	var coord = myPos[horizontal ? 1 : 0];
 	var newPos = [myPos[0], myPos[1]];
 	var roundCoord = Math.round(coord);
@@ -1045,10 +1046,10 @@ function sendDir(dir, skipQueue) {
 	//test if the coordinate being sent wasn't already sent earlier
 	// console.log(lastChangedDirPos);
 	if (
-		(myPlayer.dir === 0 && newPos[0] <= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 1 && newPos[1] <= lastChangedDirPos[1]) ||
-		(myPlayer.dir == 2 && newPos[0] >= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 3 && newPos[1] >= lastChangedDirPos[1])
+		(window.myPlayer.dir === 0 && newPos[0] <= lastChangedDirPos[0]) ||
+		(window.myPlayer.dir == 1 && newPos[1] <= lastChangedDirPos[1]) ||
+		(window.myPlayer.dir == 2 && newPos[0] >= lastChangedDirPos[0]) ||
+		(window.myPlayer.dir == 3 && newPos[1] >= lastChangedDirPos[1])
 	) {
 		// console.log("same coordinate, don't send");
 		addSendDirQueue(dir, skipQueue);
@@ -1057,11 +1058,11 @@ function sendDir(dir, skipQueue) {
 
 	var changeDirNow = false;
 	var blockPos = coord - Math.floor(coord);
-	if (myPlayer.dir <= 1) { //right or down
+	if (window.myPlayer.dir <= 1) { //right or down
 		if (blockPos < 0.45) {
 			changeDirNow = true;
 		}
-	} else if (myPlayer.dir <= 3) { //left or up
+	} else if (window.myPlayer.dir <= 3) { //left or up
 		if (blockPos > 0.55) {
 			changeDirNow = true;
 		}
@@ -1105,8 +1106,8 @@ function addSendDirQueue(dir, skip) {
 
 function changeMyDir(dir, newPos, extendTrail, isClientside) {
 	// console.log("changeMyDir");
-	myPlayer.dir = myNextDir = dir;
-	myPlayer.pos = [newPos[0], newPos[1]];
+	window.myPlayer.dir = myNextDir = dir;
+	window.myPlayer.pos = [newPos[0], newPos[1]];
 	lastChangedDirPos = [newPos[0], newPos[1]];
 
 	if (extendTrail === undefined) {
@@ -1117,7 +1118,7 @@ function changeMyDir(dir, newPos, extendTrail, isClientside) {
 	}
 
 	if (extendTrail) {
-		trailPush(myPlayer);
+		trailPush(window.myPlayer);
 	}
 
 	if (isClientside) {
@@ -1155,19 +1156,23 @@ function trailPush(player, pos) {
 }
 
 function honkStart() {
-	honkStartTime = Date.now();
+	window.honkStartTime = Date.now();
 }
 
-function honkEnd() {
+function sendHonk(duration) {
+	return wsSendMsg(sendAction.HONK, duration);
+}
+
+window.honkEnd = function honkEnd() {
 	var now = Date.now();
-	if (now > lastHonkTime) {
-		var time = now - honkStartTime;
+	if (now > window.lastHonkTime) {
+		var time = now - window.honkStartTime;
 		time = clamp(time, 0, 1000);
-		lastHonkTime = now + time;
+		window.lastHonkTime = now + time;
 		time = iLerp(0, 1000, time);
 		time *= 255;
 		time = Math.floor(time);
-		wsSendMsg(sendAction.HONK, time);
+		sendHonk(time);
 		for (var playerI = 0; playerI < players.length; playerI++) {
 			var player = players[playerI];
 			if (player.isMyPlayer) {
@@ -1175,7 +1180,7 @@ function honkEnd() {
 			}
 		}
 	}
-}
+};
 
 const keyInputQueue = {};
 
@@ -1184,7 +1189,7 @@ function clearKeyInputQueue() {
 }
 
 function onkeydown(e) {
-	if (!playingAndReady) return;
+	if (!window.playingAndReady) return;
 	if (e.code in keyInputQueue) return;
 
 	const keyState = {
@@ -1197,7 +1202,7 @@ function onkeydown(e) {
 }
 
 function onkeyup(e) {
-	if (!playingAndReady) return;
+	if (!window.playingAndReady) return;
 
 	const keyState = {
 		code: e.code,
@@ -1222,7 +1227,7 @@ function parseInputKey(e) {
 			if (e.type == "keydown") {
 				honkStart();
 			} else if (e.type == "keyup") {
-				honkEnd();
+				window.honkEnd();
 			}
 			return true;
 	}
@@ -1427,7 +1432,7 @@ function onOpen() {
 	sendSkin();
 	sendSpectatorMode();
 	wsSendMsg(sendAction.READY);
-	if (playingAndReady) {
+	if (window.playingAndReady) {
 		onConnectOrMiddleOfTransition();
 	}
 	// ga("send","event","Game","game_start");
@@ -1494,7 +1499,7 @@ function onClose() {
 	if (!!ws && ws.readyState == WebSocket.OPEN) {
 		ws.close();
 	}
-	if (!playingAndReady) {
+	if (!window.playingAndReady) {
 		if (!isTransitioning) {
 			if (couldntConnect()) {
 				showBeginHideMainCanvas();
@@ -1537,7 +1542,7 @@ function connectWithTransition(showFullScreenAd) {
 		isConnectingWithTransition = true;
 		if (doConnect(showFullScreenAd)) {
 			doTransition("", false, function () {
-				if (!playingAndReady) {
+				if (!window.playingAndReady) {
 					isTransitioning = false;
 				}
 				if (showCouldntConnectAfterTransition) {
@@ -1623,7 +1628,7 @@ function onMessage(evt) {
 		x = bytesToInt(data[1], data[2]);
 		y = bytesToInt(data[3], data[4]);
 		id = bytesToInt(data[5], data[6]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.hasReceivedPosition = true;
 		player.moveRelativeToServerPosNextFrame = true;
 		player.lastServerPosSentTime = Date.now();
@@ -1741,7 +1746,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.SET_TRAIL) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var newTrail = [];
 		//wether the new trail should replace the old trail (don't play animation)
 		//or append it to the trails list (do play animation)
@@ -1790,7 +1795,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.EMPTY_TRAIL_WITH_LAST_POS) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (player.trails.length > 0) {
 			var prevTrail = player.trails[player.trails.length - 1].trail;
 			if (prevTrail.length > 0) {
@@ -1816,7 +1821,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_DIE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (data.length > 3) {
 			x = bytesToInt(data[3], data[4]);
 			y = bytesToInt(data[5], data[6]);
@@ -1856,7 +1861,7 @@ function onMessage(evt) {
 		id = bytesToInt(data[1], data[2]);
 		nameBytes = data.subarray(3, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.name = filter(name);
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
@@ -2004,7 +2009,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_SKIN) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (player.isMyPlayer) {
 			myColorId = data[3];
 			colorUI();
@@ -2014,12 +2019,12 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_IS_SPECTATOR) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.isSpectator = true;
 		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
-		playingAndReady = true;
+		window.playingAndReady = true;
 		if (!isTransitioning) {
 			isTransitioning = true;
 			onConnectOrMiddleOfTransition();
@@ -2027,7 +2032,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_HIT_LINE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var pointsColor = getColorForBlockSkinId(data[3]);
 		x = bytesToInt(data[4], data[5]);
 		y = bytesToInt(data[6], data[7]);
@@ -2045,7 +2050,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_HONK) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var time = data[3];
 		player.doHonk(time);
 	}
@@ -2061,7 +2066,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.UNDO_PLAYER_DIE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.undoDie();
 	}
 	if (data[0] == receiveAction.TEAM_LIFE_COUNT) {
@@ -2135,7 +2140,7 @@ function wsSendMsg(action, data) {
 }
 
 export function canOpenSkinSelection() {
-	return !ws && !isTransitioning && !playingAndReady;
+	return !ws && !isTransitioning && !window.playingAndReady;
 }
 
 //basically like refreshing the page
@@ -2146,7 +2151,7 @@ function resetAll() {
 	ws = null;
 	isConnecting = false;
 	blocks = [];
-	players = [];
+	players.length = 0; // clear array without losing its reference
 	camPosSet = false;
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
@@ -2159,7 +2164,7 @@ function resetAll() {
 			25;
 	myRankSent = false;
 	totalPlayers = 0;
-	playingAndReady = false;
+	window.playingAndReady = false;
 	camShakeForces = [];
 	resetTitleNextFrame = true;
 	allowSkipDeathTransition = false;
@@ -2196,10 +2201,10 @@ function initTutorial() {
 		}
 	}
 	tutorialPlayers = [];
-	var p1 = getPlayer(1, tutorialPlayers);
+	var p1 = window.getPlayer(1, tutorialPlayers);
 	p1.skinBlock = 8;
 	p1.hasReceivedPosition = true;
-	var p2 = getPlayer(2, tutorialPlayers);
+	var p2 = window.getPlayer(2, tutorialPlayers);
 	p2.skinBlock = 0;
 	p2.pos = [-2, 7];
 	p2.hasReceivedPosition = true;
@@ -4571,7 +4576,7 @@ function loop(timeStamp) {
 			thisTopNotification.update(deltaTime);
 		}
 
-		engagementSetIsPlaying(playingAndReady && (Date.now() - lastSendDirTime) < 20000);
+		engagementSetIsPlaying(window.playingAndReady && (Date.now() - lastSendDirTime) < 20000);
 
 		//title
 		if (beginScreenVisible && timeStamp - titleLastRender > 49) {
@@ -4619,8 +4624,8 @@ function loop(timeStamp) {
 
 			t = tutorialTimer;
 			drawBlocks(tutCtx, tutorialBlocks);
-			var p1 = getPlayer(1, tutorialPlayers);
-			var p2 = getPlayer(2, tutorialPlayers);
+			var p1 = window.getPlayer(1, tutorialPlayers);
+			var p2 = window.getPlayer(2, tutorialPlayers);
 
 			//p1
 			if (t < 10) {
@@ -4865,7 +4870,7 @@ function loop(timeStamp) {
 	// console.log(clientSideSetPosPassed, clientSideValidSetPosPassed, serverSideSetPosPassed);
 	if (
 		clientSideValidSetPosPassed > WAIT_FOR_DISCONNECTED_MS &&
-		serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !myPlayer.isDead
+		serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !window.myPlayer.isDead
 	) {
 		if (!connectionLostNotification) {
 			connectionLostNotification = doTopNotification(
@@ -5105,7 +5110,7 @@ function parseGamepads() {
 		} else {
 			if (gamePadIsHonking) {
 				gamePadIsHonking = false;
-				honkEnd();
+				window.honkEnd();
 			}
 		}
 	}
@@ -5292,3 +5297,12 @@ function parseQuery(url) {
 	}
 	return query;
 }
+
+window.doCamShakeDir = doCamShakeDir;
+window.sendHonk = sendHonk;
+window.clamp = clamp;
+window.iLerp = iLerp;
+window.getColorForBlockSkinId = getColorForBlockSkinId;
+window.getSpectatorIcon = getSpectatorIcon;
+
+window.players = players;
