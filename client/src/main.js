@@ -205,7 +205,7 @@ window.myPlayer = null;
 window.playingAndReady = false;
 window.honkStartTime = 0;
 window.lastHonkTime = 0;
-window.honkSfx = null;
+window.honkSfx = new Audio("./static/honk.mp3");
 
 (async () => {
 	const peliSdk = await initPeliSdk();
@@ -881,9 +881,6 @@ window.getPlayer = function getPlayer(id, array) {
 			this.honkTimer = 0;
 			this.honkMaxTime = time;
 			if (this.name.toLowerCase() == "joris") {
-				if (window.honkSfx == null) {
-					window.honkSfx = new Audio("./static/honk.mp3");
-				}
 				window.honkSfx.play();
 			}
 		},
