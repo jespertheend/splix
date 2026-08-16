@@ -798,7 +798,7 @@ export function getBlock(x, y, array) {
 //gets a player from the the specified array,
 //creates it if it doesn't exist yet
 //if array is not specified it will default to the players[] array
-function getPlayer(id, array) {
+window.getPlayer = function getPlayer(id, array) {
 	var player;
 	if (array === undefined) {
 		array = players;
@@ -902,7 +902,7 @@ function getPlayer(id, array) {
 		window.myPlayer = player;
 	}
 	return player;
-}
+};
 
 function checkUsername(name) {
 	var lower = name.toLowerCase();
@@ -1162,7 +1162,7 @@ function honkStart() {
 	honkStartTime = Date.now();
 }
 
-function honkEnd() {
+window.honkEnd = function honkEnd() {
 	var now = Date.now();
 	if (now > window.lastHonkTime) {
 		var time = now - honkStartTime;
@@ -1179,7 +1179,7 @@ function honkEnd() {
 			}
 		}
 	}
-}
+};
 
 const keyInputQueue = {};
 
@@ -1226,7 +1226,7 @@ function parseInputKey(e) {
 			if (e.type == "keydown") {
 				honkStart();
 			} else if (e.type == "keyup") {
-				honkEnd();
+				window.honkEnd();
 			}
 			return true;
 	}
@@ -1627,7 +1627,7 @@ function onMessage(evt) {
 		x = bytesToInt(data[1], data[2]);
 		y = bytesToInt(data[3], data[4]);
 		id = bytesToInt(data[5], data[6]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.hasReceivedPosition = true;
 		player.moveRelativeToServerPosNextFrame = true;
 		player.lastServerPosSentTime = Date.now();
@@ -1745,7 +1745,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.SET_TRAIL) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var newTrail = [];
 		//wether the new trail should replace the old trail (don't play animation)
 		//or append it to the trails list (do play animation)
@@ -1794,7 +1794,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.EMPTY_TRAIL_WITH_LAST_POS) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (player.trails.length > 0) {
 			var prevTrail = player.trails[player.trails.length - 1].trail;
 			if (prevTrail.length > 0) {
@@ -1820,7 +1820,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_DIE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (data.length > 3) {
 			x = bytesToInt(data[3], data[4]);
 			y = bytesToInt(data[5], data[6]);
@@ -1860,7 +1860,7 @@ function onMessage(evt) {
 		id = bytesToInt(data[1], data[2]);
 		nameBytes = data.subarray(3, data.length);
 		var name = Utf8ArrayToStr(nameBytes);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.name = filter(name);
 	}
 	if (data[0] == receiveAction.MY_SCORE) {
@@ -2008,7 +2008,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_SKIN) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		if (player.isMyPlayer) {
 			myColorId = data[3];
 			colorUI();
@@ -2018,7 +2018,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_IS_SPECTATOR) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.isSpectator = true;
 		player.updateSpectatorIcon();
 	}
@@ -2031,7 +2031,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_HIT_LINE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var pointsColor = getColorForBlockSkinId(data[3]);
 		x = bytesToInt(data[4], data[5]);
 		y = bytesToInt(data[6], data[7]);
@@ -2049,7 +2049,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.PLAYER_HONK) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		var time = data[3];
 		player.doHonk(time);
 	}
@@ -2065,7 +2065,7 @@ function onMessage(evt) {
 	}
 	if (data[0] == receiveAction.UNDO_PLAYER_DIE) {
 		id = bytesToInt(data[1], data[2]);
-		player = getPlayer(id);
+		player = window.getPlayer(id);
 		player.undoDie();
 	}
 	if (data[0] == receiveAction.TEAM_LIFE_COUNT) {
@@ -2200,10 +2200,10 @@ function initTutorial() {
 		}
 	}
 	tutorialPlayers = [];
-	var p1 = getPlayer(1, tutorialPlayers);
+	var p1 = window.getPlayer(1, tutorialPlayers);
 	p1.skinBlock = 8;
 	p1.hasReceivedPosition = true;
-	var p2 = getPlayer(2, tutorialPlayers);
+	var p2 = window.getPlayer(2, tutorialPlayers);
 	p2.skinBlock = 0;
 	p2.pos = [-2, 7];
 	p2.hasReceivedPosition = true;
@@ -4623,8 +4623,8 @@ function loop(timeStamp) {
 
 			t = tutorialTimer;
 			drawBlocks(tutCtx, tutorialBlocks);
-			var p1 = getPlayer(1, tutorialPlayers);
-			var p2 = getPlayer(2, tutorialPlayers);
+			var p1 = window.getPlayer(1, tutorialPlayers);
+			var p2 = window.getPlayer(2, tutorialPlayers);
 
 			//p1
 			if (t < 10) {
@@ -5109,7 +5109,7 @@ function parseGamepads() {
 		} else {
 			if (gamePadIsHonking) {
 				gamePadIsHonking = false;
-				honkEnd();
+				window.honkEnd();
 			}
 		}
 	}
@@ -5296,5 +5296,13 @@ function parseQuery(url) {
 	}
 	return query;
 }
+
+window.doCamShakeDir = doCamShakeDir;
+window.wsSendMsg = wsSendMsg;
+window.sendAction = sendAction;
+window.clamp = clamp;
+window.iLerp = iLerp;
+window.getColorForBlockSkinId = getColorForBlockSkinId;
+window.getSpectatorIcon = getSpectatorIcon;
 
 window.players = players;
