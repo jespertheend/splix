@@ -124,7 +124,6 @@ var SECURE_WS = IS_SECURE ? "wss://" : "ws://";
 var ws = null, mainCanvas, ctx, prevTimeStamp = null, blocks = [], players = [];
 var camPos = [0, 0], camPosSet = false, camPosPrevFrame = [0, 0], myNameAlphaTimer = 0;
 var myPos = null,
-	myPlayer = null,
 	changeDirAt = null,
 	changeDirAtIsHorizontal = false,
 	myNextDir = 0,
@@ -162,7 +161,7 @@ var miniMapPlayer,
 	lastNameChangeCheck = 0;
 var scoreStatTarget = 25, scoreStat = 25, realScoreStatTarget = 25, realScoreStat = 25;
 var linesCanvas, linesCtx, tempCanvas, tempCtx;
-var showCouldntConnectAfterTransition = false, playingAndReady = false;
+var showCouldntConnectAfterTransition = false;
 var transitionCanvas,
 	tCtx,
 	transitionTimer = 0,
@@ -175,7 +174,6 @@ var touchControlsElem;
 var titCanvas, titCtx, titleTimer = -1, resetTitleNextFrame = true, titleLastRender = 0;
 var currentTouches = [], doRefreshAfterDie = false;
 var camPosOffset = [0, 0], camRotOffset = 0, camShakeForces = [];
-var honkStartTime, lastHonkTime = 0, honkSfx = null;
 var skipDeathTransition = false, allowSkipDeathTransition = false, deathTransitionTimeout = null;
 var thisServerAvgPing = 0,
 	thisServerDiffPing = 0,
@@ -202,6 +200,12 @@ var lastMousePos = [0, 0], mouseHidePos = [0, 0];
 var joinButton,
 	gamemodeDropDownEl;
 var didConfirmOpenInApp = false;
+
+window.myPlayer = null;
+window.playingAndReady = false;
+window.honkStartTime = 0;
+window.lastHonkTime = 0;
+window.honkSfx = null;
 
 (async () => {
 	const peliSdk = await initPeliSdk();
@@ -877,10 +881,10 @@ function getPlayer(id, array) {
 			this.honkTimer = 0;
 			this.honkMaxTime = time;
 			if (this.name.toLowerCase() == "joris") {
-				if (honkSfx == null) {
-					honkSfx = new Audio("./static/honk.mp3");
+				if (window.honkSfx == null) {
+					window.honkSfx = new Audio("./static/honk.mp3");
 				}
-				honkSfx.play();
+				window.honkSfx.play();
 			}
 		},
 		moveRelativeToServerPosNextFrame: false, //if true, lastServerPosSentTime will be used instead of deltatime for one frame
@@ -895,7 +899,7 @@ function getPlayer(id, array) {
 	};
 	array.push(player);
 	if (player.isMyPlayer) {
-		myPlayer = player;
+		window.myPlayer = player;
 	}
 	return player;
 }
@@ -996,8 +1000,8 @@ function sendDir(dir, skipQueue) {
 	if (!ws || !myPos) {
 		return false;
 	}
-	//myPlayer doesn't exist
-	if (!myPlayer) {
+	//window.myPlayer doesn't exist
+	if (!window.myPlayer) {
 		return false;
 	}
 
@@ -1012,7 +1016,7 @@ function sendDir(dir, skipQueue) {
 	lastSendDirTime = Date.now();
 
 	//dir is already the current direction, don't do anything
-	if (myPlayer.dir == dir) {
+	if (window.myPlayer.dir == dir) {
 		// console.log("already current direction, don't do anything");
 		addSendDirQueue(dir, skipQueue);
 		return false;
@@ -1020,10 +1024,10 @@ function sendDir(dir, skipQueue) {
 
 	//if dir is the opposite direction
 	if (
-		(dir === 0 && myPlayer.dir == 2) ||
-		(dir == 2 && myPlayer.dir === 0) ||
-		(dir == 1 && myPlayer.dir == 3) ||
-		(dir == 3 && myPlayer.dir == 1)
+		(dir === 0 && window.myPlayer.dir == 2) ||
+		(dir == 2 && window.myPlayer.dir === 0) ||
+		(dir == 1 && window.myPlayer.dir == 3) ||
+		(dir == 3 && window.myPlayer.dir == 1)
 	) {
 		// console.log("already opposite direction, don't send");
 		addSendDirQueue(dir, skipQueue);
@@ -1034,7 +1038,7 @@ function sendDir(dir, skipQueue) {
 	mouseHidePos = [lastMousePos[0], lastMousePos[1]];
 	document.body.style.cursor = "none";
 
-	var horizontal = myPlayer.dir == 1 || myPlayer.dir == 3; //wether next direction is horizontal movement or not
+	var horizontal = window.myPlayer.dir == 1 || window.myPlayer.dir == 3; //wether next direction is horizontal movement or not
 	var coord = myPos[horizontal ? 1 : 0];
 	var newPos = [myPos[0], myPos[1]];
 	var roundCoord = Math.round(coord);
@@ -1045,10 +1049,10 @@ function sendDir(dir, skipQueue) {
 	//test if the coordinate being sent wasn't already sent earlier
 	// console.log(lastChangedDirPos);
 	if (
-		(myPlayer.dir === 0 && newPos[0] <= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 1 && newPos[1] <= lastChangedDirPos[1]) ||
-		(myPlayer.dir == 2 && newPos[0] >= lastChangedDirPos[0]) ||
-		(myPlayer.dir == 3 && newPos[1] >= lastChangedDirPos[1])
+		(window.myPlayer.dir === 0 && newPos[0] <= lastChangedDirPos[0]) ||
+		(window.myPlayer.dir == 1 && newPos[1] <= lastChangedDirPos[1]) ||
+		(window.myPlayer.dir == 2 && newPos[0] >= lastChangedDirPos[0]) ||
+		(window.myPlayer.dir == 3 && newPos[1] >= lastChangedDirPos[1])
 	) {
 		// console.log("same coordinate, don't send");
 		addSendDirQueue(dir, skipQueue);
@@ -1057,11 +1061,11 @@ function sendDir(dir, skipQueue) {
 
 	var changeDirNow = false;
 	var blockPos = coord - Math.floor(coord);
-	if (myPlayer.dir <= 1) { //right or down
+	if (window.myPlayer.dir <= 1) { //right or down
 		if (blockPos < 0.45) {
 			changeDirNow = true;
 		}
-	} else if (myPlayer.dir <= 3) { //left or up
+	} else if (window.myPlayer.dir <= 3) { //left or up
 		if (blockPos > 0.55) {
 			changeDirNow = true;
 		}
@@ -1105,8 +1109,8 @@ function addSendDirQueue(dir, skip) {
 
 function changeMyDir(dir, newPos, extendTrail, isClientside) {
 	// console.log("changeMyDir");
-	myPlayer.dir = myNextDir = dir;
-	myPlayer.pos = [newPos[0], newPos[1]];
+	window.myPlayer.dir = myNextDir = dir;
+	window.myPlayer.pos = [newPos[0], newPos[1]];
 	lastChangedDirPos = [newPos[0], newPos[1]];
 
 	if (extendTrail === undefined) {
@@ -1117,7 +1121,7 @@ function changeMyDir(dir, newPos, extendTrail, isClientside) {
 	}
 
 	if (extendTrail) {
-		trailPush(myPlayer);
+		trailPush(window.myPlayer);
 	}
 
 	if (isClientside) {
@@ -1160,10 +1164,10 @@ function honkStart() {
 
 function honkEnd() {
 	var now = Date.now();
-	if (now > lastHonkTime) {
+	if (now > window.lastHonkTime) {
 		var time = now - honkStartTime;
 		time = clamp(time, 0, 1000);
-		lastHonkTime = now + time;
+		window.lastHonkTime = now + time;
 		time = iLerp(0, 1000, time);
 		time *= 255;
 		time = Math.floor(time);
@@ -1184,7 +1188,7 @@ function clearKeyInputQueue() {
 }
 
 function onkeydown(e) {
-	if (!playingAndReady) return;
+	if (!window.playingAndReady) return;
 	if (e.code in keyInputQueue) return;
 
 	const keyState = {
@@ -1197,7 +1201,7 @@ function onkeydown(e) {
 }
 
 function onkeyup(e) {
-	if (!playingAndReady) return;
+	if (!window.playingAndReady) return;
 
 	const keyState = {
 		code: e.code,
@@ -1427,7 +1431,7 @@ function onOpen() {
 	sendSkin();
 	sendSpectatorMode();
 	wsSendMsg(sendAction.READY);
-	if (playingAndReady) {
+	if (window.playingAndReady) {
 		onConnectOrMiddleOfTransition();
 	}
 	// ga("send","event","Game","game_start");
@@ -1494,7 +1498,7 @@ function onClose() {
 	if (!!ws && ws.readyState == WebSocket.OPEN) {
 		ws.close();
 	}
-	if (!playingAndReady) {
+	if (!window.playingAndReady) {
 		if (!isTransitioning) {
 			if (couldntConnect()) {
 				showBeginHideMainCanvas();
@@ -1537,7 +1541,7 @@ function connectWithTransition(showFullScreenAd) {
 		isConnectingWithTransition = true;
 		if (doConnect(showFullScreenAd)) {
 			doTransition("", false, function () {
-				if (!playingAndReady) {
+				if (!window.playingAndReady) {
 					isTransitioning = false;
 				}
 				if (showCouldntConnectAfterTransition) {
@@ -2019,7 +2023,7 @@ function onMessage(evt) {
 		player.updateSpectatorIcon();
 	}
 	if (data[0] == receiveAction.READY) {
-		playingAndReady = true;
+		window.playingAndReady = true;
 		if (!isTransitioning) {
 			isTransitioning = true;
 			onConnectOrMiddleOfTransition();
@@ -2135,7 +2139,7 @@ function wsSendMsg(action, data) {
 }
 
 export function canOpenSkinSelection() {
-	return !ws && !isTransitioning && !playingAndReady;
+	return !ws && !isTransitioning && !window.playingAndReady;
 }
 
 //basically like refreshing the page
@@ -2146,7 +2150,7 @@ function resetAll() {
 	ws = null;
 	isConnecting = false;
 	blocks = [];
-	players = [];
+	players.length = 0; // clear array without losing its reference
 	camPosSet = false;
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
@@ -2159,7 +2163,7 @@ function resetAll() {
 			25;
 	myRankSent = false;
 	totalPlayers = 0;
-	playingAndReady = false;
+	window.playingAndReady = false;
 	camShakeForces = [];
 	resetTitleNextFrame = true;
 	allowSkipDeathTransition = false;
@@ -4571,7 +4575,7 @@ function loop(timeStamp) {
 			thisTopNotification.update(deltaTime);
 		}
 
-		engagementSetIsPlaying(playingAndReady && (Date.now() - lastSendDirTime) < 20000);
+		engagementSetIsPlaying(window.playingAndReady && (Date.now() - lastSendDirTime) < 20000);
 
 		//title
 		if (beginScreenVisible && timeStamp - titleLastRender > 49) {
@@ -4865,7 +4869,7 @@ function loop(timeStamp) {
 	// console.log(clientSideSetPosPassed, clientSideValidSetPosPassed, serverSideSetPosPassed);
 	if (
 		clientSideValidSetPosPassed > WAIT_FOR_DISCONNECTED_MS &&
-		serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !myPlayer.isDead
+		serverSideSetPosPassed - clientSideSetPosPassed > WAIT_FOR_DISCONNECTED_MS && !window.myPlayer.isDead
 	) {
 		if (!connectionLostNotification) {
 			connectionLostNotification = doTopNotification(
@@ -5292,3 +5296,5 @@ function parseQuery(url) {
 	}
 	return query;
 }
+
+window.players = players;
