@@ -1156,13 +1156,13 @@ function trailPush(player, pos) {
 }
 
 function honkStart() {
-	honkStartTime = Date.now();
+	window.honkStartTime = Date.now();
 }
 
 window.honkEnd = function honkEnd() {
 	var now = Date.now();
 	if (now > window.lastHonkTime) {
-		var time = now - honkStartTime;
+		var time = now - window.honkStartTime;
 		time = clamp(time, 0, 1000);
 		window.lastHonkTime = now + time;
 		time = iLerp(0, 1000, time);
