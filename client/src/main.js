@@ -1289,6 +1289,11 @@ function parseInputKey(e) {
 			return true;
 
 		// UI
+		case "Escape": {
+			const options = document.getElementById("options");
+			options.style.display = options.style.display === "none" ? "block" : "none";
+			return true;
+		}
 		case "KeyM":
 			showSpectators = !showSpectators;
 			lsSet("showSpectators", showSpectators);
@@ -1380,6 +1385,10 @@ window.onload = function () {
 	uiElems.push(document.getElementById("miniMap"));
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
+
+	document.getElementById("optClose").onclick = () => {
+		options.style.display = "none";
+	};
 
 	nameInput = document.getElementById("nameInput");
 	if (localStorage.name) {
