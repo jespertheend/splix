@@ -1294,36 +1294,10 @@ function parseInputKey(e) {
 			options.style.display = options.style.display === "none" ? "block" : "none";
 			return true;
 		}
-		case "KeyM":
-			showSpectators = !showSpectators;
-			lsSet("showSpectators", showSpectators);
-			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
-			return true;
-		case "KeyN":
-			showGrid = !showGrid;
-			lsSet("showGrid", showGrid);
-			topPopUpNotification(showGrid ? "Minimap dots visible!" : "Minimap dots hidden!");
-			return true;
-		case "KeyO":
-			leaderboardHidden = !leaderboardHidden;
-			setLeaderboardVisibility();
-			lsSet("leaderboardHidden", leaderboardHidden);
-			topPopUpNotification(leaderboardHidden ? "Leaderboard hidden!" : "Leaderboard visible!");
-			return true;
-		case "BracketLeft":
-			drawDebug = !drawDebug;
-			lsSet("drawDebug", drawDebug);
-			topPopUpNotification(drawDebug ? "Ping stats enabled!" : "Ping stats disabled!");
-			return true;
-		case "BracketRight":
-			uglyMode = !uglyMode;
-			lsSet("uglyMode", uglyMode);
-			setUglyText();
-			topPopUpNotification(uglyMode ? "Uglymode enabled!" : "Uglymode disabled!");
-			return true;
-		case "Enter":
+		case "Enter": {
 			doSkipDeathTransition();
 			return true;
+		}
 	}
 
 	return false;
@@ -1386,10 +1360,6 @@ window.onload = function () {
 	// closeNotification = document.getElementById("closeNotification");
 	// uiElems.push(closeNotification);
 
-	document.getElementById("optClose").onclick = () => {
-		options.style.display = "none";
-	};
-
 	nameInput = document.getElementById("nameInput");
 	if (localStorage.name) {
 		nameInput.value = localStorage.name;
@@ -1435,6 +1405,7 @@ window.onload = function () {
 	initSkinScreen();
 	initTitle();
 	setLeaderboardVisibility();
+	initOptions();
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
@@ -1459,6 +1430,61 @@ window.onload = function () {
 		"",
 	);
 };
+
+let hidePlayerNames = true; // TODO:
+
+function initOptions() {
+	const optShowSpecs = document.getElementById("optShowSpecs");
+	const optHideLb = document.getElementById("optHideLb");
+	const optShowDots = document.getElementById("optShowDots");
+	const optShowPing = document.getElementById("optShowPing");
+	const optHidePlayerNames = document.getElementById("optHidePlayerNames");
+	const optUglyMode = document.getElementById("optUglyMode");
+	const optclose = document.getElementById("optClose");
+
+	optShowSpecs.checked = showSpectators;
+	optHideLb.checked = leaderboardHidden;
+	optShowDots.checked = showGrid;
+	optShowPing.checked = drawDebug;
+	optHidePlayerNames.checked = hidePlayerNames;
+	optUglyMode.checked = uglyMode;
+
+	optShowSpecs.onchange = () => {
+		showSpectators = optShowSpecs.checked;
+		lsSet("showSpectators", showSpectators);
+	};
+
+	optHideLb.onchange = () => {
+		leaderboardHidden = optHideLb.checked;
+		setLeaderboardVisibility();
+		lsSet("leaderboardHidden", leaderboardHidden);
+	};
+
+	optShowDots.onchange = () => {
+		showGrid = optShowDots.checked;
+		lsSet("showGrid", showGrid);
+	};
+
+	optShowPing.onchange = () => {
+		drawDebug = optShowPing.checked;
+		lsSet("drawDebug", drawDebug);
+	};
+
+	optHidePlayerNames.onchange = () => {
+		hidePlayerNames = optHidePlayerNames.checked;
+		lsSet("hidePlayerNames", hidePlayerNames);
+	};
+
+	optUglyMode.onchange = () => {
+		uglyMode = optUglyMode.checked;
+		lsSet("uglyMode", uglyMode);
+		setUglyText();
+	};
+
+	optclose.onclick = () => {
+		options.style.display = "none";
+	};
+}
 
 //when WebSocket connection is established
 function onOpen() {
