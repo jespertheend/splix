@@ -218,6 +218,7 @@ let leaderboardHidden = localStorage.leaderboardHidden == "true";
 let drawDebug = localStorage.drawDebug == "true";
 let showSpectators = localStorage.showSpectators == "true";
 let showGrid = localStorage.showGrid == "true";
+let hidePlayerNames = localStorage.hidePlayerNames == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -1430,8 +1431,6 @@ window.onload = function () {
 		"",
 	);
 };
-
-let hidePlayerNames = true; // TODO:
 
 function initOptions() {
 	const optShowSpecs = document.getElementById("optShowSpecs");
@@ -4080,7 +4079,7 @@ function drawPlayer(ctx, player, timeStamp) {
 		}
 
 		//draw name
-		if (localStorage.hidePlayerNames != "true") {
+		if (!hidePlayerNames) {
 			myNameAlphaTimer += deltaTime * 0.001;
 			ctx.font = linesCtx.font = USERNAME_SIZE + "px Arial, Helvetica, sans-serif";
 			if (player.name) {
