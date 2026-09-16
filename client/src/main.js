@@ -1959,11 +1959,11 @@ function onMessage(evt) {
 			return;
 		}
 
-		function mapValue(value, fromMin, fromMax, toMin, toMax) {
+		const mapValue = (value, fromMin, fromMax, toMin, toMax) => {
 			const t = (value - fromMin) / (fromMax - fromMin);
 			const clamped = Math.max(0, Math.min(1, t));
 			return Math.floor(toMin + clamped * (toMax - toMin));
-		}
+		};
 
 		for (let i = 1; i < 80; i++) {
 			const level = Math.floor(i / 20);
