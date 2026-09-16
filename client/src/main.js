@@ -447,7 +447,7 @@ var titleLines = [
 
 const shadeCache = new Map();
 
-function darken(hex, level = 0.3) {
+function darken(hex, level = 0.4) {
 	const key = `${hex}:${level}`;
 	if (!shadeCache.has(key)) {
 		hex = hex.replace(/^#/, "");
@@ -461,6 +461,7 @@ function darken(hex, level = 0.3) {
 }
 
 const minimapMappings = {
+	size: 0,
 	x: new Set(),
 	y: new Set(),
 };
@@ -1946,10 +1947,15 @@ function onMessage(evt) {
 	if (data[0] == receiveAction.MAP_SIZE) {
 		mapSize = bytesToInt(data[1], data[2]);
 
+		if (minimapMappings.size === mapSize) {
+			return;
+		}
+
+		minimapMappings.size = mapSize;
 		minimapMappings.x.clear();
 		minimapMappings.y.clear();
 
-		if (mapSize < 80) {
+		if (mapSize <= 80) {
 			return;
 		}
 
