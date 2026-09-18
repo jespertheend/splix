@@ -187,7 +187,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode, spectatorMode = false;
+var uiElems = [], zoom, myColorId, spectatorMode = false;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -219,6 +219,7 @@ let drawDebug = localStorage.drawDebug == "true";
 let showSpectators = localStorage.showSpectators == "true";
 let showGrid = localStorage.showGrid == "true";
 let hidePlayerNames = localStorage.hidePlayerNames == "true";
+let uglyMode = localStorage.uglyMode == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -1323,8 +1324,6 @@ window.onload = function () {
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
-	qualityText = document.getElementById("qualityText");
-	uglyText = document.getElementById("uglyText");
 	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 
@@ -1394,11 +1393,8 @@ window.onload = function () {
 	});
 
 	//quality button
-	qualityText.onclick = toggleQuality;
-	uglyText.onclick = toggleUglyMode;
 	spectatorText.onclick = toggleSpectatorMode;
 	setQuality();
-	setUglyText();
 	setSpectatorText();
 
 	initTutorial();
@@ -1442,7 +1438,7 @@ function initOptions() {
 
 	optionsGear.onclick = () => {
 		options.style.display = options.style.display === "none" ? "block" : "none";
-	}
+	};
 
 	const optQuality = document.getElementById("optQuality");
 	const optShowSpecs = document.getElementById("optShowSpecs");
@@ -1488,7 +1484,6 @@ function initOptions() {
 	optUglyMode.onchange = () => {
 		uglyMode = optUglyMode.checked;
 		lsSet("uglyMode", uglyMode);
-		setUglyText();
 	};
 
 	optQuality.onclick = toggleQuality;
@@ -4240,7 +4235,6 @@ function toggleQuality() {
 	setQuality();
 }
 
-var qualityText;
 function setQuality() {
 	const optQuality = document.getElementById("optQuality");
 	if (localStorage.getItem("quality") === null) {
@@ -4257,30 +4251,6 @@ function setQuality() {
 	} else {
 		optQuality.innerHTML = "auto";
 	}
-}
-
-var uglyText;
-function setUglyText() {
-	updateUglyMode();
-	var onOff = uglyMode ? "on" : "off";
-	uglyText.innerHTML = "Ugly mode: " + onOff;
-}
-
-function toggleUglyMode() {
-	switch (localStorage.uglyMode) {
-		case "true":
-			lsSet("uglyMode", "false");
-			break;
-		case "false":
-		default:
-			lsSet("uglyMode", "true");
-			break;
-	}
-	setUglyText();
-}
-
-function updateUglyMode() {
-	uglyMode = localStorage.uglyMode == "true";
 }
 
 var spectatorText;
