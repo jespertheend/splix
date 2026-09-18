@@ -1439,6 +1439,7 @@ function initOptions() {
 	const optHidePlayerNames = document.getElementById("optHidePlayerNames");
 	const optUglyMode = document.getElementById("optUglyMode");
 	const optclose = document.getElementById("optClose");
+	const optQuality = document.getElementById("optQuality");
 
 	optShowSpecs.checked = showSpectators;
 	optHideLb.checked = leaderboardHidden;
@@ -1478,6 +1479,8 @@ function initOptions() {
 		lsSet("uglyMode", uglyMode);
 		setUglyText();
 	};
+
+	optQuality.onclick = toggleQuality;
 
 	optclose.onclick = () => {
 		options.style.display = "none";
@@ -4232,18 +4235,20 @@ function toggleQuality() {
 
 var qualityText;
 function setQuality() {
+	const optQuality = document.getElementById("optQuality");
 	if (localStorage.getItem("quality") === null) {
 		lsSet("quality", "1");
 	}
 	if (localStorage.quality != "auto") {
 		canvasQuality = parseFloat(localStorage.quality);
-		qualityText.innerHTML = "Quality: " + {
+
+		optQuality.innerHTML = {
 			"0.4": "low",
 			"0.7": "medium",
 			"1": "high",
 		}[localStorage.quality];
 	} else {
-		qualityText.innerHTML = "Quality: auto";
+		optQuality.innerHTML = "auto";
 	}
 }
 

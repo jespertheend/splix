@@ -195,7 +195,7 @@ body {
 }
 
 .options-item > div {
-	width: 320px;
+	width: 310px;
 }
 
 .options-item > input {
@@ -233,6 +233,16 @@ body {
 	-webkit-appearance: none;
 	white-space: nowrap;
 	text-decoration: none;
+}
+
+#optQuality {
+  appearance:none;
+	-webkit-appearance: none;
+  background-color: transparent;
+  border: 2px solid black;
+  width: 100px;
+  height: 25px;
+  transform: translateX(-25px);
 }
 
 .scoreRank > td {
