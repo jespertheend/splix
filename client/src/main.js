@@ -1392,7 +1392,12 @@ window.onload = function () {
 		}
 	});
 
-	//quality button
+	// init showSpectators
+	if (localStorage.getItem("showSpectators") === null){
+		lsSet("showSpectators", true)
+		showSpectators = true;
+	}
+
 	spectatorText.onclick = toggleSpectatorMode;
 	setQuality();
 	setSpectatorText();
@@ -1402,6 +1407,7 @@ window.onload = function () {
 	initTitle();
 	setLeaderboardVisibility();
 	initOptions();
+
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
