@@ -1504,25 +1504,14 @@ function initOptions() {
 }
 
 function colorOptionsBox(reset) {
-	const color = getColorForBlockSkinId(myColorId);
+	const optBox = document.getElementById("options");
+	optBox.style.display = "none"; // hide the box on transition
 
+	const color = getColorForBlockSkinId(myColorId);
 	const brighter = reset ? "#1e7d29" : color.brighter + "cc";
 	const darker = reset ? "#114a17" : color.darker + "cc";
 
-	const optBox = document.getElementById("options");
-	optBox.style.display = "none";
-
-	const boxShadow = "1px 1px " + darker + "," +
-		"2px 2px " + darker + "," +
-		"3px 3px " + darker + "," +
-		"4px 4px " + darker + "," +
-		"5px 5px " + darker + "," +
-		"10px 30px 80px rgba(0,0,0,0.3)";
-
-	optBox.style.backgroundColor = brighter;
-	optBox.style.boxShadow = boxShadow;
-	document.getElementById("optClose").style.boxShadow = boxShadow;
-	document.getElementById("optReset").style.boxShadow = boxShadow;
+	colorBox(optBox, brighter, darker);
 }
 
 //when WebSocket connection is established

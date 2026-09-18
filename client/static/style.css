@@ -183,7 +183,7 @@ body {
 }
 
 #options > h1 {
-	margin: 20px 0px;
+	margin: 5px 0 20px 0;
 }
 
 .options-item {
@@ -218,21 +218,20 @@ body {
 
 .options-buttons {
 	display: flex;
-	gap: 20px;
-	margin: 15px;
-	justify-content: center;
+	align-items: center;
 }
 
 .options-buttons > button {
-	border: 2px solid black;
-	outline: 0;
-	font-size: 18px;
-	padding: 8px;
-	background-color: transparent;
+	margin-left: auto;
 	appearance: none;
-	-webkit-appearance: none;
-	white-space: nowrap;
-	text-decoration: none;
+	background-color: transparent;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	font-size: 2rem;
+	border: 0;
+	width: 25px;
+	height: 25px;
 }
 
 #optQuality {
