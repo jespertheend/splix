@@ -558,7 +558,7 @@ a:hover {
 
 #cornerLinks {
 	display: block;
-	position: absolute;
+	position: fixed;
 	bottom: 10px;
 	right: 10px;
 	line-height: 23px;
@@ -577,7 +577,7 @@ a:hover {
 
 #optionsGear {
   display: block;
-  position: absolute;
+  position: fixed;
   top: 10px;
   right: 10px;
 }
