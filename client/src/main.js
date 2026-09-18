@@ -187,7 +187,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, spectatorMode = false;
+var uiElems = [], zoom, myColorId;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -220,6 +220,7 @@ let showSpectators = localStorage.showSpectators == "true";
 let showGrid = localStorage.showGrid == "true";
 let hidePlayerNames = localStorage.hidePlayerNames == "true";
 let uglyMode = localStorage.uglyMode == "true";
+let spectatorMode = localStorage.spectatorMode == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -997,12 +998,7 @@ function sendProtocolVersion() {
 }
 
 function sendSpectatorMode() {
-	var spectatorMode = localStorage.getItem("spectatorMode");
-	if (spectatorMode === null) {
-		spectatorMode = "false";
-	}
 	wsSendMsg(sendAction.SPECTATOR_MODE, spectatorMode);
-	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
 //sends current skin to websocket
@@ -1324,7 +1320,6 @@ window.onload = function () {
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
-	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 
 	window.onkeydown = onkeydown;
@@ -1364,12 +1359,25 @@ window.onload = function () {
 		nameInput.value = localStorage.name;
 	}
 	nameInput.focus();
+	nameInput.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			formElem.requestSubmit();
+		}
+	});
 	if (localStorage.autoConnect) {
 		doConnect(true);
 	}
 	formElem = document.getElementById("nameForm");
-	formElem.onsubmit = function () {
+	formElem.onsubmit = function (f) {
 		try {
+			if (f.submitter && f.submitter.value === "Join") {
+				spectatorMode = false;
+				lsSet("spectatorMode", false);
+			} else if (f.submitter && f.submitter.value === "Spectate") {
+				spectatorMode = true;
+				lsSet("spectatorMode", true);
+			}
 			connectWithTransition(true);
 		} catch (e) {
 			console.log("Error", e.stack);
@@ -1398,9 +1406,7 @@ window.onload = function () {
 		showSpectators = true;
 	}
 
-	spectatorText.onclick = toggleSpectatorMode;
 	setQuality();
-	setSpectatorText();
 
 	initTutorial();
 	initSkinScreen();
@@ -2254,7 +2260,7 @@ function wsSendMsg(action, data) {
 			array.push(versionBytes[1]);
 		}
 		if (action == sendAction.SPECTATOR_MODE) {
-			var isSpectator = data != "true" ? 0 : 1;
+			const isSpectator = data != true ? 0 : 1;
 			array.push(isSpectator);
 		}
 		var payload = new Uint8Array(array);
@@ -4259,32 +4265,8 @@ function setQuality() {
 	}
 }
 
-var spectatorText;
-function setSpectatorText() {
-	updateSpectatorMode();
-	var onOff = spectatorMode ? "on" : "off";
-	spectatorText.innerHTML = "Spectator mode: " + onOff;
-}
-
-function toggleSpectatorMode() {
-	switch (localStorage.spectatorMode) {
-		case "true":
-			lsSet("spectatorMode", "false");
-			break;
-		case "false":
-		default:
-			lsSet("spectatorMode", "true");
-			break;
-	}
-	setSpectatorText();
-}
-
 function setLeaderboardVisibility() {
 	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
-}
-
-function updateSpectatorMode() {
-	spectatorMode = localStorage.spectatorMode == "true";
 }
 
 function loop(timeStamp) {

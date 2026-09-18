@@ -72,6 +72,7 @@ export async function initServerSelection() {
 
 	serverSelectEl.disabled = false;
 	joinButton.disabled = false;
+	document.getElementById("watchButton").disabled = false;
 }
 
 export function getSelectedServer() {
