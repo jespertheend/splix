@@ -1371,6 +1371,11 @@ window.onload = function () {
 	formElem = document.getElementById("nameForm");
 	formElem.onsubmit = function (f) {
 		try {
+			const options = document.getElementById("options");
+			if (options.style.display === "block") {
+				f.preventDefault();
+				return false;
+			}
 			if (f.submitter && f.submitter.value === "Join") {
 				spectatorMode = false;
 				lsSet("spectatorMode", false);
@@ -1401,8 +1406,8 @@ window.onload = function () {
 	});
 
 	// init showSpectators
-	if (localStorage.getItem("showSpectators") === null){
-		lsSet("showSpectators", true)
+	if (localStorage.getItem("showSpectators") === null) {
+		lsSet("showSpectators", true);
 		showSpectators = true;
 	}
 
@@ -1413,7 +1418,6 @@ window.onload = function () {
 	initTitle();
 	setLeaderboardVisibility();
 	initOptions();
-
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
