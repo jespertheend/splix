@@ -176,6 +176,7 @@ body {
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
+  border-radius: 3px;
 	width: 400px;
 	padding: 15px 30px;
 	z-index: 1000;
@@ -228,13 +229,6 @@ body {
 	font-size: 18px;
 	padding: 8px;
 	background-color: transparent;
-	box-shadow:
-		1px 1px #155a1c,
-		2px 2px #155a1c,
-		3px 3px #155a1c,
-		4px 4px #155a1c,
-		5px 5px #155a1c,
-		10px 10px 20px rgba(0, 0, 0, 0.2);
 	appearance: none;
 	-webkit-appearance: none;
 	white-space: nowrap;
