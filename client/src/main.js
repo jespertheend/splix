@@ -1214,6 +1214,12 @@ function clearKeyInputQueue() {
 }
 
 function onkeydown(e) {
+	if (e.code == "Escape") {
+		const options = document.getElementById("options");
+		options.style.display = options.style.display === "none" ? "block" : "none";
+		return;
+	}
+
 	if (!playingAndReady) return;
 	if (e.code in keyInputQueue) return;
 
@@ -1288,13 +1294,6 @@ function parseInputKey(e) {
 		case "ArrowUp":
 			sendDir(3);
 			return true;
-
-		// UI
-		case "Escape": {
-			const options = document.getElementById("options");
-			options.style.display = options.style.display === "none" ? "block" : "none";
-			return true;
-		}
 		case "Enter": {
 			doSkipDeathTransition();
 			return true;
