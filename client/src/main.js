@@ -1432,14 +1432,25 @@ window.onload = function () {
 };
 
 function initOptions() {
+	const options = document.getElementById("options");
+	const optclose = document.getElementById("optClose");
+	const optionsGear = document.getElementById("optionsGear");
+
+	optclose.onclick = () => {
+		options.style.display = "none";
+	};
+
+	optionsGear.onclick = () => {
+		options.style.display = options.style.display === "none" ? "block" : "none";
+	}
+
+	const optQuality = document.getElementById("optQuality");
 	const optShowSpecs = document.getElementById("optShowSpecs");
 	const optHideLb = document.getElementById("optHideLb");
 	const optShowDots = document.getElementById("optShowDots");
 	const optShowPing = document.getElementById("optShowPing");
 	const optHidePlayerNames = document.getElementById("optHidePlayerNames");
 	const optUglyMode = document.getElementById("optUglyMode");
-	const optclose = document.getElementById("optClose");
-	const optQuality = document.getElementById("optQuality");
 
 	optShowSpecs.checked = showSpectators;
 	optHideLb.checked = leaderboardHidden;
@@ -1481,10 +1492,6 @@ function initOptions() {
 	};
 
 	optQuality.onclick = toggleQuality;
-
-	optclose.onclick = () => {
-		options.style.display = "none";
-	};
 
 	colorOptionsBox(true);
 }
