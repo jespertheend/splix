@@ -348,37 +348,41 @@
 			</div>
 			<div id="options" class="greenBox" style="display: none;">
 				<h1>OPTIONS</h1>
-				<label>
-				<input type="checkbox" id="optShowSpecs">
-					Show spectators
+				<label class="options-item">
+					<div class="options-item-div"> Show spectators </div>
+					<input type="checkbox" id="optShowSpecs">
 				</label>
-				<br><br>
-				<label>
+
+				<label class="options-item">
+					<div> Hide leaderboard </div>
 					<input type="checkbox" id="optHideLb">
-					Hide leaderboard
 				</label>
-				<br><br>
-				<label>
+
+				<label class="options-item">
+					<div> Show dots </div>
 					<input type="checkbox" id="optShowDots">
-					Show dots
 				</label>
-				<br><br>
-				<label>
+
+				<label class="options-item">
+					<div> Show ping stats </div>
 					<input type="checkbox" id="optShowPing">
-					Show ping stats
 				</label>
-				<br><br>
-				<label>
+
+				<label class="options-item">
+					<div> Hide player names </div>
 					<input type="checkbox" id="optHidePlayerNames">
-					Hide player names
 				</label>
-				<br><br>
-				<label>
+
+				<label class="options-item">
+					<div> Ugly mode </div>
 					<input type="checkbox" id="optUglyMode">
-					Ugly mode
 				</label>
-				<br><br>
-				<button id="optClose">Close</button>
+
+				<div class="options-buttons">
+					<button id="optReset">Reset</button>
+					<button id="optClose">Close</button>
+				</div>
+				
 			</div>
 			<div id="lifeBox"></div>
 			<div id="topNotifications"></div>
