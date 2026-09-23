@@ -187,7 +187,7 @@ var lastMyPosSetClientSideTime = 0,
 	lastMyPosServerSideTime = 0,
 	lastMyPosSetValidClientSideTime = 0,
 	lastMyPosHasBeenConfirmed = false;
-var uiElems = [], zoom, myColorId, uglyMode, spectatorMode = false;
+var uiElems = [], zoom, myColorId;
 var hasReceivedChunkThisGame = false, didSendSecondReady = false;
 var lastStatBlocks = 0,
 	lastStatKills = 0,
@@ -218,6 +218,9 @@ let leaderboardHidden = localStorage.leaderboardHidden == "true";
 let drawDebug = localStorage.drawDebug == "true";
 let showSpectators = localStorage.showSpectators == "true";
 let showGrid = localStorage.showGrid == "true";
+let hidePlayerNames = localStorage.hidePlayerNames == "true";
+let uglyMode = localStorage.uglyMode == "true";
+let spectatorMode = localStorage.spectatorMode == "true";
 
 var receiveAction = {
 	UPDATE_BLOCKS: 1,
@@ -995,12 +998,7 @@ function sendProtocolVersion() {
 }
 
 function sendSpectatorMode() {
-	var spectatorMode = localStorage.getItem("spectatorMode");
-	if (spectatorMode === null) {
-		spectatorMode = "false";
-	}
 	wsSendMsg(sendAction.SPECTATOR_MODE, spectatorMode);
-	spectatorMode === "true" ? scoreBlock.style.display = "none" : scoreBlock.style.display = "block";
 }
 
 //sends current skin to websocket
@@ -1213,6 +1211,12 @@ function clearKeyInputQueue() {
 }
 
 function onkeydown(e) {
+	if (e.code == "Escape") {
+		const options = document.getElementById("options");
+		options.style.display = options.style.display === "none" ? "block" : "none";
+		return;
+	}
+
 	if (!playingAndReady) return;
 	if (e.code in keyInputQueue) return;
 
@@ -1287,38 +1291,10 @@ function parseInputKey(e) {
 		case "ArrowUp":
 			sendDir(3);
 			return true;
-
-		// UI
-		case "KeyM":
-			showSpectators = !showSpectators;
-			lsSet("showSpectators", showSpectators);
-			topPopUpNotification(showSpectators ? "Spectators visible!" : "Spectators hidden!");
-			return true;
-		case "KeyN":
-			showGrid = !showGrid;
-			lsSet("showGrid", showGrid);
-			topPopUpNotification(showGrid ? "Minimap dots visible!" : "Minimap dots hidden!");
-			return true;
-		case "KeyO":
-			leaderboardHidden = !leaderboardHidden;
-			setLeaderboardVisibility();
-			lsSet("leaderboardHidden", leaderboardHidden);
-			topPopUpNotification(leaderboardHidden ? "Leaderboard hidden!" : "Leaderboard visible!");
-			return true;
-		case "BracketLeft":
-			drawDebug = !drawDebug;
-			lsSet("drawDebug", drawDebug);
-			topPopUpNotification(drawDebug ? "Ping stats enabled!" : "Ping stats disabled!");
-			return true;
-		case "BracketRight":
-			uglyMode = !uglyMode;
-			lsSet("uglyMode", uglyMode);
-			setUglyText();
-			topPopUpNotification(uglyMode ? "Uglymode enabled!" : "Uglymode disabled!");
-			return true;
-		case "Enter":
+		case "Enter": {
 			doSkipDeathTransition();
 			return true;
+		}
 	}
 
 	return false;
@@ -1344,9 +1320,6 @@ window.onload = function () {
 	lastStatValueElem = document.getElementById("lastStatsRight");
 	bestStatValueElem = document.getElementById("bestStatsRight");
 	joinButton = document.getElementById("joinButton");
-	qualityText = document.getElementById("qualityText");
-	uglyText = document.getElementById("uglyText");
-	spectatorText = document.getElementById("spectatorText");
 	lifeBox = document.getElementById("lifeBox");
 
 	window.onkeydown = onkeydown;
@@ -1386,12 +1359,30 @@ window.onload = function () {
 		nameInput.value = localStorage.name;
 	}
 	nameInput.focus();
+	nameInput.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			formElem.requestSubmit();
+		}
+	});
 	if (localStorage.autoConnect) {
 		doConnect(true);
 	}
 	formElem = document.getElementById("nameForm");
-	formElem.onsubmit = function () {
+	formElem.onsubmit = function (f) {
 		try {
+			const options = document.getElementById("options");
+			if (options.style.display === "block") {
+				f.preventDefault();
+				return false;
+			}
+			if (f.submitter && f.submitter.value === "Join") {
+				spectatorMode = false;
+				lsSet("spectatorMode", false);
+			} else if (f.submitter && f.submitter.value === "Spectate") {
+				spectatorMode = true;
+				lsSet("spectatorMode", true);
+			}
 			connectWithTransition(true);
 		} catch (e) {
 			console.log("Error", e.stack);
@@ -1414,18 +1405,19 @@ window.onload = function () {
 		}
 	});
 
-	//quality button
-	qualityText.onclick = toggleQuality;
-	uglyText.onclick = toggleUglyMode;
-	spectatorText.onclick = toggleSpectatorMode;
+	// init showSpectators
+	if (localStorage.getItem("showSpectators") === null) {
+		lsSet("showSpectators", true);
+		showSpectators = true;
+	}
+
 	setQuality();
-	setUglyText();
-	setSpectatorText();
 
 	initTutorial();
 	initSkinScreen();
 	initTitle();
 	setLeaderboardVisibility();
+	initOptions();
 
 	//best stats
 	bestStatBlocks = Math.max(bestStatBlocks, localStorage.getItem("bestStatBlocks"));
@@ -1450,6 +1442,81 @@ window.onload = function () {
 		"",
 	);
 };
+
+function initOptions() {
+	const options = document.getElementById("options");
+	const optclose = document.getElementById("optClose");
+	const optionsGear = document.getElementById("optionsGear");
+
+	optclose.onclick = () => {
+		options.style.display = "none";
+	};
+
+	optionsGear.onclick = () => {
+		options.style.display = options.style.display === "none" ? "block" : "none";
+	};
+
+	const optQuality = document.getElementById("optQuality");
+	const optShowSpecs = document.getElementById("optShowSpecs");
+	const optHideLb = document.getElementById("optHideLb");
+	const optShowDots = document.getElementById("optShowDots");
+	const optShowPing = document.getElementById("optShowPing");
+	const optHidePlayerNames = document.getElementById("optHidePlayerNames");
+	const optUglyMode = document.getElementById("optUglyMode");
+
+	optShowSpecs.checked = showSpectators;
+	optHideLb.checked = leaderboardHidden;
+	optShowDots.checked = showGrid;
+	optShowPing.checked = drawDebug;
+	optHidePlayerNames.checked = hidePlayerNames;
+	optUglyMode.checked = uglyMode;
+
+	optShowSpecs.onchange = () => {
+		showSpectators = optShowSpecs.checked;
+		lsSet("showSpectators", showSpectators);
+	};
+
+	optHideLb.onchange = () => {
+		leaderboardHidden = optHideLb.checked;
+		setLeaderboardVisibility();
+		lsSet("leaderboardHidden", leaderboardHidden);
+	};
+
+	optShowDots.onchange = () => {
+		showGrid = optShowDots.checked;
+		lsSet("showGrid", showGrid);
+	};
+
+	optShowPing.onchange = () => {
+		drawDebug = optShowPing.checked;
+		lsSet("drawDebug", drawDebug);
+	};
+
+	optHidePlayerNames.onchange = () => {
+		hidePlayerNames = optHidePlayerNames.checked;
+		lsSet("hidePlayerNames", hidePlayerNames);
+	};
+
+	optUglyMode.onchange = () => {
+		uglyMode = optUglyMode.checked;
+		lsSet("uglyMode", uglyMode);
+	};
+
+	optQuality.onclick = toggleQuality;
+
+	colorOptionsBox(true);
+}
+
+function colorOptionsBox(reset) {
+	const optBox = document.getElementById("options");
+	optBox.style.display = "none"; // hide the box on transition
+
+	const color = getColorForBlockSkinId(myColorId);
+	const brighter = reset ? "#1e7d29" : color.brighter + "cc";
+	const darker = reset ? "#114a17" : color.darker + "cc";
+
+	colorBox(optBox, brighter, darker);
+}
 
 //when WebSocket connection is established
 function onOpen() {
@@ -2186,7 +2253,7 @@ function wsSendMsg(action, data) {
 			array.push(versionBytes[1]);
 		}
 		if (action == sendAction.SPECTATOR_MODE) {
-			var isSpectator = data != "true" ? 0 : 1;
+			const isSpectator = data != true ? 0 : 1;
 			array.push(isSpectator);
 		}
 		var payload = new Uint8Array(array);
@@ -2246,6 +2313,7 @@ function resetAll() {
 	currentTopNotifications = [];
 	sendDirQueue = [];
 	clearAllLives();
+	colorOptionsBox(true);
 }
 
 //initiate tutorialBlocks and tutorialPlayers
@@ -2341,6 +2409,7 @@ function colorUI() {
 		var thisElem = uiElems[i];
 		colorBox(thisElem, mainColor, edgeColor);
 	}
+	colorOptionsBox(false);
 }
 
 //styles an element with mainColor and edgeColor;
@@ -4045,7 +4114,7 @@ function drawPlayer(ctx, player, timeStamp) {
 		}
 
 		//draw name
-		if (localStorage.hidePlayerNames != "true") {
+		if (!hidePlayerNames) {
 			myNameAlphaTimer += deltaTime * 0.001;
 			ctx.font = linesCtx.font = USERNAME_SIZE + "px Arial, Helvetica, sans-serif";
 			if (player.name) {
@@ -4171,73 +4240,26 @@ function toggleQuality() {
 	setQuality();
 }
 
-var qualityText;
 function setQuality() {
+	const optQuality = document.getElementById("optQuality");
 	if (localStorage.getItem("quality") === null) {
 		lsSet("quality", "1");
 	}
 	if (localStorage.quality != "auto") {
 		canvasQuality = parseFloat(localStorage.quality);
-		qualityText.innerHTML = "Quality: " + {
+
+		optQuality.innerHTML = {
 			"0.4": "low",
 			"0.7": "medium",
 			"1": "high",
 		}[localStorage.quality];
 	} else {
-		qualityText.innerHTML = "Quality: auto";
+		optQuality.innerHTML = "auto";
 	}
-}
-
-var uglyText;
-function setUglyText() {
-	updateUglyMode();
-	var onOff = uglyMode ? "on" : "off";
-	uglyText.innerHTML = "Ugly mode: " + onOff;
-}
-
-function toggleUglyMode() {
-	switch (localStorage.uglyMode) {
-		case "true":
-			lsSet("uglyMode", "false");
-			break;
-		case "false":
-		default:
-			lsSet("uglyMode", "true");
-			break;
-	}
-	setUglyText();
-}
-
-function updateUglyMode() {
-	uglyMode = localStorage.uglyMode == "true";
-}
-
-var spectatorText;
-function setSpectatorText() {
-	updateSpectatorMode();
-	var onOff = spectatorMode ? "on" : "off";
-	spectatorText.innerHTML = "Spectator mode: " + onOff;
-}
-
-function toggleSpectatorMode() {
-	switch (localStorage.spectatorMode) {
-		case "true":
-			lsSet("spectatorMode", "false");
-			break;
-		case "false":
-		default:
-			lsSet("spectatorMode", "true");
-			break;
-	}
-	setSpectatorText();
 }
 
 function setLeaderboardVisibility() {
 	leaderboardDivElem.style.display = leaderboardHidden ? "none" : null;
-}
-
-function updateSpectatorMode() {
-	spectatorMode = localStorage.spectatorMode == "true";
 }
 
 function loop(timeStamp) {
