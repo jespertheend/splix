@@ -220,7 +220,7 @@ export class WebSocketConnection {
 	#plusSkinsAllowed = false;
 	set plusSkinsAllowed(value) {
 		this.#plusSkinsAllowed = value;
-		if (this.#game && this.#player) {
+		if (this.#game && this.#player && !this.#player.permanentlyDead) {
 			this.#game.broadcastPlayerColor(this.#player);
 
 			// The color of other players is adjusted to prevent other players from rendering with the same color as us.
