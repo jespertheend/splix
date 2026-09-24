@@ -11,7 +11,7 @@ import {
 	WAIT_FOR_DISCONNECTED_MS,
 } from "./constants.js";
 import "./globals.js";
-import { getSelectedServer, initServerSelection } from "./network/serverSelection.js";
+import { getSelectedServer, stopUpdateServerList, updateServerList } from "./network/serverSelection.js";
 import { getSpectatorIcon } from "./rendering/spectatorIcons.js";
 import { getPeliAuthCode, initPeliSdk } from "./peliSdk.js";
 import {
@@ -1434,12 +1434,7 @@ window.onload = function () {
 	bestStatAlive = Math.max(bestStatAlive, localStorage.getItem("bestStatAlive"));
 	bestStatNo1Time = Math.max(bestStatNo1Time, localStorage.getItem("bestStatNo1Time"));
 
-	initServerSelection();
-
-	document.getElementById("serverSelect").addEventListener(
-		"change",
-		(e) => localStorage.setItem("lastSelectedEndpoint", e.target.value),
-	);
+	updateServerList();
 
 	window.requestAnimationFrame(loop);
 
@@ -1487,6 +1482,7 @@ export function hideBeginScreen() {
 	beginScreen.style.display = "none";
 	beginScreenVisible = false;
 	updateCmpPersistentLinkVisibility();
+	stopUpdateServerList();
 }
 
 function showMainCanvas() {
@@ -1505,6 +1501,7 @@ function setNotification(str) {
 }
 
 export function showBeginScreen() {
+	updateServerList();
 	beginScreen.style.display = null;
 	beginScreenVisible = true;
 	updateCmpPersistentLinkVisibility();
