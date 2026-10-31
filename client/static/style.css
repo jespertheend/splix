@@ -2,7 +2,8 @@ html {
 	font-family: Arial, Helvetica, sans-serif;
 }
 
-html, body {
+html,
+body {
 	height: 100%;
 	margin: 0px;
 }
@@ -171,6 +172,79 @@ body {
 	text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+#options {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border-radius: 3px;
+	width: 400px;
+	padding: 15px 30px;
+	z-index: 1000;
+}
+
+#options > h1 {
+	margin: 5px 0 20px 0;
+}
+
+.options-item {
+	display: flex;
+	padding: 10px 0px;
+	font-size: large;
+	align-items: center;
+	justify-content: left;
+}
+
+.options-item > div {
+	width: 310px;
+}
+
+.options-item > input {
+	width: 25px;
+	height: 25px;
+	appearance: none;
+	border: 2px solid #000;
+	justify-content: right;
+	background-size: 20px 20px;
+	background-color: transparent;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.options-item > input:checked {
+	background-image: url(img/tick.png);
+	background-size: contain;
+	filter: var(--icon-filter);
+}
+
+.options-buttons {
+	display: flex;
+	align-items: center;
+}
+
+.options-buttons > button {
+	margin-left: auto;
+	appearance: none;
+	background-color: transparent;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	font-size: 2rem;
+	border: 0;
+	width: 25px;
+	height: 25px;
+}
+
+#optQuality {
+	appearance: none;
+	-webkit-appearance: none;
+	background-color: transparent;
+	border: 2px solid black;
+	width: 100px;
+	height: 25px;
+	transform: translateX(-25px);
+}
+
 .scoreRank > td {
 	padding: 0px 5px;
 	max-width: 200px;
@@ -272,7 +346,9 @@ a:hover {
 }
 
 @media (max-width: 700px) {
-	#miniMap, #leaderboard, #lifeBox {
+	#miniMap,
+	#leaderboard,
+	#lifeBox {
 		transform: scale(0.7);
 	}
 
@@ -330,7 +406,8 @@ a:hover {
 	text-shadow: 1px 1px 1px #7b1e1e, 3px 3px 10px rgba(0, 0, 0, 0.3);
 }
 
-#lastStats, #bestStats {
+#lastStats,
+#bestStats {
 	color: white;
 	margin-bottom: 10px;
 }
@@ -389,11 +466,13 @@ a:hover {
 	cursor: pointer;
 }
 
-.skinButton:hover, #skinSave:hover {
+.skinButton:hover,
+#skinSave:hover {
 	background-color: #22902f;
 }
 
-.skinButton:active, #skinSave:active {
+.skinButton:active,
+#skinSave:active {
 	box-shadow: 0px 0px #155a1c;
 }
 
@@ -484,8 +563,8 @@ a:hover {
 
 #cornerLinks {
 	display: block;
-	position: absolute;
-	top: 10px;
+	position: fixed;
+	bottom: 10px;
 	right: 10px;
 	line-height: 23px;
 	text-align: right;
@@ -496,16 +575,27 @@ a:hover {
 	text-decoration: none;
 	margin-left: 5px;
 }
+
 #cornerLinks > a:hover {
 	text-decoration: underline;
 }
 
-#qualityText, #uglyText, #spectatorText {
+#optionsGear {
+	display: block;
+	position: fixed;
+	top: 10px;
+	right: 10px;
+}
+
+#qualityText,
+#uglyText,
+#spectatorText {
 	cursor: pointer;
 }
 
 @media (max-width: 950px) {
-	#adboxContainer, #newsbox {
+	#adboxContainer,
+	#newsbox {
 		display: none;
 	}
 }

@@ -114,6 +114,7 @@
 							<option>Loading...</option>
 						</select>
 						<input type="submit" disabled class="fancyBox fancyBtn" id="joinButton" value="Join" />
+						<input type="submit" disabled class="fancyBox fancyBtn" id="watchButton" value="Spectate" />
 					</form>
 					<div id="tutorialText" style="opacity: 0"></div>
 					<canvas id="tutorialCanvas" width="300" height="300"></canvas>
@@ -291,12 +292,9 @@
 				<a href="/about">about</a>
 				<a href="/leaderboards">leaderboards</a>
 				<a href="/privacy">privacy</a>
-				<br>
-				<a id="qualityText">Quality: high</a>
-				<br>
-				<a id="uglyText">Ugly mode: off</a>
-				<br>
-				<a id="spectatorText">Spectator mode: off</a>
+			</div>
+			<div id="optionsGear">
+				<img src="static/img/settings.svg" width="30" height="30">
 			</div>
 		</div>
 		<div id="skinScreen" style="display: none">
@@ -348,6 +346,48 @@
 			</div>
 			<div id="lifeBox"></div>
 			<div id="topNotifications"></div>
+		</div>
+		<div id="options" style="display: none">
+			<div class="options-buttons">
+				<button id="optClose">X</button>
+			</div>
+
+			<h1>OPTIONS</h1>
+
+			<label class="options-item">
+				<div class="options-item-div">Quality</div>
+				<button id="optQuality">auto</button>
+			</label>
+
+			<label class="options-item">
+				<div class="options-item-div">Show spectators</div>
+				<input type="checkbox" id="optShowSpecs">
+			</label>
+
+			<label class="options-item">
+				<div>Hide leaderboard</div>
+				<input type="checkbox" id="optHideLb">
+			</label>
+
+			<label class="options-item">
+				<div>Show dots</div>
+				<input type="checkbox" id="optShowDots">
+			</label>
+
+			<label class="options-item">
+				<div>Show ping stats</div>
+				<input type="checkbox" id="optShowPing">
+			</label>
+
+			<label class="options-item">
+				<div>Hide player names</div>
+				<input type="checkbox" id="optHidePlayerNames">
+			</label>
+
+			<label class="options-item">
+				<div>Ugly mode</div>
+				<input type="checkbox" id="optUglyMode">
+			</label>
 		</div>
 		<canvas id="transitionCanvas" class="fullscreenCanvas" style="z-index: 1000; display: none"></canvas>
 		<canvas id="mainCanvas" class="fullscreenCanvas" style="z-index: -100; display: none"></canvas>
